@@ -1,0 +1,160 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// 1. 사용자 테이블
+model User {
+  id                String   @id @default(uuid()) @db.Uuid
+  email             String   @unique
+  password          String
+  nickname          String
+  profileImg        String?  @map("profile_img")
+  mannerTemperature Decimal  @default(36.5) @map("manner_temperature") @db.Decimal(3, 1)
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  hostedGatherings Gathering[]            @relation("HostedGatherings")
+  joinedGatherings GatheringParticipant[]
+  publicChats      PublicChat[]
+  matchingQueues   MatchingQueue[] // 💡 (참고) MatchingQueue 모델은 아래에 없지만 관계가 걸려있어 유지했습니다.
+
+  // 💡 1:1 DM 관계 추가 (PrivateChatRoom의 관계 이름과 매칭)
+  privateChatRoomsA PrivateChatRoom[] @relation("UserAChats")
+  privateChatRoomsB PrivateChatRoom[] @relation("UserBChats")
+  sentPrivateChats  PrivateChat[]     @relation("SentPrivateChats")
+
+  @@map("users")
+}
+
+// 2. 실시간 소모임 테이블
+model Gathering {
+  id                  String          @id @default(uuid()) @db.Uuid
+  hostId              String          @map("host_id") @db.Uuid
+  title               String
+  description         String          @db.Text
+  category            String
+  maxParticipants     Int             @map("max_participants")
+  currentParticipants Int             @default(1) @map("current_participants")
+  latitude            Decimal         @db.Decimal(9, 6)
+  longitude           Decimal         @db.Decimal(9, 6)
+  locationName        String          @map("location_name")
+  status              GatheringStatus @default(RECRUITING)
+  gatheringAt         DateTime        @map("gathering_at")
+  createdAt           DateTime        @default(now()) @map("created_at")
+  updatedAt           DateTime        @updatedAt @map("updated_at")
+
+  host         User                   @relation("HostedGatherings", fields: [hostId], references: [id], onDelete: Cascade)
+  participants GatheringParticipant[]
+  chatMessages PublicChat[]
+
+  @@map("gatherings")
+}
+
+// 3. 소모임 참여 매칭 중간 테이블 (N:M 해소)
+model GatheringParticipant {
+  id          String            @id @default(uuid()) @db.Uuid
+  gatheringId String            @map("gathering_id") @db.Uuid
+  userId      String            @map("user_id") @db.Uuid
+  role        ParticipantRole   @default(MEMBER)
+  status      ParticipantStatus @default(PENDING)
+  joinedAt    DateTime          @default(now()) @map("joined_at")
+
+  gathering Gathering @relation(fields: [gatheringId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([gatheringId, userId])
+  @@map("gathering_participants")
+}
+
+// 4. 실시간 단체 채팅 
+model PublicChat {
+  id          String   @id @default(uuid()) @db.Uuid
+  gatheringId String   @map("gathering_id") @db.Uuid
+  senderId    String   @map("sender_id") @db.Uuid
+  message     String   @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  gathering Gathering @relation(fields: [gatheringId], references: [id], onDelete: Cascade)
+  sender    User      @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@map("public_chats")
+}
+
+// 5. 다이렉트 메시지 방 테이블
+model PrivateChatRoom {
+  id        String   @id @default(uuid()) @db.Uuid
+  userAId   String   @map("user_a_id") @db.Uuid
+  userBId   String   @map("user_b_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  userA User @relation("UserAChats", fields: [userAId], references: [id], onDelete: Cascade)
+  userB User @relation("UserBChats", fields: [userBId], references: [id], onDelete: Cascade)
+
+  messages PrivateChat[]
+
+  @@unique([userAId, userBId])
+  @@map("private_chat_rooms")
+}
+
+// 6. 다이렉트 메시지 내용 테이블
+model PrivateChat {
+  id        String   @id @default(uuid()) @db.Uuid
+  roomId    String   @map("room_id") @db.Uuid
+  senderId  String   @map("sender_id") @db.Uuid
+  message   String   @db.Text
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  room   PrivateChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  sender User            @relation("SentPrivateChats", fields: [senderId], references: [id], onDelete: Cascade) // 💡 관계 이름 추가
+
+  @@map("private_chats")
+}
+
+// 5. 위치 기반 실시간 매칭 큐 테이블
+model MatchingQueue {
+  id                String      @id @default(uuid()) @db.Uuid
+  userId            String      @map("user_id") @db.Uuid
+  latitude          Decimal     @db.Decimal(9, 6)
+  longitude         Decimal     @db.Decimal(9, 6)
+  preferredCategory String?     @map("preferred_category")
+  status            QueueStatus @default(WAITING)
+  createdAt         DateTime    @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("matching_queues")
+}
+
+// --- Enum 타입 정의 ---
+enum GatheringStatus {
+  RECRUITING // 모집중
+  FULL // 인원 마감
+  MATCHED // 매칭완료(출발)
+  COMPLETED // 모임종료
+  CANCELED // 취소됨
+}
+
+enum ParticipantRole {
+  HOST
+  MEMBER
+}
+
+enum ParticipantStatus {
+  PENDING // 승인대기
+  ACCEPTED // 참여승인
+  REJECTED // 거절됨
+  EXITED // 퇴장함
+}
+
+enum QueueStatus {
+  WAITING
+  MATCHED
+  TIMEOUT
+}
