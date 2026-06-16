@@ -23,11 +23,11 @@ export class GatheringsController {
   @UseGuards(JwtAuthGuard)
   @Post()
   async create(
-    @Req() req: { user: { sub: string } }, 
+    @Req() req: { user: { sub: string } },
     @Body() createDto: CreateGatheringDto,
   ) {
     const hostId = req.user.sub;
-    return await this.gatheringsService.create(hostId, createDto); 
+    return await this.gatheringsService.create(hostId, createDto);
   }
 
   // 2. 위치 기반 주변 모임 조회
@@ -39,7 +39,7 @@ export class GatheringsController {
   // 3. 소모임 상세 조회
   @Get(':id')
   async findOne(@Param('id') id: string) {
-    return await this.gatheringsService.findOne(id); 
+    return await this.gatheringsService.findOne(id);
   }
 
   // 4. 소모임 참여 신청 및 취소 토글
@@ -47,7 +47,7 @@ export class GatheringsController {
   @Post(':id/join')
   async toggleJoin(
     @Param('id') id: string,
-    @Req() req: { user: { sub: string } }, 
+    @Req() req: { user: { sub: string } },
   ) {
     const userId = req.user.sub;
     return await this.gatheringsService.toggleJoin(id, userId);
@@ -62,17 +62,43 @@ export class GatheringsController {
     @Body('status') status: string,
   ) {
     const hostId = req.user.sub;
-    return await this.gatheringsService.updateStatus(id, hostId, status); 
+    return await this.gatheringsService.updateStatus(id, hostId, status);
   }
 
   // 6. 소모임 삭제 (방장 전용)
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
-  async remove(
+  async remove(@Param('id') id: string, @Req() req: { user: { sub: string } }) {
+    const hostId = req.user.sub;
+    return await this.gatheringsService.remove(id, hostId);
+  }
+
+  // 7. [방장 전용] 소모임 신청자 명단 및 상태 조회
+  @UseGuards(JwtAuthGuard)
+  @Get(':id/participants')
+  async getParticipants(
     @Param('id') id: string,
-    @Req() req: { user: { sub: string } }, 
+    @Req() req: { user: { sub: string } },
   ) {
     const hostId = req.user.sub;
-    return await this.gatheringsService.remove(id, hostId); 
+    return await this.gatheringsService.getParticipants(id, hostId);
+  }
+
+  // 8. [방장 전용] 소모임 참여 신청 승인/거절 처리
+  @UseGuards(JwtAuthGuard)
+  @Patch(':id/participants')
+  async reviewParticipant(
+    @Param('id') id: string,
+    @Req() req: { user: { sub: string } },
+    @Body('userId') userId: string,
+    @Body('status') status: 'ACCEPTED' | 'REJECTED', 
+  ) {
+    const hostId = req.user.sub;
+    return await this.gatheringsService.reviewParticipant(
+      id,
+      hostId,
+      userId,
+      status,
+    );
   }
 }

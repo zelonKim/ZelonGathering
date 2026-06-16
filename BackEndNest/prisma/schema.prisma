@@ -7,16 +7,24 @@ generator client {
   provider = "prisma-client-js"
 }
 
-// 1. 사용자 테이블
+// 사용자 테이블
 model User {
-  id                String   @id @default(uuid()) @db.Uuid
-  email             String   @unique
+  id                String              @id @default(uuid()) @db.Uuid
+  email             String              @unique
   password          String
-  nickname          String
-  profileImg        String?  @map("profile_img")
-  mannerTemperature Decimal  @default(36.5) @map("manner_temperature") @db.Decimal(3, 1)
-  createdAt         DateTime @default(now()) @map("created_at")
-  updatedAt         DateTime @updatedAt @map("updated_at")
+  nickname          String              @unique
+  favorite          String?
+  hate              String?
+  age               Int?
+  mbti              Mbti?
+  preferCategory    GatheringCategory[]
+  preferDistrict    District[]
+  preferDay         Day[]
+  preferTime        Time[]
+  profileImg        String?             @map("profile_img")
+  mannerTemperature Decimal             @default(36.5) @map("manner_temperature") @db.Decimal(3, 1)
+  createdAt         DateTime            @default(now()) @map("created_at")
+  updatedAt         DateTime            @updatedAt @map("updated_at")
 
   hostedGatherings Gathering[]            @relation("HostedGatherings")
   joinedGatherings GatheringParticipant[]
@@ -28,25 +36,29 @@ model User {
   privateChatRoomsB PrivateChatRoom[] @relation("UserBChats")
   sentPrivateChats  PrivateChat[]     @relation("SentPrivateChats")
 
+  notifications Notification[] @relation("UserNotifications")
+
   @@map("users")
 }
 
-// 2. 실시간 소모임 테이블
+// 실시간 소모임 테이블
 model Gathering {
-  id                  String          @id @default(uuid()) @db.Uuid
-  hostId              String          @map("host_id") @db.Uuid
+  id                  String            @id @default(uuid()) @db.Uuid
+  hostId              String            @map("host_id") @db.Uuid
   title               String
-  description         String          @db.Text
-  category            String
-  maxParticipants     Int             @map("max_participants")
-  currentParticipants Int             @default(1) @map("current_participants")
-  latitude            Decimal         @db.Decimal(9, 6)
-  longitude           Decimal         @db.Decimal(9, 6)
-  locationName        String          @map("location_name")
-  status              GatheringStatus @default(RECRUITING)
-  gatheringAt         DateTime        @map("gathering_at")
-  createdAt           DateTime        @default(now()) @map("created_at")
-  updatedAt           DateTime        @updatedAt @map("updated_at")
+  description         String            @db.Text
+  category            GatheringCategory
+  maxParticipants     Int               @map("max_participants")
+  currentParticipants Int               @default(1) @map("current_participants")
+  gatheringPlace      String
+  latitude            Decimal           @db.Decimal(9, 6)
+  longitude           Decimal           @db.Decimal(9, 6)
+  district            District
+  gatheringDay        Day[]
+  gatheringTime       Time[]
+  status              GatheringStatus   @default(RECRUITING)
+  createdAt           DateTime          @default(now()) @map("created_at")
+  updatedAt           DateTime          @updatedAt @map("updated_at")
 
   host         User                   @relation("HostedGatherings", fields: [hostId], references: [id], onDelete: Cascade)
   participants GatheringParticipant[]
@@ -55,7 +67,7 @@ model Gathering {
   @@map("gatherings")
 }
 
-// 3. 소모임 참여 매칭 중간 테이블 (N:M 해소)
+// 소모임 참여 매칭 중간 테이블 (N:M 해소)
 model GatheringParticipant {
   id          String            @id @default(uuid()) @db.Uuid
   gatheringId String            @map("gathering_id") @db.Uuid
@@ -71,7 +83,7 @@ model GatheringParticipant {
   @@map("gathering_participants")
 }
 
-// 4. 실시간 단체 채팅 
+// 실시간 단체 채팅 
 model PublicChat {
   id          String   @id @default(uuid()) @db.Uuid
   gatheringId String   @map("gathering_id") @db.Uuid
@@ -85,7 +97,7 @@ model PublicChat {
   @@map("public_chats")
 }
 
-// 5. 다이렉트 메시지 방 테이블
+// 다이렉트 메시지 방 테이블
 model PrivateChatRoom {
   id        String   @id @default(uuid()) @db.Uuid
   userAId   String   @map("user_a_id") @db.Uuid
@@ -102,7 +114,7 @@ model PrivateChatRoom {
   @@map("private_chat_rooms")
 }
 
-// 6. 다이렉트 메시지 내용 테이블
+// 다이렉트 메시지 내용 테이블
 model PrivateChat {
   id        String   @id @default(uuid()) @db.Uuid
   roomId    String   @map("room_id") @db.Uuid
@@ -117,7 +129,7 @@ model PrivateChat {
   @@map("private_chats")
 }
 
-// 5. 위치 기반 실시간 매칭 큐 테이블
+// 위치 기반 실시간 매칭 큐 테이블
 model MatchingQueue {
   id                String      @id @default(uuid()) @db.Uuid
   userId            String      @map("user_id") @db.Uuid
@@ -132,13 +144,28 @@ model MatchingQueue {
   @@map("matching_queues")
 }
 
-// --- Enum 타입 정의 ---
+model Notification {
+  id        String           @id @default(uuid()) @db.Uuid
+  userId    String           @map("user_id") @db.Uuid // 알림을 받을 유저 id
+  type      NotificationType // 알림 종류
+  title     String // 알림 제목 
+  message   String           @db.Text // 알림 내용 
+  linkId    String?          @map("link_id") @db.Uuid // 여기서는 생성된 Gathering의 ID가 들어감
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  user User @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+/////////////////////////////////////////
+
 enum GatheringStatus {
   RECRUITING // 모집중
   FULL // 인원 마감
-  MATCHED // 매칭완료(출발)
-  COMPLETED // 모임종료
-  CANCELED // 취소됨
+  ONGOING // 모임 진행중
+  FINISHED // 모임 종료
+  CANCELED // 모임 취소
 }
 
 enum ParticipantRole {
@@ -157,4 +184,145 @@ enum QueueStatus {
   WAITING
   MATCHED
   TIMEOUT
+}
+
+enum GatheringCategory {
+  STUDY
+  SPORTS
+  ART
+  FOOD
+  GAME
+  BOOK
+  TALK
+  TOUR
+}
+
+enum Day {
+  MON // 월요일
+  TUE // 화요일
+  WED // 수요일
+  THU // 목요일
+  FRI // 금요일
+  SAT // 토요일
+  SUN // 일요일
+}
+
+enum Time {
+  AM_06 // 오전 06:00 ~ 07:00
+  AM_07 // 오전 07:00 ~ 08:00
+  AM_08 // 오전 08:00 ~ 09:00
+  AM_09 // 오전 09:00 ~ 10:00
+  AM_10 // 오전 10:00 ~ 11:00
+  AM_11 // 오전 11:00 ~ 12:00
+  PM_12 // 오후 12:00 ~ 01:00 (정오/점심)
+  PM_01 // 오후 01:00 ~ 02:00
+  PM_02 // 오후 02:00 ~ 03:00
+  PM_03 // 오후 03:00 ~ 04:00
+  PM_04 // 오후 04:00 ~ 05:00
+  PM_05 // 오후 05:00 ~ 06:00
+  PM_06 // 오후 06:00 ~ 07:00 
+  PM_07 // 오후 07:00 ~ 08:00
+  PM_08 // 오후 08:00 ~ 09:00
+  PM_09 // 오후 09:00 ~ 10:00
+  PM_10 // 오후 10:00 ~ 11:00 
+}
+
+enum District {
+  SEOUL_GANGDONG // 강동구
+  SEOUL_GANGSEO // 강서구
+  SEOUL_GANGNAM // 강남구
+  SEOUL_GANGBUK // 강북구
+  SEOUL_GWANAK // 관악구
+  SEOUL_GWANGJIN // 광진구
+  SEOUL_GURO // 구로구
+  SEOUL_GEUMCHEON // 금천구
+  SEOUL_NOWON // 노원구
+  SEOUL_DOBONG // 도봉구
+  SEOUL_DONGDAEMUN // 동대문구
+  SEOUL_DONGJAK // 동작구
+  SEOUL_MAPO // 마포구
+  SEOUL_SEODAEMUN // 서대문구
+  SEOUL_SEOCHO // 서초구
+  SEOUL_SEONGDONG // 성동구
+  SEOUL_SEONGBUK // 성북구
+  SEOUL_SONGPA // 송파구
+  SEOUL_YANGCHEON // 양천구
+  SEOUL_YEONGDEUNGPO // 영등포구
+  SEOUL_YONGSAN // 용산구
+  SEOUL_EUNPYEONG // 은평구
+  SEOUL_JONGNO // 종로구
+  SEOUL_JUNGGU // 중구
+  SEOUL_JUNGNANG // 중랑구
+
+  GYEONGGI_SUWON // 수원시
+  GYEONGGI_SEONGNAM // 성남시 (분당/판교 포함)
+  GYEONGGI_GOYANG // 고양시 (일산 포함)
+  GYEONGGI_YONGIN // 용인시 (수지/기흥 포함)
+  GYEONGGI_BUCHEON // 부천시
+  GYEONGGI_ANSAN // 안산시
+  GYEONGGI_ANYANG // 안양시
+  GYEONGGI_NAMYANGJU // 남양주시
+  GYEONGGI_HWASEONG // 화성시 (동탄 포함) 
+  GYEONGGI_PYEONGTAEK // 평택시
+  GYEONGGI_UIJEONGBU // 의정부시
+  GYEONGGI_SIHEUNG // 시흥시
+  GYEONGGI_PAJU // 파주시
+  GYEONGGI_GWANGMYEONG // 광명시
+  GYEONGGI_GIMPO // 김포시
+  GYEONGGI_GUNPO // 군포시
+  GYEONGGI_GWANGJU // 광주시
+  GYEONGGI_ICHEON // 이천시
+  GYEONGGI_YANGJU // 양주시
+  GYEONGGI_ANSEONG // 안성시
+  GYEONGGI_GURI // 구리시
+  GYEONGGI_UIWANG // 의왕시
+  GYEONGGI_POCHEON // 포천시
+  GYEONGGI_HANAM // 하남시
+  GYEONGGI_OSAN // 오산시
+  GYEONGGI_YEOJU // 여주시
+  GYEONGGI_DONGDUCHEON // 동두천시
+  GYEONGGI_GWACHEON // 과천시
+  GYEONGGI_YANGPYEONG // 양평군
+  GYEONGGI_GAPYEONG // 가평군
+  GYEONGGI_YEONCHEON // 연천군
+
+  INCHEON // 인천광역시
+  DAEJEON // 대전광역시 
+  DAEGU // 대구광역시
+  GWANGJU // 광주광역시
+  BUSAN // 부산광역시
+  ULSAN // 울산광역시
+  SEJONG // 세종특별자치시
+  GANGWON // 강원특별자치도
+  CHUNGBUK // 충청북도
+  CHUNGNAM // 충청남도
+  JEONBUK // 전북특별자치도
+  JEONNAM // 전라남도
+  GYEONGBUK // 경상북도
+  GYEONGNAM // 경상남도
+  JEJU // 제주특별자치도
+}
+
+enum Mbti {
+  ISTJ
+  ISFJ
+  INFJ
+  INTJ
+  ISTP
+  ISFP
+  INFP
+  INTP
+  ESTP
+  ESFP
+  ENFP
+  ENTP
+  ESTJ
+  ESFJ
+  ENFJ
+  ENTJ
+}
+
+enum NotificationType {
+  AI_MATCHING // AI 매칭 알림
+  NEW_CHAT // 새 채팅 알림
 }

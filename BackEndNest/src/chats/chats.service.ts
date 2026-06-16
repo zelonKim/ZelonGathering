@@ -149,7 +149,6 @@ export class ChatsService {
         data: { updatedAt: new Date() },
       });
 
-      // 💡 여기서 배열이 아니라 message 단일 객체를 리턴하기 때문에 <any>가 정답입니다!
       return message;
     });
   }
@@ -172,7 +171,7 @@ export class ChatsService {
     }
 
     return await this.prisma.privateChat.findMany({
-      // 👑 await 추가
+   
       where: { roomId },
       take: dto.limit,
       orderBy: { createdAt: 'desc' },

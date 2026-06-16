@@ -46,7 +46,6 @@ export class ChatsController {
   // 3. 상대방 유저ID로 1:1 채팅방 개설 및 접속하기
   @Post('private/room/:partnerUserId')
   async openPrivateChatRoom(
-    // 👑 async 장착!
     @Param('partnerUserId') partnerUserId: string,
     @Req() req: { user: { sub: string } },
   ) {
