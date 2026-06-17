@@ -1,24 +1,32 @@
-import { IsString, IsOptional, IsNumber, Min } from 'class-validator';
-import { Type } from 'class-transformer';
+// dto/filter-gathering.dto.ts
+import { IsEnum, IsOptional, IsString, IsNumber, IsArray } from 'class-validator';
+import { Type, Transform } from 'class-transformer';
+import { Day } from '@prisma/client';
 
 export class FilterGatheringDto {
   @IsOptional()
-  @Type(() => Number) // 💡 문자열로 들어온 쿼리를 number 타입으로 강제 형변환합니다.
-  @IsNumber({}, { message: '위도(latitude)는 숫자여야 합니다.' })
-  latitude?: number;
+  @IsArray()
+  @IsString({ each: true })
+  // 💡 URL 쿼리 파라미터가 콤마(,)나 단일 값으로 들어올 때 배열로 안전하게 변환
+  @Transform(({ value }) => (Array.isArray(value) ? value : value ? [value] : []))
+  types?: string[]; // ['거리순', '오늘 열리는'] 등
 
   @IsOptional()
-  @Type(() => Number) // 💡 문자열로 들어온 쿼리를 number 타입으로 강제 형변환합니다.
-  @IsNumber({}, { message: '경도(longitude)는 숫자여야 합니다.' })
-  longitude?: number;
+  @IsArray()
+  @IsString({ each: true })
+  @Transform(({ value }) => (Array.isArray(value) ? value : value ? [value] : []))
+  categories?: string[]; // ['스터디', '스포츠'] 등
+
+  @IsOptional()
+  @IsEnum(Day)
+  clientDay?: Day;
 
   @IsOptional()
   @Type(() => Number)
-  @IsNumber({}, { message: '반경(radius)은 숫자여야 합니다.' })
-  @Min(0.1, { message: '반경은 최소 0.1km 이상이어야 합니다.' })
-  radius: number = 1.5; // 💡 기본값을 1.5km로 깔끔하게 지정해 둡니다.
+  @IsNumber()
+  latitude?: number;
 
   @IsOptional()
-  @IsString({ message: '카테고리는 문자열이어야 합니다.' })
-  category?: string;
+  @Type(() => Number)
+  longitude?: number;
 }

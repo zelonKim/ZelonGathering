@@ -30,11 +30,13 @@ export class GatheringsController {
     return await this.gatheringsService.create(hostId, createDto);
   }
 
-  // 2. 위치 기반 주변 모임 조회
+
+  // 2. 소모임 조회
   @Get()
   async findAll(@Query() dto: FilterGatheringDto) {
     return await this.gatheringsService.findAll(dto);
   }
+
 
   // 3. 소모임 상세 조회
   @Get(':id')

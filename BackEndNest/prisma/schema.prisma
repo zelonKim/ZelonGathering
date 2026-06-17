@@ -25,6 +25,8 @@ model User {
   mannerTemperature Decimal             @default(36.5) @map("manner_temperature") @db.Decimal(3, 1)
   createdAt         DateTime            @default(now()) @map("created_at")
   updatedAt         DateTime            @updatedAt @map("updated_at")
+  latitude          Decimal?            @db.Decimal(9, 6)
+  longitude         Decimal?            @db.Decimal(9, 6)
 
   hostedGatherings Gathering[]            @relation("HostedGatherings")
   joinedGatherings GatheringParticipant[]

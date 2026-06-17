@@ -91,10 +91,17 @@ export class UsersService {
       select: {
         id: true,
         email: true,
-        nickname: true,
         profileImg: true,
         mannerTemperature: true,
-        createdAt: true,
+        nickname: true,
+        age: true,
+        mbti: true,
+        favorite: true,
+        hate: true,
+        preferCategory: true,
+        preferDistrict: true,
+        preferDay: true,
+        preferTime: true,
       },
     });
 

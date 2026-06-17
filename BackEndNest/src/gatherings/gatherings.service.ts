@@ -6,7 +6,12 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { Prisma } from '@prisma/client';
+import {
+  Day,
+  GatheringCategory,
+  GatheringStatus,
+  Prisma,
+} from '@prisma/client';
 import { CreateGatheringDto } from './dto/create-gathering.dto';
 import { FilterGatheringDto } from './dto/filter-gathering.dto';
 
@@ -171,40 +176,140 @@ export class GatheringsService {
 
   /////////////////////////////////////////
 
-  // 2. 위치 기반 모임 목록 조회
+  // 2. 모임 목록 조회
   async findAll(dto: FilterGatheringDto) {
-    const { latitude, longitude, radius, category } = dto;
+    const { types = [], categories = [], clientDay, latitude, longitude } = dto;
 
-    // 기본 조건 구조 세팅
     const whereClause: any = {
-      status: 'RECRUITING', // 모집 중인 것만 기본 노출
+      status: GatheringStatus.RECRUITING,
     };
 
-    if (category) {
-      whereClause.category = category;
+    // --------------------------------------------------------
+    // [1] 카테고리 다중 필터링 (스터디 + 스포츠 + 게임 ...)
+    // --------------------------------------------------------
+    // '전체'가 포함되어 있거나 카테고리 선택이 아예 없으면 필터링 패스
+    if (categories.length > 0 && !categories.includes('전체')) {
+      const categoryMap: Record<string, GatheringCategory> = {
+        스터디: GatheringCategory.STUDY,
+        스포츠: GatheringCategory.SPORTS,
+        아트: GatheringCategory.ART,
+        푸드: GatheringCategory.FOOD,
+        게임: GatheringCategory.GAME,
+        독서: GatheringCategory.BOOK,
+        토크: GatheringCategory.TALK,
+        투어: GatheringCategory.TOUR,
+      };
+
+      // 선택된 한글 카테고리 배열을 Prisma Enum 배열로 치환
+      const targetCategories = categories
+        .map((cat) => categoryMap[cat])
+        .filter((cat) => !!cat); // 잘못된 값 필터링
+
+      if (targetCategories.length > 0) {
+        // Prisma 'in' 연산자를 사용하여 포함된 항목 전부 매칭
+        whereClause.category = { in: targetCategories };
+      }
     }
 
-    const gatherings = await this.prisma.gathering.findMany({
+    // --------------------------------------------------------
+    // [2] 유저 편의 다중 필터링 (오늘 열리는 + 내일 열리는 조합 등)
+    // --------------------------------------------------------
+    // gatherings.service.ts 내부의 [2] 유저 편의 다중 필터링 영역 수정
+    // --------------------------------------------------------
+    // [2] 유저 편의 다중 필터링 (상호 배제 고려한 솎아내기)
+    // --------------------------------------------------------
+    let targetDay: Day | null = null;
+
+    if (types.includes('오늘 열리는') || types.includes('내일 열리는')) {
+      if (!clientDay) {
+        throw new BadRequestException(
+          '날짜 필터링을 위해 현재 요일(clientDay) 정보가 필요합니다.',
+        );
+      }
+
+      const daysOrder: Day[] = [
+        'MON',
+        'TUE',
+        'WED',
+        'THU',
+        'FRI',
+        'SAT',
+        'SUN',
+      ];
+      const currentIndex = daysOrder.indexOf(clientDay);
+
+      // 프론트엔드가 혹여나 둘 다 보냈더라도 '오늘'을 우선하거나 단일 분기로 락을 겁니다.
+      if (types.includes('오늘 열리는')) {
+        targetDay = clientDay;
+      } else if (types.includes('내일 열리는')) {
+        targetDay = daysOrder[(currentIndex + 1) % 7];
+      }
+
+      if (targetDay) {
+        // 단일 요일이 해당 모임 스케줄(Day[]) 배열 안에 쏙 들어있는지 확인
+        whereClause.gatheringDay = {
+          hasSome: [targetDay],
+        };
+      }
+    }
+
+    // 데이터베이스 조회 실행
+    let gatherings = await this.prisma.gathering.findMany({
       where: whereClause,
-      include: {
-        host: {
-          select: { nickname: true, mannerTemperature: true },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: 'desc' }, // 기본 정렬값
     });
 
-    // 위도, 경도 좌표가 넘어온 경우 km 단위 근사치 반경 필터링 수행
     if (latitude && longitude) {
-      return gatherings.filter((g) => {
-        const latDiff = Math.abs(Number(g.latitude) - latitude) * 111; // 1도 ≒ 111km
-        const lngDiff = Math.abs(Number(g.longitude) - longitude) * 88; // 대한민국 위도 기준 1도 ≒ 88km
-        const distance = Math.sqrt(latDiff * latDiff + lngDiff * lngDiff);
-        return distance <= radius;
+      gatherings = gatherings.map((g) => {
+        const dist = this.calculateDistance(
+          Number(latitude),
+          Number(longitude),
+          Number(g.latitude),
+          Number(g.longitude),
+        );
+        return {
+          ...g,
+          distanceMetres: dist,
+          distanceStr:
+            dist >= 1000
+              ? `${(dist / 1000).toFixed(1)}km`
+              : `${Math.round(dist)}m`,
+        };
       });
+    }
+    // --------------------------------------------------------
+    // 거리순 정렬 결합
+    // --------------------------------------------------------
+
+    if (types.includes('거리순')) {
+      if (!latitude || !longitude) {
+        throw new BadRequestException(
+          '거리순 조회를 위해 현재 위치 좌표가 필요합니다.',
+        );
+      }
+      // 이미 위에서 distanceMetres가 계산되어 들어갔으므로 바로 정렬만 수행!
+      gatherings.sort((a: any, b: any) => a.distanceMetres - b.distanceMetres);
     }
 
     return gatherings;
+  }
+
+  private calculateDistance(
+    lat1: number,
+    lon1: number,
+    lat2: number,
+    lon2: number,
+  ): number {
+    const R = 6371e3;
+    const dLat = (lat2 - lat1) * (Math.PI / 180);
+    const dLon = (lon2 - lon1) * (Math.PI / 180);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * (Math.PI / 180)) *
+        Math.cos(lat2 * (Math.PI / 180)) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
   }
 
   /////////////////////////////////////////
