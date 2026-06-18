@@ -30,13 +30,11 @@ export class GatheringsController {
     return await this.gatheringsService.create(hostId, createDto);
   }
 
-
   // 2. 소모임 조회
   @Get()
   async findAll(@Query() dto: FilterGatheringDto) {
     return await this.gatheringsService.findAll(dto);
   }
-
 
   // 3. 소모임 상세 조회
   @Get(':id')
@@ -44,7 +42,7 @@ export class GatheringsController {
     return await this.gatheringsService.findOne(id);
   }
 
-  // 4. 소모임 참여 신청 및 취소 토글
+  // 4-1. 소모임 참여 신청
   @UseGuards(JwtAuthGuard)
   @Post(':id/join')
   async toggleJoin(
@@ -52,7 +50,18 @@ export class GatheringsController {
     @Req() req: { user: { sub: string } },
   ) {
     const userId = req.user.sub;
-    return await this.gatheringsService.toggleJoin(id, userId);
+    return await this.gatheringsService.join(id, userId);
+  }
+
+  // 4-2. 소모임 참여 취소
+  @UseGuards(JwtAuthGuard)
+  @Delete(':id/leave')
+  async leaveGathering(
+    @Param('id') id: string,
+    @Req() req: { user: { sub: string } },
+  ) {
+    const userId = req.user.sub;
+    return await this.gatheringsService.leave(id, userId);
   }
 
   // 5. 소모임 상태 변경 (방장 전용)
@@ -93,7 +102,7 @@ export class GatheringsController {
     @Param('id') id: string,
     @Req() req: { user: { sub: string } },
     @Body('userId') userId: string,
-    @Body('status') status: 'ACCEPTED' | 'REJECTED', 
+    @Body('status') status: 'ACCEPTED' | 'REJECTED',
   ) {
     const hostId = req.user.sub;
     return await this.gatheringsService.reviewParticipant(

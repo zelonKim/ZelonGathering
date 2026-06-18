@@ -3,7 +3,7 @@ import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
-import { Platform, StyleSheet } from "react-native";
+import { StyleSheet } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
 SplashScreen.preventAutoHideAsync();
@@ -18,7 +18,6 @@ export default function RootLayout() {
       <APIProvider>
         <SafeAreaView style={styles.globalContainer} edges={["top"]}>
           <StatusBar style="dark" />
-
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="(auth)" options={{ headerShown: false }} />
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -33,14 +32,5 @@ const styles = StyleSheet.create({
   globalContainer: {
     flex: 1,
     backgroundColor: "#FAFAFA", // 앱 상단바 영역 배경색
-
-    ...Platform.select({
-      android: {
-        marginBottom: 45, // 안드로이드 상단 여백 유지
-      },
-      ios: {
-        paddingTop: 0,
-      },
-    }),
   },
 });

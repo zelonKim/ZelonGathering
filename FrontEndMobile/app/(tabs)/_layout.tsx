@@ -10,6 +10,7 @@ export default function TabsLayout() {
         headerShown: false,
         tabBarActiveTintColor: "#FF7A59", // 활성화된 탭 색상 (Zelon 포인트 컬러)
         tabBarInactiveTintColor: "#8E8E93", // 비활성화된 탭 색상
+        tabBarHideOnKeyboard: true,
         tabBarStyle: {
           backgroundColor: "#FFFFFF",
           borderTopWidth: 1,
@@ -20,6 +21,7 @@ export default function TabsLayout() {
           paddingBottom: Platform.OS === "ios" ? 10 : 16, // 안드로이드 하단 여백을 주어 아이콘을 위로 밀어 올림
           paddingTop: 10,
         },
+        
         headerStyle: {
           backgroundColor: "#FFFFFF",
         },

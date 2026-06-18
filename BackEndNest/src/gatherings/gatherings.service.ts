@@ -149,22 +149,19 @@ export class GatheringsService {
         message: string;
       }> = await response.json();
 
+      // 🚀 백엔드 벌크 인서트 구역 보완 코드
       if (matchingNotifications && matchingNotifications.length > 0) {
-        // DB Notification 테이블에 통째로 벌크 인서트(Bulk Insert) 진행!
         await this.prisma.notification.createMany({
-          data: matchingNotifications.map((noti) => ({
-            type: 'AI_MATCHING',
-            userId: noti.userId,
-            title: noti.title,
-            message: noti.message,
-            linkId: gathering.id, // 알림 클릭 시 해당 소모임으로 랜딩할 ID
-          })),
+          data: matchingNotifications.map((noti) => {
+            return {
+              type: 'AI_MATCHING',
+              userId: noti.userId,
+              title: noti.title,
+              message: noti.message,
+              linkId: gathering.id,
+            };
+          }),
         });
-
-        // 6. 💡 (여기에 FCM 같은 실제 디바이스 푸시 연동 코드를 추가)
-        console.log(
-          `🤖 [AI 매칭 알림] ${matchingNotifications.length}명의 최적 유저에게 매칭 알림 완료!`,
-        );
       }
     } catch (error) {
       throw new InternalServerErrorException(
@@ -349,18 +346,20 @@ export class GatheringsService {
 
   /////////////////////////////////////////
 
-  // 4. 소모임 참여 및 취소
-  async toggleJoin(gatheringId: string, userId: string) {
+  // 4-1. 소모임 참여 신청 로직
+  async join(gatheringId: string, userId: string) {
     const gathering = await this.prisma.gathering.findUnique({
       where: { id: gatheringId },
     });
 
     if (!gathering) throw new NotFoundException('소모임이 존재하지 않습니다.');
 
-    if (gathering.hostId === userId)
+    // 방장은 참여 명단에 중복 가입할 필요가 없음
+    if (gathering.hostId === userId) {
       throw new BadRequestException(
-        '방장은 본인의 모임 참여를 취소할 수 없습니다.',
+        '방장은 본인의 모임에 참여 신청할 수 없습니다.',
       );
+    }
 
     // 이미 참여한 멤버인지 확인
     const existingParticipant =
@@ -370,52 +369,93 @@ export class GatheringsService {
         },
       });
 
+    // 💡 핵심: 이미 참여 중이라면 에러를 뱉는 게 아니라 조용히 성공 메시지를 반환!
+    if (existingParticipant) {
+      return {
+        message: '이미 소모임에 참여 중입니다.',
+        currentParticipants: gathering.currentParticipants,
+      };
+    }
+
     return this.prisma.$transaction(async (tx) => {
-      if (existingParticipant) {
-        await tx.gatheringParticipant.delete({
-          where: { gatheringId_userId: { gatheringId, userId } },
-        });
-
-        const updated = await tx.gathering.update({
-          where: { id: gatheringId },
-          data: {
-            currentParticipants: { decrement: 1 },
-            status:
-              gathering.status === 'FULL' ? 'RECRUITING' : gathering.status, // 꽉 찼다가 풀리면 상태 복구
-          },
-        });
-        return {
-          message: '소모임 참여를 취소했습니다.',
-          currentParticipants: updated.currentParticipants,
-        };
-      } else {
-        // 새로 참여 처리
-        if (gathering.status !== 'RECRUITING') {
-          throw new BadRequestException('모집 중인 소모임이 아닙니다.');
-        }
-        if (gathering.currentParticipants >= gathering.maxParticipants) {
-          throw new BadRequestException('정원이 초과된 소모임입니다.');
-        }
-
-        await tx.gatheringParticipant.create({
-          data: { gatheringId, userId },
-        });
-
-        const nextCount = gathering.currentParticipants + 1;
-        const isFull = nextCount >= gathering.maxParticipants;
-
-        const updated = await tx.gathering.update({
-          where: { id: gatheringId },
-          data: {
-            currentParticipants: { increment: 1 },
-            status: isFull ? 'FULL' : 'RECRUITING',
-          },
-        });
-        return {
-          message: '소모임에 성공적으로 참여했습니다.',
-          currentParticipants: updated.currentParticipants,
-        };
+      if (gathering.status !== 'RECRUITING') {
+        throw new BadRequestException('모집 중인 소모임이 아닙니다.');
       }
+      if (gathering.currentParticipants >= gathering.maxParticipants) {
+        throw new BadRequestException('정원이 초과된 소모임입니다.');
+      }
+
+      // 참여자 데이터 생성
+      await tx.gatheringParticipant.create({
+        data: { gatheringId, userId, status: 'ACCEPTED' },
+      });
+
+      const nextCount = gathering.currentParticipants + 1;
+      const isFull = nextCount >= gathering.maxParticipants;
+
+      const updated = await tx.gathering.update({
+        where: { id: gatheringId },
+        data: {
+          currentParticipants: { increment: 1 },
+          status: isFull ? 'FULL' : 'RECRUITING',
+        },
+      });
+
+      return {
+        message: '소모임에 성공적으로 참여했습니다.',
+        currentParticipants: updated.currentParticipants,
+      };
+    });
+  }
+
+  ////////////////////////////////////////
+
+  // 4-2. 소모임 참여 취소 (방 나가기) 로직
+  async leave(gatheringId: string, userId: string) {
+    const gathering = await this.prisma.gathering.findUnique({
+      where: { id: gatheringId },
+    });
+
+    if (!gathering) throw new NotFoundException('소모임이 존재하지 않습니다.');
+
+    if (gathering.hostId === userId) {
+      throw new BadRequestException(
+        '방장은 본인의 모임 참여를 취소할 수 없습니다.',
+      );
+    }
+
+    // 참여 중인 인원인지 확인
+    const existingParticipant =
+      await this.prisma.gatheringParticipant.findUnique({
+        where: {
+          gatheringId_userId: { gatheringId, userId },
+        },
+      });
+
+    if (!existingParticipant) {
+      throw new BadRequestException('참여하고 있지 않은 소모임입니다.');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      // 참여자 데이터 삭제
+      await tx.gatheringParticipant.delete({
+        where: {
+          gatheringId_userId: { gatheringId, userId },
+        },
+      });
+
+      const updated = await tx.gathering.update({
+        where: { id: gatheringId },
+        data: {
+          currentParticipants: { decrement: 1 },
+          status: gathering.status === 'FULL' ? 'RECRUITING' : gathering.status,
+        },
+      });
+
+      return {
+        message: '소모임 참여를 취소했습니다.',
+        currentParticipants: updated.currentParticipants,
+      };
     });
   }
 

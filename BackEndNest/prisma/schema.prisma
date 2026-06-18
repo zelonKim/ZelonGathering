@@ -151,7 +151,7 @@ model Notification {
   userId    String           @map("user_id") @db.Uuid // 알림을 받을 유저 id
   type      NotificationType // 알림 종류
   title     String // 알림 제목 
-  message   String           @db.Text // 알림 내용 
+  message   String           @db.Text // 알림 내용
   linkId    String?          @map("link_id") @db.Uuid // 여기서는 생성된 Gathering의 ID가 들어감
   createdAt DateTime         @default(now()) @map("created_at")
 

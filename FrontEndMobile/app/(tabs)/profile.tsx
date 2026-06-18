@@ -2,11 +2,13 @@ import { client } from "@/api/client";
 import { removeAccessToken } from "@/api/token";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
+import { Redirect, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Image,
   ScrollView,
   StyleSheet,
   Text,
@@ -17,18 +19,17 @@ import {
 
 // 🍑 ZelonGathering 브랜드 컬러 시스템
 const COLORS = {
-  primary: "#FF7A59", // 메인 피치 코랄
+  primary: "#FF7A59",
   primaryLight: "#FFEBE5",
-  background: "#FBFBF9", // 감성 웜 화이트
-  surface: "#FFFFFF", // 카드 화이트
-  textMain: "#292524", // 딥 차콜
-  textSub: "#78716C", // 설명용 그레이
+  background: "#FBFBF9",
+  surface: "#FFFFFF",
+  textMain: "#292524",
+  textSub: "#78716C",
   textOpac: "#8d8d8d9b",
   border: "#E7E5E4",
-  mannerHot: "#EF4444", // 매너온도 강조색
+  mannerHot: "#EF4444",
 };
 
-// 🏷️ GatheringCategory Enum 매핑
 const CATEGORY_ITEMS = [
   { key: "STUDY", label: "📑 스터디" },
   { key: "SPORTS", label: "⚽️ 스포츠" },
@@ -40,7 +41,6 @@ const CATEGORY_ITEMS = [
   { key: "TOUR", label: "🚡 투어" },
 ];
 
-// 📅 Day 객체 스펙 매핑
 const DAY_ITEMS = [
   { key: "MON", label: "월" },
   { key: "TUE", label: "화" },
@@ -51,7 +51,6 @@ const DAY_ITEMS = [
   { key: "SUN", label: "일" },
 ];
 
-// ⏰ Time 객체 스펙 매핑
 const TIME_ITEMS = [
   { key: "AM_06", label: "오전 06:00", type: "AM" },
   { key: "AM_07", label: "오전 07:00", type: "AM" },
@@ -72,7 +71,6 @@ const TIME_ITEMS = [
   { key: "PM_10", label: "오후 10:00", type: "PM" },
 ];
 
-// 📍 District Enum 데이터
 const DISTRICT_ITEMS = [
   { key: "SEOUL_GANGNAM", label: "강남구", city: "SEOUL" },
   { key: "SEOUL_GANGBUK", label: "강북구", city: "SEOUL" },
@@ -83,7 +81,7 @@ const DISTRICT_ITEMS = [
   { key: "SEOUL_GURO", label: "구로구", city: "SEOUL" },
   { key: "SEOUL_GEUMCHEON", label: "금천구", city: "SEOUL" },
   { key: "SEOUL_NOWON", label: "노원구", city: "SEOUL" },
-  { key: "SEOUL_DOBONG", label: "도봉구", city: "SEOUL" },
+  { key: "SEOUL_DOBONG", label: "도봉구", city: "DOBONG" },
   { key: "SEOUL_DONGDAEMUN", label: "동대문구", city: "SEOUL" },
   { key: "SEOUL_DONGJAK", label: "동작구", city: "SEOUL" },
   { key: "SEOUL_MAPO", label: "마포구", city: "SEOUL" },
@@ -99,7 +97,6 @@ const DISTRICT_ITEMS = [
   { key: "SEOUL_JONGNO", label: "종로구", city: "SEOUL" },
   { key: "SEOUL_JUNGGU", label: "중구", city: "SEOUL" },
   { key: "SEOUL_JUNGNANG", label: "중랑구", city: "SEOUL" },
-
   { key: "GYEONGGI_GOYANG", label: "고양시", city: "GYEONGGI" },
   { key: "GYEONGGI_GWACHEON", label: "과천시", city: "GYEONGGI" },
   { key: "GYEONGGI_GWANGMYEONG", label: "광명시", city: "GYEONGGI" },
@@ -130,7 +127,6 @@ const DISTRICT_ITEMS = [
   { key: "GYEONGGI_POCHEON", label: "포천시", city: "GYEONGGI" },
   { key: "GYEONGGI_HANAM", label: "하남시", city: "GYEONGGI" },
   { key: "GYEONGGI_HWASEONG", label: "화성시", city: "GYEONGGI" },
-
   { key: "GWANGJU", label: "광주광역시", city: "OTHER" },
   { key: "DAEGU", label: "대구광역시", city: "OTHER" },
   { key: "DAEJEON", label: "대전광역시", city: "OTHER" },
@@ -178,14 +174,14 @@ export default function ProfileScreen() {
     },
   });
 
-  // 2. 프로필 수정 뮤테이션 (PATCH /users/profile)
+  // 2. 프로필 최종 업데이트 (PATCH)
   const updateProfileMutation = useMutation({
     mutationFn: async (payload: UpdateProfilePayload) => {
       const { data } = await client.patch("/users/profile", payload);
       return data;
     },
     onSuccess: () => {
-      Alert.alert("성공", "소모임 취향 프로필이 저장되었습니다! 🍑");
+      Alert.alert("성공", "소모임 취향 프로필이 저장되었습니다!");
       queryClient.invalidateQueries({ queryKey: ["myProfile"] });
     },
     onError: (error: any) => {
@@ -204,6 +200,9 @@ export default function ProfileScreen() {
   const [preferDays, setPreferDays] = useState<string[]>([]);
   const [preferTimes, setPreferTimes] = useState<string[]>([]);
 
+  const [profileImg, setProfileImg] = useState<string>("");
+  const [isImageUploading, setIsImageUploading] = useState(false);
+
   const [activeCity, setActiveCity] = useState<"SEOUL" | "GYEONGGI" | "OTHER">(
     "SEOUL",
   );
@@ -220,8 +219,74 @@ export default function ProfileScreen() {
       setPreferDistrict(userProfile.preferDistrict || []);
       setPreferDays(userProfile.preferDay || []);
       setPreferTimes(userProfile.preferTime || []);
+
+      // 💡 [수정] 최초 마운트 시 캐시를 우회하여 최신 업로드 이미지를 강제 새로고침합니다.
+      if (userProfile.profileImg) {
+        setProfileImg(`${userProfile.profileImg}?t=${new Date().getTime()}`);
+      } else {
+        setProfileImg("");
+      }
     }
   }, [userProfile]);
+
+  // 📸 이미지 파일 선택 및 Cloudflare R2 서버 업로드 핸들러
+  const handlePickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (status !== "granted") {
+      Alert.alert(
+        "권한 거부",
+        "PROFILE 사진 등록을 위해 갤러리 접근 권한이 필요합니다.",
+      );
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: "images",
+      allowsEditing: true,
+      quality: 0.7,
+    });
+
+    if (result.canceled || !result.assets || result.assets.length === 0) {
+      return;
+    }
+
+    const localUri = result.assets[0].uri;
+    const filename = localUri.split("/").pop() || "profile.jpg";
+
+    const match = /\.(\w+)$/.exec(filename);
+    const type = match ? `image/${match[1]}` : `image/jpeg`;
+
+    const formData = new FormData();
+    formData.append("file", {
+      uri: localUri,
+      name: filename,
+      type,
+    } as any);
+
+    try {
+      setIsImageUploading(true);
+
+      // 🔗 백엔드 Cloudflare R2 이미지 업로드 전용 엔드포인트 호출
+      const response = await client.post("/users/image", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      // 💡 [수정] 고유 타임스탬프 파라미터를 추가하여 모바일 기기의 기존 이미지 캐시 메모리를 무효화(Busting)합니다.
+      if (response.data && response.data.imageUrl) {
+        setProfileImg(`${response.data.imageUrl}?t=${new Date().getTime()}`);
+      } else if (typeof response.data === "string") {
+        setProfileImg(`${response.data}?t=${new Date().getTime()}`);
+      }
+    } catch (error) {
+      console.error("클라우드 이미지 업로드 실패:", error);
+      Alert.alert("업로드 실패", "이미지를 서버에 업로드하지 못했습니다.");
+    } finally {
+      setIsImageUploading(false);
+    }
+  };
 
   // 💾 프로필 저장 버튼 클릭 이벤트 핸들러
   const handleSaveProfile = () => {
@@ -230,7 +295,9 @@ export default function ProfileScreen() {
       return;
     }
 
-    // 🚀 백엔드 DTO 규격에 매칭되도록 페이로드 구성
+    // 💡 쿼리 스트링(?t=...)이 달라붙은 상태로 DB에 저장되면 주소가 지저분해지므로, 순수 URL만 남겨 정제합니다.
+    const cleanProfileImg = profileImg ? profileImg.split("?")[0] : undefined;
+
     const payload: UpdateProfilePayload = {
       nickname: nickname.trim(),
       favorite: favorite.trim(),
@@ -241,6 +308,7 @@ export default function ProfileScreen() {
       preferDistrict,
       preferDay: preferDays,
       preferTime: preferTimes,
+      profileImg: cleanProfileImg, // 👈 정제된 클린 URL 주소를 백엔드로 전송
     };
 
     updateProfileMutation.mutate(payload);
@@ -284,6 +352,7 @@ export default function ProfileScreen() {
         />
         <Text style={styles.errorText}>
           프로필을 불러오지 못했습니다. 다시 시도해 주세요.
+          <Redirect href="/(auth)/login" />
         </Text>
       </View>
     );
@@ -298,7 +367,6 @@ export default function ProfileScreen() {
 
   return (
     <View style={styles.container}>
-      {/* 상단 헤더 영역 */}
       <View style={styles.header}>
         <View style={styles.headerTopRow}>
           <Text style={styles.headerTitle}>My Profile</Text>
@@ -320,14 +388,29 @@ export default function ProfileScreen() {
       >
         {/* 프로필 카드 */}
         <View style={styles.profileCard}>
-          <View style={styles.avatarWrapper}>
+          <TouchableOpacity
+            style={styles.avatarWrapper}
+            onPress={handlePickImage}
+            disabled={isImageUploading}
+            activeOpacity={0.6}
+          >
             <View style={styles.avatar}>
-              <Text style={styles.avatarText}>🍑</Text>
+              {isImageUploading ? (
+                <ActivityIndicator size="small" color={COLORS.primary} />
+              ) : profileImg ? (
+                <Image
+                  source={{ uri: profileImg }}
+                  style={styles.avatarImage}
+                />
+              ) : (
+                <Text style={styles.avatarText}>🍑</Text>
+              )}
             </View>
-            <TouchableOpacity style={styles.cameraButton} activeOpacity={0.8}>
+            <View style={styles.cameraButton}>
               <Ionicons name="camera" size={14} color="#FFFFFF" />
-            </TouchableOpacity>
-          </View>
+            </View>
+          </TouchableOpacity>
+
           <View style={styles.mannerBadge}>
             <Ionicons
               name="thermometer-outline"
@@ -409,8 +492,6 @@ export default function ProfileScreen() {
         {/* 선호 카테고리 및 지역 설정 */}
         <View style={styles.sectionCard}>
           <Text style={styles.sectionTitle}>나의 선호 모임 및 지역</Text>
-
-          {/* 🏷️ 관심 카테고리 */}
           <Text style={styles.subLabel}>관심 카테고리</Text>
           <View style={styles.tagContainer}>
             {CATEGORY_ITEMS.map((cat) => {
@@ -442,7 +523,6 @@ export default function ProfileScreen() {
             })}
           </View>
 
-          {/* 📍 활동 선호 지역 */}
           <Text style={[styles.subLabel, { marginTop: 24 }]}>
             활동 선호 지역
           </Text>
@@ -474,7 +554,6 @@ export default function ProfileScreen() {
             })}
           </View>
 
-          {/* 세부 지역 태그 목록 */}
           <View style={styles.tagContainer}>
             {filteredDistricts.map((item) => {
               const isDistSelected = preferDistrict.includes(item.key);
@@ -509,11 +588,9 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* 📅 선호 요일 및 시간대 설정 섹션 */}
+        {/* 선호 일정 설정 */}
         <View style={styles.sectionCard}>
           <Text style={styles.sectionTitle}>나의 선호 일정</Text>
-
-          {/* 선호 요일 멀티 선택 */}
           <Text style={styles.subLabel}>선호 요일</Text>
           <View style={[styles.dayTagContainer, { marginBottom: 30 }]}>
             {DAY_ITEMS.map((day) => {
@@ -543,7 +620,6 @@ export default function ProfileScreen() {
             })}
           </View>
 
-          {/* 선호 시간대 세그먼트 멀티 선택 */}
           <Text style={styles.subLabel}>선호 시간대</Text>
           <View style={styles.timeTabContainer}>
             {(["AM", "PM"] as const).map((type) => {
@@ -603,7 +679,7 @@ export default function ProfileScreen() {
             updateProfileMutation.isPending && { opacity: 0.7 },
           ]}
           onPress={handleSaveProfile}
-          disabled={updateProfileMutation.isPending}
+          disabled={updateProfileMutation.isPending || isImageUploading}
           activeOpacity={0.8}
         >
           {updateProfileMutation.isPending ? (
@@ -681,8 +757,10 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primaryLight,
     justifyContent: "center",
     alignItems: "center",
+    overflow: "hidden",
   },
   avatarText: { fontSize: 36 },
+  avatarImage: { width: "100%", height: "100%", resizeMode: "cover" },
   cameraButton: {
     position: "absolute",
     bottom: -4,
@@ -746,7 +824,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     padding: 0,
   },
-  mbtiInput: { color: COLORS.primary, fontWeight: "800" }, // 입력 중인 텍스트도 코랄 볼드로 예쁘게 포인트!
   textareaBlock: { marginBottom: 14 },
   textareaInput: {
     backgroundColor: "#F8F6F4",
