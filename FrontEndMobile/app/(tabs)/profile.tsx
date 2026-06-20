@@ -220,7 +220,6 @@ export default function ProfileScreen() {
       setPreferDays(userProfile.preferDay || []);
       setPreferTimes(userProfile.preferTime || []);
 
-      // 💡 [수정] 최초 마운트 시 캐시를 우회하여 최신 업로드 이미지를 강제 새로고침합니다.
       if (userProfile.profileImg) {
         setProfileImg(`${userProfile.profileImg}?t=${new Date().getTime()}`);
       } else {
@@ -337,7 +336,7 @@ export default function ProfileScreen() {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={styles.loadingText}>취향 프로필을 불러오고 있어요 🍑</Text>
+        <Text style={styles.loadingText}>나의 프로필을 불러오고 있어요 </Text>
       </View>
     );
   }

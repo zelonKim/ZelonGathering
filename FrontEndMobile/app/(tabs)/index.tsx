@@ -1,8 +1,9 @@
 import { client } from "@/api/client";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import * as Location from "expo-location";
 import { router } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -16,6 +17,7 @@ import {
   TouchableWithoutFeedback,
   View,
 } from "react-native";
+import MapView, { Marker } from "react-native-maps"; // 🌟 지도 핵심 컴포넌트 추가
 
 const COLORS = {
   primary: "#FF7A59", // 메인 피치 코랄
@@ -44,7 +46,12 @@ const CATEGORY_MAP: Record<
   string,
   { label: string; emoji: string; bg: string; text: string }
 > = {
-  ALL: { label: "전체", emoji: "✨", bg: COLORS.primary, text: "#FFFFFF" },
+  ALL: {
+    label: "전체",
+    emoji: "✨",
+    bg: COLORS.primaryLight,
+    text: COLORS.primary,
+  },
   STUDY: { label: "스터디", emoji: "📖", bg: "#E0F2FE", text: "#0369A1" },
   SPORTS: { label: "스포츠", emoji: "⚽️", bg: "#E6F4EA", text: "#137333" },
   ART: { label: "아트", emoji: "🎨", bg: "#FAE7F3", text: "#B80066" },
@@ -55,7 +62,6 @@ const CATEGORY_MAP: Record<
   TOUR: { label: "투어", emoji: "🚠", bg: "#E0F7FA", text: "#006064" },
 };
 
-// 📅 백엔드 요일 맵핑 규격
 const DAY_OPTIONS = [
   { key: "MON", label: "월" },
   { key: "TUE", label: "화" },
@@ -66,7 +72,6 @@ const DAY_OPTIONS = [
   { key: "SUN", label: "일" },
 ];
 
-// ⏰ 백엔드 전체 시간대 맵핑 규격
 const TIME_OPTIONS = [
   { key: "AM_06", label: "오전 6시" },
   { key: "AM_07", label: "오전 7시" },
@@ -87,7 +92,6 @@ const TIME_OPTIONS = [
   { key: "PM_10", label: "오후 10시" },
 ];
 
-// 🗺️ 백엔드 District Enum 계층형 데이터셋 튜닝
 const REGION_DATA: Record<string, { key: string; label: string }[]> = {
   SEOUL: [
     { key: "SEOUL_GANGNAM", label: "강남구" },
@@ -138,7 +142,7 @@ const REGION_DATA: Record<string, { key: string; label: string }[]> = {
     { key: "GYEONGGI_YANGJU", label: "양주시" },
     { key: "GYEONGGI_ANSEONG", label: "안성시" },
     { key: "GYEONGGI_GURI", label: "구리시" },
-    { key: "GYEONGGI_UIWANG", text: "의왕시", label: "의왕시" },
+    { key: "GYEONGGI_UIWANG", label: "의왕시" },
     { key: "GYEONGGI_POCHEON", label: "포천시" },
     { key: "GYEONGGI_HANAM", label: "하남시" },
     { key: "GYEONGGI_OSAN", label: "오산시" },
@@ -184,7 +188,6 @@ export default function HomeScreen() {
   ]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-  // 💡 모달 상태 필드 및 계층형 지역 대분류 컨트롤 변수 세팅
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -192,7 +195,6 @@ export default function HomeScreen() {
   const [maxParticipants, setMaxParticipants] = useState("");
   const [gatheringPlace, setGatheringPlace] = useState("");
 
-  // 지역 선택 계층형 트리 상태
   const [macroRegion, setMacroRegion] = useState<"SEOUL" | "GYEONGGI" | "ETC">(
     "SEOUL",
   );
@@ -201,22 +203,66 @@ export default function HomeScreen() {
   const [gatheringDay, setGatheringDay] = useState<string[]>([]);
   const [gatheringTime, setGatheringTime] = useState<string[]>([]);
 
+  // 내 기기 GPS 위치 보관
+  const [location, setLocation] = useState<{
+    latitude: number;
+    longitude: number;
+  }>({
+    latitude: 37.5665,
+    longitude: 126.978,
+  });
+  const [isLocationLoading, setIsLocationLoading] = useState(true);
+
+  // 🌟 [추가] 모임 장소 결정을 위한 지도 전용 상태 관리 인프라
+  const [isMapModalOpen, setIsMapModalOpen] = useState(false);
+  const [selectedPlaceCoords, setSelectedPlaceCoords] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
+
+  useEffect(() => {
+    async function getUserLocation() {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted") {
+          Alert.alert(
+            "알림",
+            "위치 권한을 거부하시면 주변 소모임 정렬이 원활하지 않을 수 있습니다 😢",
+          );
+          setIsLocationLoading(false);
+          return;
+        }
+        const currentUserLocation = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+        setLocation({
+          latitude: currentUserLocation.coords.latitude,
+          longitude: currentUserLocation.coords.longitude,
+        });
+      } catch (error) {
+        console.error("위치 추적 예외 발생:", error);
+      } finally {
+        setIsLocationLoading(false);
+      }
+    }
+    getUserLocation();
+  }, []);
+
   const getClientDayEnum = () => {
     const days = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
     return days[new Date().getDay()];
   };
 
   const { data: gatherings = [], isLoading: isGatheringsLoading } = useQuery({
-    queryKey: ["gatherings", selectedTypes, selectedCategories],
+    queryKey: ["gatherings", selectedTypes, selectedCategories, location],
     queryFn: async () => {
-      const mockLocation = { latitude: 37.4787, longitude: 126.9319 };
       const response = await client.get("gatherings", {
         params: {
           types: selectedTypes,
           categories: selectedCategories,
           clientDay: getClientDayEnum(),
-          latitude: mockLocation.latitude,
-          longitude: mockLocation.longitude,
+          latitude: location.latitude,
+          longitude: location.longitude,
         },
         paramsSerializer: (params) => {
           const searchParams = new URLSearchParams();
@@ -232,6 +278,8 @@ export default function HomeScreen() {
       });
       return response.data;
     },
+    refetchInterval: 5000,
+    refetchOnWindowFocus: true,
   });
 
   const { data: userProfile } = useQuery({
@@ -252,7 +300,7 @@ export default function HomeScreen() {
       return data;
     },
     onSuccess: () => {
-      Alert.alert("성공", "새로운 소모임이 성공적으로 개설되었습니다! 🍑");
+      Alert.alert("성공", "새로운 소모임이 성공적으로 개설되었습니다! ");
       setIsCreateModalOpen(false);
       resetForm();
       queryClient.invalidateQueries({ queryKey: ["gatherings"] });
@@ -279,6 +327,7 @@ export default function HomeScreen() {
     setDistrict("SEOUL_GWANGJIN");
     setGatheringDay([]);
     setGatheringTime([]);
+    setSelectedPlaceCoords(null); // 🌟 좌표 리셋
   };
 
   const handleCreateSubmit = () => {
@@ -289,6 +338,12 @@ export default function HomeScreen() {
         "알림",
         "최대 정원은 최소 2명에서 최대 12명까지만 가능합니다! 🍑",
       );
+      return;
+    }
+
+    // 🌟 [지도 선택 여부 가드벨트 장착]
+    if (!selectedPlaceCoords) {
+      Alert.alert("알림", "지도에서 모임 장소 위치를 지정해 주세요! 📍");
       return;
     }
 
@@ -310,14 +365,34 @@ export default function HomeScreen() {
       category,
       maxParticipants: parseInt(maxParticipants, 10),
       gatheringPlace,
-      latitude: 37.5284,
-      longitude: 127.0678,
+      // 🌟 내 현재 기기 좌표가 아닌, 지도에서 핀으로 집어넣은 목적지 좌표를 백엔드로 발송!
+      latitude: selectedPlaceCoords.latitude,
+      longitude: selectedPlaceCoords.longitude,
       district,
       gatheringDay,
       gatheringTime,
     };
 
     createGatheringMutation.mutate(payload);
+  };
+
+  // 🌟 [지도 클릭/롱 프레스 이벤트] 맵 터치 시 해당 위경도 자동 포착 캡처
+  const handleMapPress = async (e: any) => {
+    const coords = e.nativeEvent.coordinate;
+    setSelectedPlaceCoords(coords);
+
+    // 역지오코딩(Reverse Geocoding)으로 터치한 곳의 텍스트 주소 자동 파싱 슛!
+    try {
+      const addressResult = await Location.reverseGeocodeAsync(coords);
+      if (addressResult && addressResult.length > 0) {
+        const addr = addressResult[0];
+        const placeName =
+          `${addr.city || ""} ${addr.district || ""} ${addr.street || ""} ${addr.streetNumber || ""}`.trim();
+        setGatheringPlace(placeName || "선택한 장소");
+      }
+    } catch (err) {
+      console.log("주소 자동 변환 실패:", err);
+    }
   };
 
   const toggleArrayItem = (
@@ -336,24 +411,20 @@ export default function HomeScreen() {
     const isType = type === "TYPE";
     const currentList = isType ? selectedTypes : selectedCategories;
     const setList = isType ? setSelectedTypes : setSelectedCategories;
-
     if (filter === "전체") {
       setList(["전체"]);
       return;
     }
-
     let newList = currentList.filter((item) => item !== "전체");
-
     if (newList.includes(filter)) {
       newList = newList.filter((item) => item !== filter);
       if (newList.length === 0) newList = ["전체"];
     } else {
       if (isType) {
-        if (filter === "오늘 열리는") {
+        if (filter === "오늘 열리는")
           newList = newList.filter((item) => item !== "내일 열리는");
-        } else if (filter === "내일 열리는") {
+        else if (filter === "내일 열리는")
           newList = newList.filter((item) => item !== "오늘 열리는");
-        }
       }
       newList.push(filter);
     }
@@ -364,6 +435,8 @@ export default function HomeScreen() {
     setIsDropdownOpen(false);
     router.push(`/gatherings/${gatheringId}`);
   };
+
+  const isCombinedLoading = isGatheringsLoading || isLocationLoading;
 
   return (
     <View style={styles.container}>
@@ -391,7 +464,7 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {/* 드롭다운 목록 */}
+      {/* 내가 참여 중인 소모임 드롭다운 */}
       {isDropdownOpen && (
         <View style={styles.dropdownOverlay}>
           <TouchableWithoutFeedback onPress={() => setIsDropdownOpen(false)}>
@@ -436,7 +509,7 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {/* 상단 1, 2단 다중 필터 */}
+      {/* 상단 1, 2단 다중 필터Wrapper 생략 */}
       <View style={styles.filterWrapper}>
         <ScrollView
           horizontal
@@ -508,7 +581,7 @@ export default function HomeScreen() {
       </View>
 
       {/* 리스트 피드 */}
-      {isGatheringsLoading ? (
+      {isCombinedLoading ? (
         <View style={styles.loadingBox}>
           <ActivityIndicator size="large" color={COLORS.primary} />
         </View>
@@ -553,11 +626,16 @@ export default function HomeScreen() {
               </TouchableOpacity>
             );
           })}
+          {gatherings.length === 0 && (
+            <Text style={styles.dropdownEmptyText}>
+              주변에 열린 소모임방이 존재하지 않습니다 🍑
+            </Text>
+          )}
           <View style={{ height: 80 }} />
         </ScrollView>
       )}
 
-      {/* ➕ 플로팅 액션 단추 */}
+      {/* ➕ 플로팅 개설 버튼 */}
       <TouchableOpacity
         style={styles.fabButton}
         activeOpacity={0.8}
@@ -586,6 +664,7 @@ export default function HomeScreen() {
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.modalForm}
             >
+              {/* 카테고리, 제목 등 기존 입력란 동일 유지 */}
               <Text style={styles.inputLabel}>카테고리 선택</Text>
               <View style={styles.gridRow}>
                 {Object.keys(CATEGORY_MAP)
@@ -636,7 +715,6 @@ export default function HomeScreen() {
                 onChangeText={setDescription}
               />
 
-              {/* 🗺️ 계층형 지역 대분류 / 소분류 셀렉터 인프라 공정 */}
               <Text style={styles.inputLabel}>모임 지역 (대분류)</Text>
               <View style={styles.gridRow}>
                 {(
@@ -658,7 +736,7 @@ export default function HomeScreen() {
                       ]}
                       onPress={() => {
                         setMacroRegion(region);
-                        setDistrict(REGION_DATA[region][0].key); // 대분류 변경 시 소분류 첫 항목 자동 초깃값 튠
+                        setDistrict(REGION_DATA[region][0].key);
                       }}
                     >
                       <Text
@@ -698,16 +776,41 @@ export default function HomeScreen() {
                 ))}
               </View>
 
-              <Text style={styles.inputLabel}>모임 장소</Text>
+              {/* 🌟 [수정 세션]: 지도 위치 선택 버튼 및 텍스트 자동 동기화 란 */}
+              <Text style={styles.inputLabel}>모임 장소 지정 (위치)</Text>
+              <TouchableOpacity
+                style={[
+                  styles.mapSelectBtn,
+                  selectedPlaceCoords && styles.mapSelectBtnActive,
+                ]}
+                onPress={() => setIsMapModalOpen(true)}
+              >
+                <Ionicons
+                  name="map-outline"
+                  size={16}
+                  color={selectedPlaceCoords ? "#FFFFFF" : COLORS.primary}
+                />
+                <Text
+                  style={[
+                    styles.mapSelectBtnText,
+                    selectedPlaceCoords && { color: "#FFFFFF" },
+                  ]}
+                >
+                  {selectedPlaceCoords
+                    ? "📍 위치 지정 완료 (다시 선택)"
+                    : "지도에서 모임 장소 찍기 🗺️"}
+                </Text>
+              </TouchableOpacity>
+
               <TextInput
-                style={styles.input}
-                placeholder="예) 뚝섬 한강공원 편의점 앞"
+                style={[styles.input, { marginTop: 8 }]}
+                placeholder="상세 주소 및 모임 장소명을 입력해주세요 (지도 선택 시 자동 입력)"
                 placeholderTextColor="#A8A29E"
                 value={gatheringPlace}
                 onChangeText={setGatheringPlace}
               />
 
-              {/* 📅 한국어 맵핑 요일 셀렉터 */}
+              {/* 요일, 시간대 옵션 동일 유지 */}
               <Text style={styles.inputLabel}>모임 요일 (복수 선택 가능)</Text>
               <View style={styles.gridRow}>
                 {DAY_OPTIONS.map((day) => {
@@ -736,7 +839,6 @@ export default function HomeScreen() {
                 })}
               </View>
 
-              {/* ⏰ 한국어 맵핑 시간대 셀렉터 */}
               <Text style={styles.inputLabel}>
                 모임 시간대 (복수 선택 가능)
               </Text>
@@ -797,6 +899,58 @@ export default function HomeScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* 🌟 [추가]: 지도에서 핀 찍는 풀스크린 서브 모달 인프라 공정 */}
+      <Modal
+        animationType="fade"
+        transparent={false}
+        visible={isMapModalOpen}
+        onRequestClose={() => setIsMapModalOpen(false)}
+      >
+        <View style={styles.mapModalContainer}>
+          <MapView
+            style={styles.mapView}
+            // 🌟 iOS는 빈값(기본 Apple Maps), 안드로이드는 Google Maps를 바라보도록 튜닝 슛!
+            provider={Platform.OS === "android" ? "google" : undefined}
+            initialRegion={{
+              latitude: location.latitude,
+              longitude: location.longitude,
+              latitudeDelta: 0.009,
+              longitudeDelta: 0.009,
+            }}
+            onPress={handleMapPress}
+          >
+            {/* 고른 좌표가 있을 때 지도 상에 마커 핀 생성 */}
+            {selectedPlaceCoords && (
+              <Marker
+                coordinate={selectedPlaceCoords}
+                title="모임 예정 장소"
+                description={gatheringPlace}
+              />
+            )}
+          </MapView>
+
+          {/* 하단 안내 가이드 레이블 독 */}
+          <View style={styles.mapFloatingCard}>
+            <Text style={styles.mapGuideText}>
+              🎯 모임 장소로 지정할 곳을 터치해 주세요!
+            </Text>
+            {gatheringPlace ? (
+              <Text style={styles.mapAddressText} numberOfLines={1}>
+                📍 주소: {gatheringPlace}
+              </Text>
+            ) : null}
+            <TouchableOpacity
+              style={styles.mapConfirmBtn}
+              onPress={() => setIsMapModalOpen(false)}
+            >
+              <Text style={styles.mapConfirmBtnText}>
+                이 위치로 장소 결정하기
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -806,6 +960,7 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: 20, paddingTop: 15, paddingBottom: 8 },
   headerTopRow: {
     flexDirection: "row",
+    justifyStyle: "space-between",
     justifyContent: "space-between",
     alignItems: "center",
   },
@@ -1036,10 +1191,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primaryLight,
     borderColor: COLORS.primary,
   },
-  selectorChipActiveBig: {
-    backgroundColor: COLORS.primary,
-    color: "white",
-  },
+  selectorChipActiveBig: { backgroundColor: COLORS.primary, color: "white" },
   selectorText: { fontSize: 12, color: COLORS.textSub, fontWeight: "600" },
   selectorTextActive: { color: COLORS.primary, fontWeight: "800" },
   selectorTextActiveBig: { color: "white", fontWeight: "800" },
@@ -1057,4 +1209,61 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   submitBtnText: { fontSize: 15, color: "#FFFFFF", fontWeight: "800" },
+
+  // 🌟 [추가 스타일]: 지도 선택 단추 및 맵 모달 아키텍처 스타일 라인업
+  mapSelectBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: COLORS.primaryLight,
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+    justifyContent: "center",
+  },
+  mapSelectBtnActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  mapSelectBtnText: { fontSize: 13, color: COLORS.primary, fontWeight: "700" },
+  mapModalContainer: { flex: 1, backgroundColor: "#000" },
+  mapView: { flex: 1 },
+  mapFloatingCard: {
+    position: "absolute",
+    bottom: 30,
+    left: 20,
+    right: 20,
+    backgroundColor: "#FFFFFF",
+    padding: 20,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 6,
+  },
+  mapGuideText: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: COLORS.textMain,
+    textAlign: "center",
+    marginBottom: 6,
+  },
+  mapAddressText: {
+    fontSize: 12,
+    color: COLORS.primary,
+    fontWeight: "700",
+    textAlign: "center",
+    marginBottom: 12,
+  },
+  mapConfirmBtn: {
+    backgroundColor: COLORS.primary,
+    paddingVertical: 12,
+    borderRadius: 14,
+    alignItems: "center",
+  },
+  mapConfirmBtnText: { fontSize: 14, color: "#FFFFFF", fontWeight: "800" },
 });

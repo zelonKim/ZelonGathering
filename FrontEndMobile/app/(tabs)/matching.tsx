@@ -1,6 +1,8 @@
 import { client } from "@/api/client";
 import { Ionicons } from "@expo/vector-icons";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { formatDistanceToNow } from "date-fns";
+import { ko } from "date-fns/locale";
 import { useRouter } from "expo-router";
 import React from "react";
 import {
@@ -26,6 +28,7 @@ const COLORS = {
 
 export default function MatchingScreen() {
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   // 🔄 1. 백엔드에서 AI 매칭 알림 리스트 Fetch
   const {
@@ -42,11 +45,33 @@ export default function MatchingScreen() {
     refetchOnWindowFocus: true,
   });
 
+  // 🗑️ 2. 특정 알림 삭제를 위한 useMutation
+  const deleteNotificationMutation = useMutation({
+    mutationFn: async (notificationId: string) => {
+      return await client.delete(`/users/notifications/${notificationId}`);
+    },
+    onSuccess: () => {
+      // 삭제 완료 후 실시간 리스트 갱신
+      queryClient.invalidateQueries({ queryKey: ["aiMatchingNotifications"] });
+    },
+    onError: (error) => {
+      console.error("알림 삭제 실패:", error);
+      alert("알림을 넘기지 못했습니다. 다시 시도해주세요.");
+    },
+  });
+
+  // 🌟 현재 로딩 스피너를 보여줄 타겟 아이템 ID 추출
+  const deletingId = deleteNotificationMutation.isPending
+    ? deleteNotificationMutation.variables
+    : null;
+
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={styles.loadingText}>AI가 취향을 분석하고 있습니다 🤖</Text>
+        <Text style={styles.loadingText}>
+          AI 매칭 알림을 가져오고 있습니다.
+        </Text>
       </View>
     );
   }
@@ -82,20 +107,8 @@ export default function MatchingScreen() {
         showsVerticalScrollIndicator={false}
       >
         {notifications.map((item: any) => {
-          // let meta = {
-          //   aiReason: item.message,
-          //   // matchRate: "85%",
-          //   // location: "위치 확인 중",
-          // };
-          // try {
-          //   if (item.message && item.message.startsWith("{")) {
-          //     meta = JSON.parse(item.message);
-          //   }
-          // } catch (e) {
-          //   console.error("알림 메타 파싱 에러:", e);
-          // }
-
-          const timeLabel = item.createdAt ? "방금 전" : "";
+          // 🌟 현재 아이템이 지워지는 중인지 검사
+          const isCurrentItemDeleting = deletingId === item.id;
 
           return (
             <View key={item.id} style={styles.matchCard}>
@@ -104,17 +117,21 @@ export default function MatchingScreen() {
                 <View style={styles.aiBadge}>
                   <Ionicons name="sparkles" size={12} color={COLORS.aiPurple} />
                   <Text style={styles.aiBadgeText}>
-                    {/* 취향 저격 {meta.matchRate} */}
+                    매칭률 {item.matchRate}%
                   </Text>
                 </View>
-                <Text style={styles.timeText}>{timeLabel}</Text>
+                <Text style={styles.timeText}>
+                  {formatDistanceToNow(new Date(item.createdAt), {
+                    addSuffix: true,
+                    locale: ko,
+                  })}
+                </Text>
               </View>
 
               {/* 카드 본문: 실제 백엔드 소모임 타이틀 매핑 */}
               <Text style={styles.cardTitle} numberOfLines={2}>
                 {item.title}
               </Text>
-              {/* <Text style={styles.locationText}>📍 {meta.location}</Text> */}
 
               {/* AI가 추천한 이유 구역 */}
               <View style={styles.aiReasonBox}>
@@ -126,17 +143,31 @@ export default function MatchingScreen() {
 
               {/* 하단 액션 버튼 */}
               <View style={styles.actionRow}>
-                <TouchableOpacity style={styles.passButton} activeOpacity={0.7}>
-                  <Text style={styles.passButtonText}>넘기기</Text>
+       
+                <TouchableOpacity
+                  style={[
+                    styles.passButton,
+                    isCurrentItemDeleting && { opacity: 0.6 },
+                  ]}
+                  activeOpacity={0.7}
+                  onPress={() => deleteNotificationMutation.mutate(item.id)}
+                  disabled={deleteNotificationMutation.isPending}
+                >
+                  {isCurrentItemDeleting ? (
+                    <ActivityIndicator size="small" color={COLORS.textSub} />
+                  ) : (
+                    <Text style={styles.passButtonText}>넘기기</Text>
+                  )}
                 </TouchableOpacity>
 
-                {/* 🚀 참석하기 클릭 시, 알림 테이블의 linkId 스펙을 타고 소모임방 상세로 다이렉트 슛! */}
+                {/* 🚀 참석하기 클릭 시 소모임방 상세로 이동 */}
                 <TouchableOpacity
                   style={styles.joinButton}
                   activeOpacity={0.8}
                   onPress={() => router.push(`/gatherings/${item.linkId}`)}
+                  disabled={deleteNotificationMutation.isPending}
                 >
-                  <Text style={styles.joinButtonText}>참석하기</Text>
+                  <Text style={styles.joinButtonText}>참여하러 가기</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -194,7 +225,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     gap: 4,
   },
-  aiBadgeText: { fontSize: 12, color: COLORS.aiPurple, fontWeight: "700" },
+  aiBadgeText: { fontSize: 11, color: COLORS.aiPurple, fontWeight: "700" },
   timeText: { fontSize: 12, color: COLORS.textSub, fontWeight: "500" },
   cardTitle: {
     fontSize: 17,

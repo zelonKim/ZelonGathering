@@ -3,8 +3,9 @@ import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
-import { StyleSheet } from "react-native";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { Platform, StyleSheet, View } from "react-native";
+import { KeyboardProvider } from "react-native-keyboard-controller";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -16,13 +17,15 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <APIProvider>
-        <SafeAreaView style={styles.globalContainer} edges={["top"]}>
-          <StatusBar style="dark" />
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          </Stack>
-        </SafeAreaView>
+        <KeyboardProvider>
+          <View style={styles.globalContainer}>
+            <StatusBar style="dark" />
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            </Stack>
+          </View>
+        </KeyboardProvider>
       </APIProvider>
     </SafeAreaProvider>
   );
@@ -32,5 +35,6 @@ const styles = StyleSheet.create({
   globalContainer: {
     flex: 1,
     backgroundColor: "#FAFAFA", // 앱 상단바 영역 배경색
+    paddingTop: Platform.OS === "ios" ? 50 : 30,
   },
 });

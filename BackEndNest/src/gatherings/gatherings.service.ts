@@ -147,6 +147,7 @@ export class GatheringsService {
         userId: string;
         title: string;
         message: string;
+        matchRate: number;
       }> = await response.json();
 
       // 🚀 백엔드 벌크 인서트 구역 보완 코드
@@ -158,6 +159,7 @@ export class GatheringsService {
               userId: noti.userId,
               title: noti.title,
               message: noti.message,
+              matchRate: noti.matchRate,
               linkId: gathering.id,
             };
           }),
@@ -369,10 +371,9 @@ export class GatheringsService {
         },
       });
 
-    // 💡 핵심: 이미 참여 중이라면 에러를 뱉는 게 아니라 조용히 성공 메시지를 반환!
     if (existingParticipant) {
       return {
-        message: '이미 소모임에 참여 중입니다.',
+        message: '이 소모임에 참여하실 수 없습니다.',
         currentParticipants: gathering.currentParticipants,
       };
     }

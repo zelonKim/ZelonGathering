@@ -209,7 +209,7 @@ export class UsersService {
       throw new NotFoundException('존재하지 않는 회원입니다.');
     }
 
-    // 2. 해당 유저에게 온 알림 테이블 데이터 긁어오기
+    // 해당 유저에게 온 알림 테이블 데이터 긁어오기
     return await this.prisma.notification.findMany({
       where: {
         userId, // 내 ID 앞으로 온 알림만 타이트하게 필터링
@@ -224,7 +224,107 @@ export class UsersService {
         message: true,
         linkId: true,
         createdAt: true,
+        matchRate: true,
       },
     });
   }
+
+  /////////////////////////////////////////////////
+
+  async deleteNotification(id: string): Promise<{ success: boolean }> {
+    const noti = await this.prisma.notification.findUnique({
+      where: { id },
+    });
+
+    if (!noti) {
+      throw new NotFoundException('해당 알림을 찾을 수 없습니다.');
+    }
+
+    // 🌟 수정된 부분: 객체 전체가 아닌 `where` 조건을 넘겨줍니다.
+    await this.prisma.notification.delete({
+      where: { id },
+    });
+
+    return { success: true };
+  }
+
+  /////////////////////////////////////////////////
+
+  
+  async getMyChats(userId: string) {
+    // 1. 유저가 참여하고 있는 소모임(Gathering) 목록 조회
+    const joinedGatherings = await this.prisma.gathering.findMany({
+      where: {
+        participants: {
+          some: {
+            userId: userId,
+            status: 'ACCEPTED', // 승인된 정식 멤버인 방만 골라내기
+          },
+        },
+      },
+      select: {
+        id: true,
+        title: true,
+        category: true,
+        // 2. 해당 소모임방의 가장 최신 메시지 1개 가져오기
+        chatMessages: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+          take: 1,
+          include: {
+            sender: {
+              select: {
+                nickname: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // 3. 프론트엔드(ChatsScreen) 요약 카드 스펙에 맞게 가공(Mapping)해서 리턴
+    return joinedGatherings.map((gathering) => {
+      const lastChat = gathering.chatMessages[0]; // 가장 최신 메시지 객체 (없을 수 있으므로 옵셔널 체이닝 처리)
+
+      return {
+        id: gathering.id,
+        title: gathering.title,
+        category: gathering.category,
+        lastMessage: lastChat
+          ? lastChat.message
+          : '아직 주고받은 대화가 없습니다.',
+        lastMessageTime: lastChat
+          ? this.formatChatTime(lastChat.createdAt)
+          : '',
+        unreadCount: 0, // 💡 안 읽은 개수 기능은 차후 테이블/로그 설계 후 확장 가능하도록 세팅
+      };
+    });
+  }
+
+  /**
+   * 📅 날짜 객체를 프론트 뷰에 맞게 "오후 2:30" 또는 "어제" 형태로 포맷팅하는 헬퍼 메서드
+   */
+  private formatChatTime(date: Date): string {
+    const now = new Date();
+    const chatDate = new Date(date);
+
+    // 같은 날이면 시간 표시
+    if (now.toDateString() === chatDate.toDateString()) {
+      return chatDate.toLocaleTimeString('ko-KR', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      });
+    }
+
+    // 하루 전이면 '어제'
+    const diffTime = now.getTime() - chatDate.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    if (diffDays === 1) return '어제';
+
+    // 그 외에는 월/일 표시
+    return `${chatDate.getMonth() + 1}월 ${chatDate.getDate()}일`;
+  }
+
 }

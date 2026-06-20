@@ -1,7 +1,12 @@
+import { client } from "@/api/client";
 import { Ionicons } from "@expo/vector-icons";
+import { useQuery } from "@tanstack/react-query";
+import { useRouter } from "expo-router";
 import React from "react";
 import {
+  ActivityIndicator,
   FlatList,
+  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -10,116 +15,152 @@ import {
 
 // 🍑 ZelonGathering 일관된 감성 배색 세트
 const COLORS = {
-  primary: "#FF7A59", // 메인 피치 코랄
-  primaryLight: "#FFEBE5", // 안 읽은 배지 배경
-  background: "#FBFBF9", // 감성 웜 화이트 배경
-  surface: "#FFFFFF", // 채팅방 카드 화이트
-  textMain: "#292524", // 딥 차콜 먹색
-  textSub: "#78716C", // 부가 메시지 그레이
-  border: "#E7E5E4", // 부드러운 테두리
-  accent: "#F43F5E", // 강렬한 알림 핑크레드
+  primary: "#FF7A59",
+  primaryLight: "#FFEBE5",
+  background: "#FBFBF9",
+  surface: "#FFFFFF",
+  textMain: "#292524",
+  textSub: "#78716C",
+  border: "#E7E5E4",
 };
 
-// 💬 1:1 프라이빗 메시지와 그룹 모임 메시지가 섞인 트렌디 더미 데이터
-const MOCK_CHATS = [
-  {
-    id: "1",
-    title: "Django 백엔드 정예 크루 🚀",
-    lastMessage: "이번 주 홍대 모임 조용한 방으로 예약 완료했습니다!",
-    time: "오후 2:30",
-    unreadCount: 2,
-    isPrivate: false, // 그룹 모임 채팅
-    avatarBg: "#FEF3C7", // 앰버 골드 톤 프사 배경
-    iconName: "code-slash",
-  },
-  {
-    id: "2",
-    title: "민지 (AI 에이전트 빌더) 🤖",
-    lastMessage: "성진님! FastAPI 서버 매칭 파이프라인 연동 성공하셨나요?",
-    time: "오후 1:15",
-    unreadCount: 1,
-    isPrivate: true, // 👥 1:1 privateChat 메시지!
-    avatarBg: "#E0F2FE", // 시안 블루 톤 프사 배경
-    iconName: "person",
-  },
-  {
-    id: "3",
-    title: "홍대 네온 볼링 소모임 🎳",
-    lastMessage: "다들 고생하셨습니다! 다음 주에 또 봬요 ㅎㅎ",
-    time: "어제",
-    unreadCount: 0,
-    isPrivate: false,
-    avatarBg: "#FCE7F3", // 핑크 톤 프사 배경
-    iconName: "trophy",
-  },
-];
+// 🎨 카테고리별 아바타 테마 색상 및 이모지 맵 (공통 스펙 싱크)
+const CATEGORY_MAP: Record<string, { bg: string; icon: string }> = {
+  STUDY: { bg: "#E0F2FE", icon: "📖" },
+  SPORTS: { bg: "#E6F4EA", icon: "⚽️" },
+  ART: { bg: "#FAE7F3", icon: "🎨" },
+  FOOD: { bg: "#FEF0E6", icon: "🍔" },
+  BOOK: { bg: "#F1ECE4", icon: "📚" },
+  GAME: { bg: "#EDE9FE", icon: "🎯" },
+  TALK: { bg: "#F4F4F5", icon: "🎙️" },
+  TOUR: { bg: "#E0F7FA", icon: "🚠" },
+};
 
 export default function ChatsScreen() {
+  const router = useRouter();
+
+  // 🔄 1. 내가 속한 소모임 채팅방 목록 API Fetch
+  // (백엔드에서 참여 중인 모임의 최신 메시지, 안 읽은 개수, 스펙을 맵핑해서 준다고 가정합니다.)
+  const {
+    data: chatRooms = [],
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
+    queryKey: ["myChats"],
+    queryFn: async () => {
+      const { data } = await client.get("/users/chats");
+      return data;
+    },
+    refetchInterval: 5000, // 실시간 메시지 요약을 위한 폴링 주기 설정
+  });
+
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+        <Text style={styles.loadingText}>채팅방 목록을 불러오는 중입니다</Text>
+      </View>
+    );
+  }
+
+  if (isError) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Ionicons
+          name="alert-circle-outline"
+          size={48}
+          color={COLORS.textSub}
+        />
+        <Text style={styles.errorText}>채팅 목록을 가져오지 못했습니다.</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       {/* 1. 상단 타이틀 바 */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Chatting</Text>
-        <Text style={styles.headerSubtitle}>💬 실시간 프라이빗 채팅</Text>
+        <Text style={styles.headerSubtitle}>💬 나의 실시간 채팅방</Text>
       </View>
 
-      {/* 2. 트렌디한 채팅 목록 피드 */}
+      {/* 2. 실시간 소모임 채팅 리스트 피드 */}
       <FlatList
-        data={MOCK_CHATS}
-        keyExtractor={(item) => item.id}
+        data={chatRooms}
+        keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
-        renderItem={({ item }) => (
-          <TouchableOpacity style={styles.chatCard} activeOpacity={0.8}>
-            {/* 왼쪽: 힙한 그래픽 아바타 영역 */}
-            <View
-              style={[
-                styles.avatarContainer,
-                { backgroundColor: item.avatarBg },
-              ]}
-            >
-              <Ionicons
-                name={item.iconName as any}
-                size={22}
-                color={COLORS.textMain}
-              />
+        renderItem={({ item }) => {
+          // 카테고리에 맞는 아바타 테마 추출 (기본값 TALK)
+          const categoryKey = item.category?.toUpperCase() || "TALK";
+          const theme = CATEGORY_MAP[categoryKey] || CATEGORY_MAP.TALK;
 
-              {/* 1:1 privateChat인 경우 얹어주는 미니 인디케이터 배지 */}
-              {item.isPrivate && (
-                <View style={styles.privateBadge}>
-                  <Ionicons name="lock-closed" size={8} color="#FFFFFF" />
+          return (
+            <TouchableOpacity
+              style={styles.chatCard}
+              activeOpacity={0.8}
+              // 🚀 카드를 누르면 해당 소모임 상세 화면의 [실시간 채팅방] 탭으로 다이렉트 랜딩되도록 설계할 수 있습니다.
+              onPress={() =>
+                router.push({
+                  pathname: `/gatherings/${item.id}`,
+                  params: { tab: "CHAT" },
+                })
+              }
+            >
+              {/* 왼쪽: 모달 카테고리 기반 힙한 그래픽 아바타 */}
+              <View
+                style={[styles.avatarContainer, { backgroundColor: theme.bg }]}
+              >
+                {/* <Ionicons
+                  name={theme.icon as any}
+                  size={22}
+                  color={COLORS.textMain}
+                /> */}
+                <Text style={{ fontSize: Platform.OS === "ios" ? 20 : 15 }}>
+                  {theme.icon}
+                </Text>
+              </View>
+
+              {/* 가운데: 소모임 타이틀 & 최신 대화 요약 */}
+              <View style={styles.chatInfo}>
+                <View style={styles.titleRow}>
+                  <Text style={styles.roomTitle} numberOfLines={1}>
+                    {item.title}
+                  </Text>
+                  {/* 백엔드에서 최신 메시지 시간(lastMessageAt)을 줄 경우 표시 */}
+                  <Text style={styles.timeText}>
+                    {item.lastMessageTime || ""}
+                  </Text>
+                </View>
+
+                <Text
+                  style={[
+                    styles.roomMessage,
+                    item.unreadCount > 0 && styles.roomMessageUnread,
+                  ]}
+                  numberOfLines={1}
+                >
+                  {item.lastMessage ||
+                    "아직 주고받은 대화가 없습니다. 첫 인사를 건네보세요!"}
+                </Text>
+              </View>
+
+              {/* 오른쪽: 안 읽은 알림 카운트 배지 (데이터가 존재할 때만 노출) */}
+              {item.unreadCount > 0 && (
+                <View style={styles.unreadBadge}>
+                  <Text style={styles.unreadText}>{item.unreadCount}</Text>
                 </View>
               )}
-            </View>
-
-            {/* 가운데: 채팅방 타이틀 & 대화 요약 */}
-            <View style={styles.chatInfo}>
-              <View style={styles.titleRow}>
-                <Text style={styles.roomTitle} numberOfLines={1}>
-                  {item.title}
-                </Text>
-                <Text style={styles.timeText}>{item.time}</Text>
-              </View>
-
-              <Text
-                style={[
-                  styles.roomMessage,
-                  item.unreadCount > 0 && styles.roomMessageUnread,
-                ]}
-                numberOfLines={1}
-              >
-                {item.lastMessage}
-              </Text>
-            </View>
-
-            {/* 오른쪽: 안 읽은 알림 카운트 배지 */}
-            {item.unreadCount > 0 && (
-              <View style={styles.unreadBadge}>
-                <Text style={styles.unreadText}>{item.unreadCount}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-        )}
+            </TouchableOpacity>
+          );
+        }}
+        ListEmptyComponent={
+          <Text style={styles.emptyText}>
+            현재 참여 중인 소모임 채팅방이 없습니다.{"\n"}마음에 드는 소모임에
+            가입해 보세요! 🏃
+          </Text>
+        }
       />
     </View>
   );
@@ -130,6 +171,15 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: COLORS.background,
+    gap: 12,
+  },
+  loadingText: { fontSize: 14, fontWeight: "600", color: COLORS.textSub },
+  errorText: { fontSize: 14, fontWeight: "600", color: COLORS.textSub },
   header: {
     paddingHorizontal: 20,
     paddingTop: 15,
@@ -138,7 +188,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: "900",
-    color: COLORS.primary, // 피치 코랄 아이덴티티 유지
+    color: COLORS.primary,
     letterSpacing: -0.5,
   },
   headerSubtitle: {
@@ -151,7 +201,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 5,
   },
-  // 💬 기존의 밋밋한 보더 라인 대신 둥글고 트렌디한 카드 레이아웃 도입
   chatCard: {
     flexDirection: "row",
     backgroundColor: COLORS.surface,
@@ -161,7 +210,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 1,
     borderColor: COLORS.border,
-    // 은은한 섀도우 효과로 카드 띄우기
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.02,
@@ -171,24 +219,9 @@ const styles = StyleSheet.create({
   avatarContainer: {
     width: 52,
     height: 52,
-    borderRadius: 18, // 완전 동그라미보다 살짝 각진 스퀘어 서클이 요즘 대세!
+    borderRadius: 18,
     justifyContent: "center",
     alignItems: "center",
-    position: "relative",
-  },
-  // 🔒 1:1 프라이빗 챗 표시 배지
-  privateBadge: {
-    position: "absolute",
-    bottom: -2,
-    right: -2,
-    backgroundColor: COLORS.primary,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 2,
-    borderColor: COLORS.surface,
   },
   chatInfo: {
     flex: 1,
@@ -217,12 +250,10 @@ const styles = StyleSheet.create({
     color: COLORS.textSub,
     lineHeight: 18,
   },
-  // 안 읽은 메시지가 있을 땐 텍스트를 조금 더 진하게 포커싱
   roomMessageUnread: {
     color: COLORS.textMain,
     fontWeight: "600",
   },
-  // 🔴 피치 코랄 감성의 트렌디 둥근 알림 배지
   unreadBadge: {
     backgroundColor: COLORS.primary,
     minWidth: 20,
@@ -236,5 +267,13 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: "#FFFFFF",
     fontWeight: "800",
+  },
+  emptyText: {
+    fontSize: 14,
+    color: COLORS.textSub,
+    textAlign: "center",
+    marginTop: 80,
+    fontWeight: "500",
+    lineHeight: 22,
   },
 });

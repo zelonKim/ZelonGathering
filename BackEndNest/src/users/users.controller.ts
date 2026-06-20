@@ -9,6 +9,8 @@ import {
   UseInterceptors,
   UploadedFile,
   BadRequestException,
+  Delete,
+  Param,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { SignupDto, LoginDto, UpdateProfileDto } from './dto/auth.dto';
@@ -66,11 +68,27 @@ export class UsersController {
     return { imageUrl };
   }
 
-  // 6. 매칭 알림 조회
+  // 6-1. 매칭 알림 조회
   @UseGuards(JwtAuthGuard)
   @Get('notifications')
   async getMyNotifications(@Req() req: { user: { sub: string } }) {
     const userId = req.user.sub; 
     return await this.usersService.getMyNotifications(userId);
   }
+
+  // 6-2. 매칭 알림 삭제
+  @UseGuards(JwtAuthGuard)
+  @Delete('notifications/:id')
+  async deleteNotification(@Param('id') id: string) {
+    return await this.usersService.deleteNotification(id);
+  }
+
+  // 7. 채팅방 조회
+  @UseGuards(JwtAuthGuard)
+  @Get('chats')
+  async getMyChats(@Req() req: { user: { sub: string } }) {
+    const userId = req.user.sub; 
+    return await this.usersService.getMyChats(userId);
+  }
+
 }

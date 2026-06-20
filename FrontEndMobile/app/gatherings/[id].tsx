@@ -3,18 +3,20 @@ import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 
-// 🍑 브랜드 디자인 테마 컬러
 const COLORS = {
   primary: "#FF7A59",
   primaryLight: "#FFEBE5",
@@ -25,19 +27,18 @@ const COLORS = {
   border: "#E7E5E4",
 };
 
-// 🎨 홈 스크린과 싱크를 완벽하게 맞춘 2026 트렌디 파스텔 컬러 및 이모지 맵
 const CATEGORY_MAP: Record<
   string,
   { label: string; emoji: string; bg: string; text: string }
 > = {
-  STUDY: { label: "스터디", emoji: "📖", bg: "#E0F2FE", text: "#0369A1" }, // 스카이 밀크
-  SPORTS: { label: "스포츠", emoji: "⚽️", bg: "#E6F4EA", text: "#137333" }, // 보태니컬 민트
-  ART: { label: "아트", emoji: "🎨", bg: "#FAE7F3", text: "#B80066" }, // 뮤트 블러썸
-  FOOD: { label: "푸드", emoji: "🍔", bg: "#FEF0E6", text: "#D94E2B" }, // 애프리코트 오렌지
-  BOOK: { label: "독서", emoji: "📚", bg: "#F1ECE4", text: "#614E3D" }, // 모던 베이지 체어
-  GAME: { label: "게임", emoji: "🎯", bg: "#EDE9FE", text: "#5B21B6" }, // 소프트 네온 바이올렛
-  TALK: { label: "토크", emoji: "🎙️", bg: "#F4F4F5", text: "#3F3F46" }, // 미니멀 세이지 그레이
-  TOUR: { label: "투어", emoji: "🚠", bg: "#E0F7FA", text: "#006064" }, // 딥 실버 아쿠아
+  STUDY: { label: "스터디", emoji: "📖", bg: "#E0F2FE", text: "#0369A1" },
+  SPORTS: { label: "스포츠", emoji: "⚽️", bg: "#E6F4EA", text: "#137333" },
+  ART: { label: "아트", emoji: "🎨", bg: "#FAE7F3", text: "#B80066" },
+  FOOD: { label: "푸드", emoji: "🍔", bg: "#FEF0E6", text: "#D94E2B" },
+  BOOK: { label: "독서", emoji: "📚", bg: "#F1ECE4", text: "#614E3D" },
+  GAME: { label: "게임", emoji: "🎯", bg: "#EDE9FE", text: "#5B21B6" },
+  TALK: { label: "토크", emoji: "🎙️", bg: "#F4F4F5", text: "#3F3F46" },
+  TOUR: { label: "투어", emoji: "🚠", bg: "#E0F7FA", text: "#006064" },
 };
 
 const DAY_MAP: Record<string, string> = {
@@ -61,7 +62,7 @@ const TIME_MAP: Record<string, string> = {
   PM_01: "오후 1시",
   PM_02: "오후 2시",
   PM_03: "오후 3시",
-  PM_04: "오후 4시",
+  PM_04: "오후 6시",
   PM_05: "오후 5시",
   PM_06: "오후 6시",
   PM_07: "오후 7시",
@@ -74,7 +75,25 @@ export default function GatheringDetailScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
 
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, tab } = useLocalSearchParams<{
+    id: string;
+    tab?: "INFO" | "CHAT";
+  }>();
+
+  // 잔상 방지용 캐시 클리어 슛
+  useEffect(() => {
+    return () => {
+      queryClient.resetQueries({ queryKey: ["gatheringDetail", id] });
+      queryClient.resetQueries({ queryKey: ["gatheringChats", id] });
+    };
+  }, [id]);
+
+  const [activeTab, setActiveTab] = useState<"INFO" | "CHAT">(
+    tab === "CHAT" ? "CHAT" : "INFO",
+  );
+
+  const [chatInput, setChatInput] = useState("");
+  const chatScrollViewRef = useRef<ScrollView>(null);
 
   // 🔄 1. 백엔드 상세 조회 엔드포인트 연동
   const {
@@ -89,7 +108,6 @@ export default function GatheringDetailScreen() {
     },
     enabled: !!id,
     refetchInterval: 3000,
-    refetchOnWindowFocus: true,
   });
 
   // 👤 2. 현재 로그인한 내 정보 캐시 조회
@@ -105,16 +123,76 @@ export default function GatheringDetailScreen() {
     },
   });
 
-  // 🚀 3. 참여 신청 뮤테이션
+  const myId = userProfile?.id;
+
+  // 🛡️ [권한 로직 정밀 튜닝 슛]
+  // 내 참여 정보 객체를 명확하게 찾습니다.
+  const myParticipation = gathering?.participants?.find(
+    (p: any) => p.user?.id === myId || p.userId === myId,
+  );
+
+  // 1. 내가 강퇴당한 유저인지 체크 ('REJECTED' 상태인지 확인)
+  const isKicked = myParticipation?.status === "REJECTED";
+
+  // 2. 승인된(ACCEPTED) 유저이거나 별도의 status 필드가 명시되지 않은 기존 정상 참여자만 인정
+  const isAlreadyParticipant =
+    !!myId && !!myParticipation && myParticipation.status !== "REJECTED";
+
+  const isHost = !!myId && gathering?.hostId === myId;
+
+  // 3. 🌟 [채팅 가드 강화] 방장이거나 정상 참여자여야 하며, '강퇴당한 상태(isKicked)'가 절대 아니어야만 채팅 접근 허용
+  const canAccessChat = (isHost || isAlreadyParticipant) && !isKicked;
+
+  useEffect(() => {
+    if (tab === "CHAT" && canAccessChat) {
+      setActiveTab("CHAT");
+    } else if (tab === "CHAT" && !canAccessChat) {
+      // 혹시라도 탭 파라미터로 강퇴 유저가 CHAT 진입 시 자동으로 INFO로 튕겨내기
+      setActiveTab("INFO");
+    }
+  }, [tab, canAccessChat]);
+
+  // 💬 3. [채팅] 백엔드 단체 채팅 과거 내역 조회 연동
+  const { data: chatMessages = [] } = useQuery({
+    queryKey: ["gatheringChats", id],
+    queryFn: async () => {
+      const { data } = await client.get(`/chats/public/${id}`, {
+        params: { limit: 1000 },
+      });
+      return [...data].reverse();
+    },
+    enabled: !!id && activeTab === "CHAT" && canAccessChat,
+    refetchInterval: 2000,
+  });
+
+  // 🚀 4. [채팅] 메시지 전송 뮤테이션
+  const sendChatMessageMutation = useMutation({
+    mutationFn: async (message: string) => {
+      return await client.post(`/chats/public/${id}`, { message });
+    },
+    onSuccess: () => {
+      setChatInput("");
+      queryClient.invalidateQueries({ queryKey: ["gatheringChats", id] });
+      setTimeout(
+        () => chatScrollViewRef.current?.scrollToEnd({ animated: true }),
+        100,
+      );
+    },
+    onError: (error: any) => {
+      const errorMsg =
+        error.response?.data?.message || "메시지를 보내지 못했습니다.";
+      Alert.alert("오류", errorMsg);
+    },
+  });
+
+  // 🚀 5. 참여 신청 뮤테이션
   const joinGatheringMutation = useMutation({
     mutationFn: async () => {
       const { data } = await client.post(`/gatherings/${id}/join`);
       return data;
     },
     onSuccess: (data) => {
-      if (data?.message) {
-        Alert.alert("알림", data.message);
-      }
+      if (data?.message) Alert.alert("알림", data.message);
       queryClient.invalidateQueries({ queryKey: ["gatheringDetail", id] });
     },
     onError: (error: any) => {
@@ -125,32 +203,88 @@ export default function GatheringDetailScreen() {
     },
   });
 
-  // 🚪 4. 방 나가기 처리 뮤테이션
+  // 🚪 6. 방 나가기 처리 뮤테이션 (참여자 전용)
   const leaveGatheringMutation = useMutation({
     mutationFn: async () => {
       const { data } = await client.delete(`/gatherings/${id}/leave`);
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["gatheringDetail", id] });
+      queryClient.invalidateQueries({ queryKey: ["gatherings"] });
+      queryClient.resetQueries({ queryKey: ["gatheringDetail", id] });
       router.back();
     },
     onError: (error: any) => {
       const errorMsg =
-        error.response?.data?.message ||
-        "소모임방에서 나가지 못했습니다. 다시 시도해 주세요.";
+        error.response?.data?.message || "소모임방에서 나가지 못했습니다.";
       Alert.alert("실패", errorMsg);
       router.back();
     },
   });
 
+  // 🗑️ 7. 소모임 삭제 처리 뮤테이션 (방장 전용)
+  const deleteGatheringMutation = useMutation({
+    mutationFn: async () => {
+      const { data } = await client.delete(`/gatherings/${id}`);
+      return data;
+    },
+    onSuccess: (data) => {
+      if (data?.message) Alert.alert("알림", data.message);
+
+      queryClient.invalidateQueries({ queryKey: ["gatherings"] });
+      queryClient.resetQueries({ queryKey: ["gatheringDetail", id] });
+      queryClient.resetQueries({ queryKey: ["gatheringChats", id] });
+      router.back();
+    },
+    onError: (error: any) => {
+      const errorMsg =
+        error.response?.data?.message || "소모임방을 삭제하지 못했습니다.";
+      Alert.alert("실패", errorMsg);
+    },
+  });
+
+  // 🚫 8. 멤버 강퇴 처리 뮤테이션 (방장 전용)
+  const kickParticipantMutation = useMutation({
+    mutationFn: async (targetUserId: string) => {
+      return await client.patch(`/gatherings/${id}/participants`, {
+        userId: targetUserId,
+        status: "REJECTED",
+      });
+    },
+    onSuccess: () => {
+      Alert.alert("성공", "해당 멤버를 소모임에서 강퇴 처리했습니다.");
+      queryClient.invalidateQueries({ queryKey: ["gatheringDetail", id] });
+    },
+    onError: (error: any) => {
+      const errorMsg =
+        error.response?.data?.message || "멤버 강퇴 처리에 실패했습니다.";
+      Alert.alert("오류", errorMsg);
+    },
+  });
+
+  const handleSendMessage = () => {
+    if (!chatInput.trim()) return;
+    sendChatMessageMutation.mutate(chatInput.trim());
+  };
+
   const handleJoinPress = () => {
+    Alert.alert("소모임 참여", "정말로 이 소모임에 참여하시겠습니까?", [
+      { text: "취소", style: "cancel" },
+      { text: "확인", onPress: () => joinGatheringMutation.mutate() },
+    ]);
+  };
+
+  const handleKickPress = (targetUserId: string, nickname: string) => {
     Alert.alert(
-      "소모임 참여 신청",
-      "정말로 이 소모임에 참여 신청하시겠습니까?",
+      "멤버 강퇴",
+      `정말로 '${nickname}' 멤버를 강퇴 하시겠습니까?\n\n‼️ 강퇴된 멤버는 이 소모임에 다시 참여할 수 없습니다.`,
       [
         { text: "취소", style: "cancel" },
-        { text: "확인", onPress: () => joinGatheringMutation.mutate() },
+        {
+          text: "강퇴",
+          style: "destructive",
+          onPress: () => kickParticipantMutation.mutate(targetUserId),
+        },
       ],
     );
   };
@@ -161,21 +295,33 @@ export default function GatheringDetailScreen() {
       return;
     }
     const myId = userProfile?.id;
-    const isHost = !!myId && gathering.hostId === myId;
 
-    if (isHost) {
-      router.back();
+    if (!!myId && gathering.hostId === myId) {
+      Alert.alert(
+        "소모임 삭제",
+        "정말로 이 소모임을 삭제하시겠습니까?\n\n⚠️ 삭제된 소모임은 다시 복구할 수 없습니다",
+        [
+          { text: "취소", style: "cancel" },
+          {
+            text: "확인",
+            style: "destructive",
+            onPress: () => deleteGatheringMutation.mutate(),
+          },
+        ],
+      );
       return;
     }
 
-    Alert.alert("소모임 나가기", `정말로 이 소모임에서 나가시겠습니까?`, [
-      { text: "취소", style: "cancel" },
-      {
-        text: "확인",
-        style: "destructive",
-        onPress: () => leaveGatheringMutation.mutate(),
-      },
-    ]);
+    if (!!myId && gathering.hostId !== myId) {
+      Alert.alert("소모임 나가기", `정말로 소모임 참여를 취소하시겠습니까?`, [
+        { text: "취소", style: "cancel" },
+        {
+          text: "확인",
+          style: "destructive",
+          onPress: () => leaveGatheringMutation.mutate(),
+        },
+      ]);
+    }
   };
 
   if (isGatheringLoading || isProfileLoading) {
@@ -195,20 +341,30 @@ export default function GatheringDetailScreen() {
           size={48}
           color={COLORS.textSub}
         />
-        <Text style={styles.errorText}>소모임을 불러오지 못했습니다.</Text>
+        <Text style={styles.errorText}>
+          존재하지 않거나 삭제된 소모임입니다. 👀
+        </Text>
+        <TouchableOpacity
+          style={{
+            marginTop: 12,
+            backgroundColor: COLORS.primary,
+            paddingVertical: 10,
+            paddingHorizontal: 20,
+            borderRadius: 12,
+          }}
+          onPress={() => {
+            queryClient.invalidateQueries({ queryKey: ["gatherings"] });
+            router.replace("/");
+          }}
+        >
+          <Text style={{ color: "#FFFFFF", fontWeight: "700", fontSize: 13 }}>
+            목록으로 돌아가기
+          </Text>
+        </TouchableOpacity>
       </View>
     );
   }
 
-  const myId = userProfile?.id;
-  const isAlreadyParticipant =
-    !!myId &&
-    gathering.participants?.some(
-      (p: any) => p.user?.id === myId || p.userId === myId,
-    );
-  const isHost = !!myId && gathering.hostId === myId;
-
-  // 💡 백엔드 카테고리 Key값을 활용해 런타임 맵핑 데이터 추출 구조 안전 가드
   const categoryKey = gathering.category?.toUpperCase() || "TALK";
   const catTheme = CATEGORY_MAP[categoryKey] || {
     label: gathering.category,
@@ -217,6 +373,10 @@ export default function GatheringDetailScreen() {
     text: "#292524",
   };
 
+  // 👥 [목록 정화 필터 추가] 강퇴당한 유저(`status === 'REJECTED'`)는 명단 리스트에서 원천 제외
+  const activeParticipants =
+    gathering.participants?.filter((p: any) => p.status !== "REJECTED") || [];
+
   return (
     <View style={styles.container}>
       {/* 상단 헤더 */}
@@ -224,188 +384,207 @@ export default function GatheringDetailScreen() {
         <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7}>
           <Ionicons name="chevron-back" size={24} color={COLORS.textMain} />
         </TouchableOpacity>
+
         <Text style={styles.headerTitle} numberOfLines={1}>
-          소모임방
+          {gathering.title}
         </Text>
-        <TouchableOpacity onPress={handleHeaderBack} activeOpacity={0.7}>
-          <Ionicons
-            name="exit-outline"
-            size={24}
-            color={COLORS.textMain}
-            style={{ marginRight: 3 }}
-          />
+
+        {/* 방장이거나 참여 완료된 정회원만 나가기/삭제 아이콘 단추 활성화 */}
+        {canAccessChat ? (
+          <TouchableOpacity onPress={handleHeaderBack} activeOpacity={0.7}>
+            <Ionicons
+              name={isHost ? "trash-bin-outline" : "exit-outline"}
+              size={24}
+              color={COLORS.textMain}
+            />
+          </TouchableOpacity>
+        ) : (
+          <View style={{ width: 24 }} />
+        )}
+      </View>
+
+      {/* 상단 탭 구조바 */}
+      <View style={styles.tabContainer}>
+        <TouchableOpacity
+          style={[
+            styles.tabButton,
+            activeTab === "INFO" && styles.activeTabButton,
+          ]}
+          onPress={() => setActiveTab("INFO")}
+        >
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === "INFO" && styles.activeTabText,
+            ]}
+          >
+            모임 소개 정보
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.tabButton,
+            activeTab === "CHAT" && styles.activeTabButton,
+          ]}
+          onPress={() => {
+            if (!canAccessChat) {
+              Alert.alert(
+                "입장 불가",
+                isKicked
+                  ? "강퇴된 소모임이므로 채팅방에 입장할 수 없습니다. ❌"
+                  : "소모임 참여 멤버만 채팅할 수 있습니다.",
+              );
+              return;
+            }
+            setActiveTab("CHAT");
+          }}
+        >
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === "CHAT" && styles.activeTabText,
+            ]}
+          >
+            실시간 채팅방
+          </Text>
         </TouchableOpacity>
       </View>
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {/* 🍑 모임 개요 카드 */}
-        <View style={styles.mainCard}>
-          <View style={styles.cardTopHeader}>
-            {/* 🎨 [수정] 홈 화면 스펙과 일치하는 고유 배경색 및 이모지 라벨 결합 렌더링 슛! */}
-            <View
-              style={[styles.categoryBadge, { backgroundColor: catTheme.bg }]}
-            >
-              <Text style={[styles.categoryText, { color: catTheme.text }]}>
-                {catTheme.label} {catTheme.emoji}
-              </Text>
-            </View>
-
-            {/* 동적 참여 제어 단추 */}
-            {isHost ? (
-              <View style={[styles.joinActionBtn, styles.hostBadge]}>
-                <Text style={styles.hostBadgeText}>내가 만든 모임 👑</Text>
-              </View>
-            ) : isAlreadyParticipant ? (
-              <View style={[styles.joinActionBtn, styles.joinCompletedBtn]}>
-                <Ionicons
-                  name="checkmark-circle"
-                  size={14}
-                  color={COLORS.primary}
-                />
-                <Text style={styles.joinCompletedBtnText}>참여 완료</Text>
-              </View>
-            ) : (
-              <TouchableOpacity
-                style={[styles.joinActionBtn, styles.joinSubmitBtn]}
-                onPress={handleJoinPress}
-                disabled={joinGatheringMutation.isPending}
-                activeOpacity={0.7}
+      {/* TAB 1. 모임 소개 정보 */}
+      {activeTab === "INFO" && (
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          <View style={styles.mainCard}>
+            <View style={styles.cardTopHeader}>
+              <View
+                style={[styles.categoryBadge, { backgroundColor: catTheme.bg }]}
               >
-                {joinGatheringMutation.isPending ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <>
-                    <Ionicons name="paper-plane" size={12} color="#FFFFFF" />
-                    <Text style={styles.joinSubmitBtnText}>참여 신청하기</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            )}
+                <Text style={[styles.categoryText, { color: catTheme.text }]}>
+                  {catTheme.label} {catTheme.emoji}
+                </Text>
+              </View>
+
+              {/* 🌟 [우측 상단 버튼 액션 분기 처리 고도화] */}
+              {isHost ? (
+                <View style={[styles.joinActionBtn, styles.hostBadge]}>
+                  <Text style={styles.hostBadgeText}>내가 만든 모임 👑</Text>
+                </View>
+              ) : isKicked ? (
+                // 강퇴당한 멤버인 경우 참여 완료 대신 '참여 불가' 렌더링 슛
+                <View style={[styles.joinActionBtn, styles.kickedBadge]}>
+                  <Ionicons name="ban-outline" size={14} color="#EF4444" />
+                  <Text style={styles.kickedBadgeText}>참여 불가</Text>
+                </View>
+              ) : isAlreadyParticipant ? (
+                <View style={[styles.joinActionBtn, styles.joinCompletedBtn]}>
+                  <Ionicons
+                    name="checkmark-circle"
+                    size={14}
+                    color={COLORS.primary}
+                  />
+                  <Text style={styles.joinCompletedBtnText}>참여 완료</Text>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={[styles.joinActionBtn, styles.joinSubmitBtn]}
+                  onPress={handleJoinPress}
+                  disabled={joinGatheringMutation.isPending}
+                >
+                  {joinGatheringMutation.isPending ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <Text style={styles.joinSubmitBtnText}>
+                      참여하기 <Ionicons name="arrow-forward-outline" />
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              )}
+            </View>
+
+            <Text style={styles.titleText}>{gathering.title}</Text>
+            <View style={[styles.metaRow, { marginBottom: 12 }]}>
+              <View style={styles.peopleBadge}>
+                <Text style={styles.peopleText}>
+                  모집 현황: {activeParticipants.length ?? 1} /{" "}
+                  {gathering.maxParticipants ?? 4}명
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.metaRow}>
+              <Ionicons
+                name="location-sharp"
+                size={14}
+                color={COLORS.primary}
+              />
+              <Text style={styles.metaText}>{gathering.gatheringPlace}</Text>
+            </View>
+            <View style={styles.metaRow}>
+              <Ionicons
+                name="calendar-clear-outline"
+                size={14}
+                color={COLORS.primary}
+              />
+              <Text style={styles.metaText}>
+                {gathering.gatheringDay
+                  ?.map((d: string) => DAY_MAP[d] || d)
+                  .join(", ") || "요일 미정"}
+              </Text>
+            </View>
+            <View style={styles.metaRow}>
+              <Ionicons name="alarm-outline" size={14} color={COLORS.primary} />
+              <Text style={styles.metaText}>
+                {gathering.gatheringTime
+                  ?.map((t: string) => TIME_MAP[t] || t)
+                  .join(", ") || "시간 미정"}
+              </Text>
+            </View>
+
+            <View style={styles.divider} />
+            <Text style={styles.descriptionTitle}>모임 소개</Text>
+            <Text style={styles.descriptionText}>
+              {gathering.description || "등록된 소개글이 없습니다."}
+            </Text>
           </View>
 
-          <Text style={styles.titleText}>{gathering.title}</Text>
-
-          {/* 모집 정원 대조 인프라 행 */}
-          <View style={[styles.metaRow, { marginBottom: 12 }]}>
-            <View style={styles.peopleBadge}>
-              <Ionicons
-                name="people-outline"
-                size={12}
-                color={COLORS.textSub}
-              />
-              <Text style={styles.peopleText}>
-                모집 현황: {gathering.currentParticipants ?? 1} /{" "}
-                {gathering.maxParticipants ?? 4}명
+          <Text style={styles.sectionTitle}>방장</Text>
+          <View style={styles.userRow}>
+            <View style={styles.avatarContainer}>
+              {gathering.host?.profileImg ? (
+                <Image
+                  source={gathering.host.profileImg.trim()}
+                  style={styles.avatar}
+                />
+              ) : (
+                <Text style={styles.avatarText}>🍑</Text>
+              )}
+            </View>
+            <View style={styles.userInfo}>
+              <Text style={styles.nicknameText}>
+                {gathering.host?.nickname || "방장"}
+              </Text>
+              <Text style={styles.mannerText}>
+                🌡️ 매너 온도 {gathering.host?.mannerTemperature}°C
               </Text>
             </View>
           </View>
 
-          {/* 📍 장소 정보 */}
-          <View style={styles.metaRow}>
-            <Ionicons name="location-sharp" size={14} color={COLORS.primary} />
-            <Text style={styles.metaText}>{gathering.gatheringPlace}</Text>
-          </View>
-
-          {/* 📅 일정 스펙 한국어 변환 렌더 영역 */}
-          <View style={styles.metaRow}>
-            <Ionicons
-              name="calendar-clear-outline"
-              size={14}
-              color={COLORS.primary}
-            />
-            <Text style={styles.metaText}>
-              {gathering.gatheringDay && gathering.gatheringDay.length > 0
-                ? gathering.gatheringDay
-                    .map((d: string) => DAY_MAP[d] || d)
-                    .join(", ")
-                : "요일 미정"}
-            </Text>
-          </View>
-          <View style={styles.metaRow}>
-            <Ionicons name="alarm-outline" size={14} color={COLORS.primary} />
-            <Text style={styles.metaText}>
-              {gathering.gatheringTime && gathering.gatheringTime.length > 0
-                ? gathering.gatheringTime
-                    .map((t: string) => TIME_MAP[t] || t)
-                    .join(", ")
-                : "시간 미정"}
-            </Text>
-          </View>
-
-          <View style={styles.divider} />
-
-          {/* 📝 모임 상세 설명문 구역 */}
-          <Text style={styles.descriptionTitle}>모임 소개</Text>
-          <Text style={styles.descriptionText}>
-            {gathering.description ||
-              "등록된 모임 소개글이 없습니다. 모임장에게 직접 문의해 보세요! "}
+          <Text style={[styles.sectionTitle, { marginTop: 24 }]}>
+            참여 중인 멤버 ({activeParticipants.length}명)
           </Text>
-        </View>
+          {/* 👥 [수정] 강퇴되지 않은 activeParticipants 목록만 화면에 맵핑 배포 */}
+          {activeParticipants.map((p: any, idx: number) => {
+            const participantUserId = p.user?.id || p.userId;
 
-        {/* 👑 개설자(호스트) 정보 세션 */}
-        <Text style={styles.sectionTitle}>모임장</Text>
-        <View style={styles.userRow}>
-          <View style={styles.avatarContainer}>
-            {gathering.host?.profileImg ? (
-              <Image
-                source={gathering.host.profileImg.trim()}
-                style={styles.avatar}
-              />
-            ) : (
-              <Text style={styles.avatarText}>🍑</Text>
-            )}
-          </View>
-          <View style={styles.userInfo}>
-            <Text style={styles.nicknameText}>
-              {gathering.host?.nickname || "모임장"}
-            </Text>
-            <Text style={styles.mannerText}>
-              🌡️ 매너 온도 {gathering.host?.mannerTemperature}°C
-            </Text>
-          </View>
-        </View>
-
-        {/* 👥 참여 유저 리스트 세션 */}
-        <Text style={[styles.sectionTitle, { marginTop: 24 }]}>
-          참여 중인 인원 ({gathering.participants?.length ?? 0}명)
-        </Text>
-
-        {/* 방 나가기 처리 중 인디케이터 싱크 */}
-        {leaveGatheringMutation.isPending && (
-          <View
-            style={[
-              styles.userRow,
-              { borderColor: "#EF4444", borderStyle: "dashed" },
-            ]}
-          >
-            <ActivityIndicator
-              size="small"
-              color="#EF4444"
-              style={{ marginLeft: 10 }}
-            />
-            <Text
-              style={[
-                styles.nicknameText,
-                { marginLeft: 12, color: "#EF4444" },
-              ]}
-            >
-              소모임방에서 나가는 중...
-            </Text>
-          </View>
-        )}
-
-        {gathering.participants && gathering.participants.length > 0
-          ? gathering.participants.map((p: any, index: number) => (
-              <View key={p.user?.id || index} style={styles.userRow}>
+            return (
+              <View key={participantUserId || idx} style={styles.userRow}>
                 <View style={styles.avatarContainer}>
                   {p.user?.profileImg ? (
                     <Image
                       source={p.user.profileImg.trim()}
                       style={styles.avatar}
-                      contentFit="cover"
                     />
                   ) : (
                     <Text style={styles.avatarText}>🏃</Text>
@@ -419,12 +598,128 @@ export default function GatheringDetailScreen() {
                     🌡️ 매너 온도 {p.user?.mannerTemperature}°C
                   </Text>
                 </View>
+
+                {isHost && participantUserId !== myId && (
+                  <TouchableOpacity
+                    style={styles.kickButton}
+                    activeOpacity={0.7}
+                    onPress={() =>
+                      handleKickPress(
+                        participantUserId,
+                        p.user?.nickname || "참여자",
+                      )
+                    }
+                  >
+                    <Ionicons
+                      name="person-remove-outline"
+                      style={{ fontSize: 14 }}
+                      color="#E11D48"
+                    />
+                  </TouchableOpacity>
+                )}
               </View>
-            ))
-          : !leaveGatheringMutation.isPending && (
-              <Text style={styles.emptyText}>현재 참여자가 없습니다.</Text>
+            );
+          })}
+        </ScrollView>
+      )}
+
+      {/* TAB 2. 실시간 단체 채팅방 */}
+      {activeTab === "CHAT" && canAccessChat && (
+        <KeyboardAvoidingView
+          style={styles.chatWrapper}
+          behavior={"padding"}
+          keyboardVerticalOffset={Platform.select({
+            ios: 40,
+            android: 0,
+          })}
+        >
+          <ScrollView
+            ref={chatScrollViewRef}
+            contentContainerStyle={styles.chatScrollContent}
+            onContentSizeChange={() =>
+              chatScrollViewRef.current?.scrollToEnd({ animated: true })
+            }
+          >
+            {chatMessages.length === 0 ? (
+              <Text style={styles.emptyText}>
+                실시간 채팅방이 개설되었습니다! {"\n"} 첫 대화를 나눠보세요 💬
+              </Text>
+            ) : (
+              chatMessages.map((msg: any) => {
+                const isMe = msg.senderId === myId;
+                return (
+                  <View
+                    key={msg.id}
+                    style={[
+                      styles.chatBubbleRow,
+                      isMe ? styles.chatRowMe : styles.chatRowOther,
+                    ]}
+                  >
+                    {!isMe && (
+                      <View style={styles.chatAvatarBox}>
+                        {msg.sender?.profileImg ? (
+                          <Image
+                            source={msg.sender.profileImg.trim()}
+                            style={styles.chatAvatar}
+                          />
+                        ) : (
+                          <Text style={{ fontSize: 12 }}>🏃</Text>
+                        )}
+                      </View>
+                    )}
+                    <View
+                      style={isMe ? styles.chatInfoMe : styles.chatInfoOther}
+                    >
+                      {!isMe && (
+                        <Text style={styles.chatSenderName}>
+                          {msg.sender?.nickname || "멤버"}
+                        </Text>
+                      )}
+                      <View
+                        style={[
+                          styles.bubble,
+                          isMe ? styles.bubbleMe : styles.bubbleOther,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.chatMessageText,
+                            isMe ? styles.chatTextMe : styles.chatTextOther,
+                          ]}
+                        >
+                          {msg.message}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                );
+              })
             )}
-      </ScrollView>
+          </ScrollView>
+
+          {/* 하단 입력 바 */}
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.chatInput}
+              placeholder="메시지를 입력해주세요"
+              placeholderTextColor={COLORS.textSub}
+              value={chatInput}
+              onChangeText={setChatInput}
+              multiline
+            />
+            <TouchableOpacity
+              style={[
+                styles.sendButton,
+                !chatInput.trim() && { backgroundColor: COLORS.border },
+              ]}
+              onPress={handleSendMessage}
+              disabled={!chatInput.trim() || sendChatMessageMutation.isPending}
+            >
+              <Ionicons name="arrow-up" size={18} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      )}
     </View>
   );
 }
@@ -443,7 +738,6 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    justifyStyle: "space-between",
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingTop: 16,
@@ -458,6 +752,18 @@ const styles = StyleSheet.create({
     color: COLORS.textMain,
     maxWidth: "70%",
   },
+
+  tabContainer: {
+    flexDirection: "row",
+    backgroundColor: COLORS.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  tabButton: { flex: 1, paddingVertical: 14, alignItems: "center" },
+  activeTabButton: { borderBottomWidth: 3, borderBottomColor: COLORS.primary },
+  tabText: { fontSize: 13, fontWeight: "600", color: COLORS.textSub },
+  activeTabText: { color: COLORS.primary, fontWeight: "800" },
+
   scrollContent: { padding: 20 },
   sectionTitle: {
     fontSize: 15,
@@ -484,9 +790,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: COLORS.textSub,
     textAlign: "center",
-    marginTop: 20,
+    marginTop: 100,
     fontWeight: "500",
+    lineHeight: 20,
   },
+
   mainCard: {
     backgroundColor: COLORS.surface,
     borderRadius: 24,
@@ -494,11 +802,6 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     borderWidth: 1,
     borderColor: COLORS.border,
-    shadowColor: "#1C1917",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.03,
-    shadowRadius: 12,
-    elevation: 1,
   },
   cardTopHeader: {
     flexDirection: "row",
@@ -506,7 +809,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 12,
   },
-  // 💡 인라인 스타일로 테마 컬러를 제어하기 때문에 고정 배색 제거
   categoryBadge: {
     paddingVertical: 5,
     paddingHorizontal: 10,
@@ -588,4 +890,102 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   avatar: { width: 44, height: 44, borderRadius: 14 },
+
+  chatWrapper: { flex: 1, justifyContent: "space-between" },
+  chatScrollContent: { padding: 16, paddingBottom: 24 },
+  chatBubbleRow: { flexDirection: "row", marginBottom: 14, maxWidth: "80%" },
+  chatRowMe: { alignSelf: "flex-end" },
+  chatRowOther: { alignSelf: "flex-start" },
+  chatAvatarBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: "#F2F0EC",
+    justifyContent: "center",
+    alignItems: "center",
+    overflow: "hidden",
+    marginRight: 8,
+    marginTop: 4,
+  },
+  chatAvatar: { width: 32, height: 32 },
+  chatInfoMe: { alignItems: "flex-end" },
+  chatInfoOther: { alignItems: "flex-start" },
+  chatSenderName: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: COLORS.textSub,
+    marginBottom: 4,
+  },
+  bubble: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 18 },
+  bubbleMe: { backgroundColor: COLORS.primary, borderBottomRightRadius: 2 },
+  bubbleOther: {
+    backgroundColor: COLORS.surface,
+    borderBottomLeftRadius: 2,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  chatMessageText: { fontSize: 14, lineHeight: 20, fontWeight: "500" },
+  chatTextMe: { color: "#FFFFFF" },
+  chatTextOther: { color: COLORS.textMain },
+
+  inputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === "ios" ? 14 : 12,
+    paddingBottom: Platform.OS === "ios" ? 28 : 48,
+    backgroundColor: COLORS.surface,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  chatInput: {
+    flex: 1,
+    backgroundColor: "#F5F5F4",
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    fontSize: Platform.OS === "ios" ? 14 : 13,
+    color: COLORS.textMain,
+    maxHeight: 80,
+    minHeight: 38,
+  },
+  sendButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: COLORS.primary,
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: 10,
+  },
+
+  kickButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#FFF1F2",
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#FCA5A5",
+    marginLeft: "auto",
+  },
+  kickButtonText: {
+    fontSize: 11,
+    color: "#E11D48",
+    fontWeight: "800",
+  },
+
+  // 🚨 [추가] 강퇴당한 유저(참여 불가) 전용 뱃지 스타일 규격 스펙
+  kickedBadge: {
+    backgroundColor: "#FEF2F2",
+    borderWidth: 1,
+    borderColor: "#FCA5A5",
+  },
+  kickedBadgeText: {
+    fontSize: 11,
+    color: "#EF4444",
+    fontWeight: "800",
+  },
 });

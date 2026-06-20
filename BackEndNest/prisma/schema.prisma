@@ -154,6 +154,7 @@ model Notification {
   message   String           @db.Text // 알림 내용
   linkId    String?          @map("link_id") @db.Uuid // 여기서는 생성된 Gathering의 ID가 들어감
   createdAt DateTime         @default(now()) @map("created_at")
+  matchRate Int              @default(80)
 
   user User @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
 
