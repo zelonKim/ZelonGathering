@@ -253,24 +253,27 @@ export default function HomeScreen() {
     return days[new Date().getDay()];
   };
 
+  // 🔄 소모임 리스트 가져오기 (배열 직렬화 파라미터 가드 빌드업 완료)
   const { data: gatherings = [], isLoading: isGatheringsLoading } = useQuery({
     queryKey: ["gatherings", selectedTypes, selectedCategories, location],
     queryFn: async () => {
       const response = await client.get("gatherings", {
         params: {
           types: selectedTypes,
-          categories: selectedCategories,
+          categories: selectedCategories, // 백엔드가 수용하는 순수 한글 배열
           clientDay: getClientDayEnum(),
           latitude: location.latitude,
           longitude: location.longitude,
         },
+        // 🌟 [핵심 추가] 배열 파라미터가 주소창에서 깨지지 않도록 백엔드 맞춤 규격 직렬화를 수행합니다.
         paramsSerializer: (params) => {
           const searchParams = new URLSearchParams();
           Object.entries(params).forEach(([key, value]) => {
             if (Array.isArray(value)) {
+              // 💡 ["스터디", "스포츠"] -> categories=스터디&categories=스포츠 형태로 정밀 가공
               value.forEach((v) => searchParams.append(key, v));
-            } else if (value !== undefined) {
-              searchParams.append(key, value as string);
+            } else if (value !== undefined && value !== null) {
+              searchParams.append(key, String(value));
             }
           });
           return searchParams.toString();
@@ -279,7 +282,6 @@ export default function HomeScreen() {
       return response.data;
     },
     refetchInterval: 5000,
-    refetchOnWindowFocus: true,
   });
 
   const { data: userProfile } = useQuery({
@@ -628,7 +630,7 @@ export default function HomeScreen() {
           })}
           {gatherings.length === 0 && (
             <Text style={styles.dropdownEmptyText}>
-              주변에 열린 소모임방이 존재하지 않습니다 🍑
+              주변에 열린 소모임방이 존재하지 않습니다
             </Text>
           )}
           <View style={{ height: 80 }} />

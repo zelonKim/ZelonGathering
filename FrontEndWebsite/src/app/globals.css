@@ -1,0 +1,19 @@
+/* src/app/globals.css */
+@import "tailwindcss";
+
+/* 🌟 다크 모드 미디어 쿼리를 원천 차단하고 Zelon 감성 컬러로 도배합니다 */
+:root {
+  background-color: #fbfbf9; /* 기본 배경을 웜 화이트로 고정 */
+  color: #292524; /* 기본 텍스트를 딥 차콜로 고정 */
+}
+
+body {
+  background-color: #fbfbf9;
+  color: #292524;
+  margin: 0;
+  padding: 0;
+}
+
+/* 💡 만약 Next.js 15 Tailwind v4 환경이라 위 @import 구조가 다르게 잡혀있다면, 
+   기존 파일 내부에 선언된 @media (prefers-color-scheme: dark) { ... } 블록만 
+   찾아서 깨끗하게 싹 지워주셔도 에러가 해결됩니다! */
