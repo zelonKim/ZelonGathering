@@ -16,10 +16,10 @@ import {
   AlertCircle,
   UserX,
   Loader2,
-} from "lucide-react"; // lucide 아이콘 전면 임포트
+} from "lucide-react";
 import { client } from "@/api/client";
 
-// --- 매핑 및 테마 딕셔너리 (기존 에셋 완벽 복제) ---
+// --- 매핑 및 테마 딕셔너리 ---
 const CATEGORY_MAP: Record<
   string,
   { label: string; emoji: string; bg: string; text: string }
@@ -66,17 +66,21 @@ const TIME_MAP: Record<string, string> = {
 
 export default function GatheringDetailPage() {
   const router = useRouter();
-  const { id } = useParams() as { id: string }; // Next 동적 주소 ID 추출
+  const { id } = useParams() as { id: string };
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
 
   const tabParam = searchParams.get("tab");
-  const [activeTab, setActiveTab] = useState<"INFO" | "CHAT">("INFO");
+
+  const [activeTab, setActiveTab] = useState<"INFO" | "CHAT">(
+    tabParam === "CHAT" ? "CHAT" : "INFO",
+  );
+
   const [chatInput, setChatInput] = useState("");
 
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // 컴포넌트 언마운트 시 캐시 청소 가드 (기존 잔상 무효화 완벽 이식)
+  // 컴포넌트 언마운트 시 캐시 초기화 가드
   useEffect(() => {
     return () => {
       queryClient.resetQueries({ queryKey: ["gatheringDetail", id] });
@@ -114,7 +118,7 @@ export default function GatheringDetailPage() {
 
   const myId = userProfile?.id;
 
-  // 🛡️ [기존 권한 매칭 아키텍처 연동 구역]
+  // 🛡️ [권한 로직 인터셉터]
   const myParticipation = gathering?.participants?.find(
     (p: any) => p.user?.id === myId || p.userId === myId,
   );
@@ -125,7 +129,7 @@ export default function GatheringDetailPage() {
   const isHost = !!myId && gathering?.hostId === myId;
   const canAccessChat = (isHost || isAlreadyParticipant) && !isKicked;
 
-  // 쿼리 스트링 탭 분기 처리 싱크
+  // 쿼리 스트링 서브 탭 동기화 효과
   useEffect(() => {
     if (tabParam === "CHAT" && canAccessChat) {
       setActiveTab("CHAT");
@@ -136,18 +140,18 @@ export default function GatheringDetailPage() {
 
   // 💬 3. 실시간 단체 채팅 목록 수신
   const { data: chatMessages = [] } = useQuery({
-    queryKey: ["gatheringChats", id],
+    queryKey: ["gatheringChats", id], // 🌟 기준 정형 키 설정 완료
     queryFn: async () => {
-      const { data } = await client.get(`/chats/public/${id}`, {
-        params: { limit: 1000 },
-      });
+      const { data } = await client.get(`/chats/public/${id}`);
       return [...data].reverse();
     },
-    enabled: !!id && activeTab === "CHAT" && canAccessChat,
-    refetchInterval: 2000,
+    // enabled: !!id && canAccessChat,
+    refetchInterval: 3000,
   });
 
-  // 채팅 메시지 전송 스크롤 동기화 효과
+  console.log(chatMessages);
+
+  // 새로운 메시지 수신 시 아래로 부드럽게 스크롤링
   useEffect(() => {
     if (activeTab === "CHAT") {
       chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -161,6 +165,7 @@ export default function GatheringDetailPage() {
     },
     onSuccess: () => {
       setChatInput("");
+      // 🌟 [교정] 무효화 타겟 주소의 대소문자를 'gatheringChats'로 한 자의 오차 없이 정렬했습니다.
       queryClient.invalidateQueries({ queryKey: ["gatheringChats", id] });
     },
     onError: (error: any) => {
@@ -168,7 +173,7 @@ export default function GatheringDetailPage() {
     },
   });
 
-  // 🚀 5. 소모임 룸 가입 신청 MUTATION
+  // 🚀 5. 소모임 참여 신청 MUTATION
   const joinGatheringMutation = useMutation({
     mutationFn: async () => {
       const { data } = await client.post(`/gatherings/${id}/join`);
@@ -186,7 +191,7 @@ export default function GatheringDetailPage() {
     },
   });
 
-  // 🚪 6. 방 나가기 MUTATION (참여자 전용)
+  // 🚪 6. 참여 철회 및 탈퇴 MUTATION
   const leaveGatheringMutation = useMutation({
     mutationFn: async () => {
       const { data } = await client.delete(`/gatherings/${id}/leave`);
@@ -218,7 +223,7 @@ export default function GatheringDetailPage() {
     },
   });
 
-  // 🚫 8. 유저 블랙리스트 강퇴 MUTATION (방장 전용)
+  // 🚫 8. 유저 멤버 강퇴 MUTATION (방장 전용)
   const kickParticipantMutation = useMutation({
     mutationFn: async (targetUserId: string) => {
       return await client.patch(`/gatherings/${id}/participants`, {
@@ -235,8 +240,14 @@ export default function GatheringDetailPage() {
     },
   });
 
-  const handleSendMessage = () => {
+  // 💬 [수정 완공] 엔터키 연속 버스팅 및 리프레시 버그 차단막이 탑재된 핸들러 함수
+  const handleSendMessage = (e?: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e && e.key === "Enter") {
+      e.preventDefault(); // 🌟 브라우저 기본 전송 버그 원천 락다운 슛!
+    }
+
     if (!chatInput.trim()) return;
+
     sendChatMessageMutation.mutate(chatInput.trim());
   };
 
@@ -315,8 +326,8 @@ export default function GatheringDetailPage() {
     gathering.participants?.filter((p: any) => p.status !== "REJECTED") || [];
 
   return (
-    <div className="min-h-screen  text-[#292524] flex flex-col max-w-4xl mx-auto bg-white shadow-sm border-x border-[#E7E5E4] relative">
-      {/* 1. 상단 통일형 헤더 */}
+    <div className="min-h-screen text-[#292524] flex flex-col max-w-5xl mx-auto bg-white border-x border-[#E7E5E4] relative">
+      {/* 1. 상단 타이틀 헤더 바 */}
       <header className="flex justify-between items-center px-4 py-3.5 bg-white border-b border-[#E7E5E4] shrink-0 sticky top-0 z-20">
         <button
           onClick={() => router.back()}
@@ -324,7 +335,7 @@ export default function GatheringDetailPage() {
         >
           <ChevronLeft className="w-6 h-6 text-[#292524]" />
         </button>
-        <h2 className="text-sm font-extrabold max-w-[65%] truncate">
+        <h2 className="text-base font-bold max-w-[65%] truncate">
           {gathering.title}
         </h2>
 
@@ -344,11 +355,11 @@ export default function GatheringDetailPage() {
         )}
       </header>
 
-      {/* 2. 상단 네비게이션 서브 탭스 구조 */}
+      {/* 2. 네비게이션 탭 토글 바 */}
       <div className="flex bg-white border-b border-[#E7E5E4] shrink-0">
         <button
           onClick={() => setActiveTab("INFO")}
-          className={`flex-1 py-3 text-center text-xs font-bold transition-all border-b-[3px] ${
+          className={`flex-1 py-3 text-center text-sm font-bold transition-all border-b-[3px] ${
             activeTab === "INFO"
               ? "border-[#FF7A59] text-[#FF7A59] font-black"
               : "border-transparent text-[#78716C]"
@@ -361,14 +372,14 @@ export default function GatheringDetailPage() {
             if (!canAccessChat) {
               alert(
                 isKicked
-                  ? "강퇴된 소모임이므로 채팅방에 참여할 수 없습니다. ❌"
-                  : "소모임 가입 절차가 진행 완료된 멤버 전용 채팅 공간입니다.",
+                  ? "강퇴된 소모임이므로 채팅방에 입장할 수 없습니다. ❌"
+                  : "소모임에 참여한 멤버만 채팅방에 입장할 수 있습니다.",
               );
               return;
             }
             setActiveTab("CHAT");
           }}
-          className={`flex-1 py-3 text-center text-xs font-bold transition-all border-b-[3px] ${
+          className={`flex-1 py-3 text-center text-sm font-bold transition-all border-b-[3px] ${
             activeTab === "CHAT"
               ? "border-[#FF7A59] text-[#FF7A59] font-black"
               : "border-transparent text-[#78716C]"
@@ -378,24 +389,22 @@ export default function GatheringDetailPage() {
         </button>
       </div>
 
-      {/* 3. 본문 뷰 레이어 공정 */}
+      {/* 3. 본문 뷰 렌더링 파이프라인 */}
       <div className="flex-1 overflow-y-auto hidden-scrollbar flex flex-col">
-        {/* TAB 1. 소개글 데크 */}
+        {/* TAB 1. 소모임 정보 피드 란 */}
         {activeTab === "INFO" && (
           <div className="p-5 space-y-6 flex-1 pb-16">
-            {/* 핵심 카드 상자 */}
-            <div className="bg-white border border-[#E7E5E4] rounded-3xl p-5 space-y-4 shadow-[0_2px_8px_rgba(0,0,0,0.01)]">
+            <div className="bg-white shadow-xs border border-[#E7E5E4] rounded-3xl p-5 space-y-4 shadow-[0_2px_8px_rgba(0,0,0,0.01)]">
               <div className="flex justify-between items-center">
                 <span
                   style={{ backgroundColor: catTheme.bg, color: catTheme.text }}
-                  className="text-[11px] font-black px-2.5 py-1 rounded-lg"
+                  className="text-[12px] font-black px-2.5 py-1 rounded-lg"
                 >
                   {catTheme.label} {catTheme.emoji}
                 </span>
 
-                {/* 상황별 우측 행동 단추 제어 컴포넌트 */}
                 {isHost ? (
-                  <span className="text-[11px] font-bold text-[#78716C] bg-stone-100 border border-stone-200 px-3 py-1 rounded-lg">
+                  <span className="text-[12px] font-bold text-[#78716C] bg-stone-100 border border-stone-200 px-3 py-1 rounded-lg">
                     내가 만든 모임 👑
                   </span>
                 ) : isKicked ? (
@@ -422,13 +431,12 @@ export default function GatheringDetailPage() {
               <h3 className="text-xl font-black text-[#292524] tracking-tight leading-snug">
                 {gathering.title}
               </h3>
-
               <div className="inline-block bg-stone-100 px-2.5 py-1 rounded-md text-xs font-bold text-[#78716C]">
                 모집 현황: {activeParticipants.length} /{" "}
                 {gathering.maxParticipants ?? 4}명
               </div>
 
-              <div className="space-y-2 pt-1 border-t border-stone-50 text-xs font-semibold text-[#78716C]">
+              <div className="space-y-2 pt-1 border-t border-stone-50 text-[13px] font-semibold text-[#78716C]">
                 <div className="flex items-center gap-1.5">
                   <MapPin className="w-3.5 h-3.5 text-[#FF7A59]" />
                   <span>{gathering.gatheringPlace}</span>
@@ -452,21 +460,19 @@ export default function GatheringDetailPage() {
               </div>
 
               <div className="h-px bg-stone-100 my-4" />
-              <p className="text-xs font-black text-[#292524] mb-1">
+              <p className="text-sm font-black text-[#292524] mb-1">
                 모임 소개
               </p>
-              <p className="text-xs font-medium text-stone-600 leading-relaxed whitespace-pre-wrap">
+              <p className="text-[13px] font-medium text-stone-600 leading-relaxed whitespace-pre-wrap">
                 {gathering.description || "등록된 소개글이 없습니다."}
               </p>
             </div>
 
-            {/* 방장 영역 */}
+            {/* 방장 컴포넌트 */}
             <div className="space-y-2">
-              <h4 className="text-xs font-black text-[#292524] pl-1">
-                방장 명단
-              </h4>
-              <div className="bg-white border border-[#E7E5E4] rounded-2xl p-3.5 flex items-center gap-3">
-                <div className="w-11 h-11 bg-stone-100 rounded-xl flex items-center justify-center font-bold overflow-hidden border">
+              <h4 className="text-sm font-black text-[#292524] pl-1">방장</h4>
+              <div className="md:max-w-[486px] shadow-xs bg-white border border-[#E7E5E4] rounded-2xl p-3.5 flex items-center gap-3">
+                <div className="w-11 h-11 bg-stone-100 rounded-xl flex items-center justify-center font-bold overflow-hidden">
                   {gathering.host?.profileImg ? (
                     <img
                       src={gathering.host.profileImg}
@@ -481,28 +487,28 @@ export default function GatheringDetailPage() {
                   <p className="text-sm font-bold text-[#292524]">
                     {gathering.host?.nickname || "방장"}
                   </p>
-                  <p className="text-[11px] font-bold text-[#FF7A59] mt-0.5">
+                  <p className="text-[12px] font-bold text-[#FF7A59] mt-0.5">
                     🌡️ 매너 온도 {gathering.host?.mannerTemperature}°C
                   </p>
                 </div>
               </div>
             </div>
 
-            {/* 참여 멤버 명단 리스트 제어 */}
+            {/* 참여 멤버 명단 */}
             <div className="space-y-2">
-              <h4 className="text-xs font-black text-[#292524] pl-1">
+              <h4 className="text-sm font-black text-[#292524] pl-1 ">
                 참여 중인 멤버 ({activeParticipants.length}명)
               </h4>
-              <div className="space-y-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 ">
                 {activeParticipants.map((p: any, idx: number) => {
                   const participantUserId = p.user?.id || p.userId;
                   return (
                     <div
                       key={participantUserId || idx}
-                      className="bg-white border border-[#E7E5E4] rounded-2xl p-3.5 flex items-center justify-between transition"
+                      className="bg-white shadow-xs border border-[#E7E5E4] rounded-2xl p-3.5 flex items-center justify-between transition"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-11 h-11 bg-stone-100 rounded-xl flex items-center justify-center font-bold overflow-hidden border">
+                        <div className="w-11 h-11 bg-stone-100 rounded-xl flex items-center justify-center font-bold overflow-hidden">
                           {p.user?.profileImg ? (
                             <img
                               src={p.user.profileImg}
@@ -517,13 +523,12 @@ export default function GatheringDetailPage() {
                           <p className="text-sm font-bold text-[#292524]">
                             {p.user?.nickname || "참여자"}
                           </p>
-                          <p className="text-[11px] font-bold text-[#FF7A59] mt-0.5">
+                          <p className="text-[12px] font-bold text-[#FF7A59] mt-0.5">
                             🌡️ 매너 온도 {p.user?.mannerTemperature ?? 36.5}°C
                           </p>
                         </div>
                       </div>
 
-                      {/* 방장 권한의 멤버 블랙 강퇴 버튼 마운트 */}
                       {isHost && participantUserId !== myId && (
                         <button
                           onClick={() =>
@@ -535,7 +540,6 @@ export default function GatheringDetailPage() {
                           className="flex items-center gap-1 bg-red-50 hover:bg-red-100 border border-red-200 text-[#E11D48] text-[11px] font-bold px-2.5 py-1.5 rounded-xl transition"
                         >
                           <UserX className="w-3.5 h-3.5" />
-                          <span>강퇴</span>
                         </button>
                       )}
                     </div>
@@ -546,15 +550,14 @@ export default function GatheringDetailPage() {
           </div>
         )}
 
-        {/* TAB 2. 단체 실시간 채팅 스트리밍 룸 구역 */}
+        {/* TAB 2. 단체 실시간 채팅방 피드 란 */}
         {activeTab === "CHAT" && canAccessChat && (
-          <div className="flex flex-col flex-1 h-full min-h-[60vh] bg-[#FBFBF9]">
-            {/* 스크롤 피드 플로우 영역 */}
+          <div className="flex flex-col flex-1 h-full min-h-[60vh] bg-orange-50">
             <div className="flex-1 p-4 overflow-y-auto space-y-4 max-h-[calc(100vh-12rem)]">
               {chatMessages.length === 0 ? (
-                <div className="text-center py-24 text-xs font-semibold text-stone-400 whitespace-pre-line leading-relaxed">
-                  실시간 채팅방이 개설되었습니다! {"\n"} 첫 대화를 나누며 인사를
-                  건네보세요 💬
+                <div className="text-center py-48 text-sm font-semibold text-stone-400 whitespace-pre-line leading-relaxed">
+                  실시간 채팅방이 개설되었습니다! {"\n"} 모임원들과 첫 대화를
+                  나눠보세요 💬
                 </div>
               ) : (
                 chatMessages.map((msg: any) => {
@@ -578,7 +581,7 @@ export default function GatheringDetailPage() {
                         </div>
                       )}
                       <div
-                        className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}
+                        className={` flex flex-col ${isMe ? "items-end" : "items-start"}`}
                       >
                         {!isMe && (
                           <span className="text-[10px] font-bold text-stone-400 mb-1">
@@ -602,19 +605,20 @@ export default function GatheringDetailPage() {
               <div ref={chatEndRef} />
             </div>
 
-            {/* 웹 하단 플로팅 챗 샌더 바 */}
-            <div className="p-4 bg-white border-t border-[#E7E5E4] flex items-center gap-2 shrink-0">
+            {/* 웹 하단 플로팅 챗 샌더 인풋 덱 */}
+            <div className="p-5 bg-white border-t border-[#E7E5E4] flex items-center gap-2 shrink-0">
               <input
                 type="text"
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+                // 🌟 [연동 반영] 엔터 키보드 슛 시 버그 차단막 가드 전달 적용 완료
+                onKeyDown={(e) => e.key === "Enter" && handleSendMessage(e)}
                 placeholder="메시지를 입력해주세요"
-                className="flex-1 bg-[#F5F5F4] px-4 py-2.5 rounded-full text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#FF7A59]"
+                className="flex-1 bg-[#F5F5F4] px-4 py-2.5 rounded-full text-sm font-semibold focus:outline-none focus:ring-1 focus:ring-[#FF7A59]"
               />
               <button
                 type="button"
-                onClick={handleSendMessage}
+                onClick={() => handleSendMessage()}
                 disabled={
                   !chatInput.trim() || sendChatMessageMutation.isPending
                 }

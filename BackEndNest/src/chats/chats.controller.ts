@@ -34,11 +34,8 @@ export class ChatsController {
 
   // 2. 소모임방의 대화 내역 조회하기
   @Get('public/:gatheringId')
-  async getPublicMessages(
-    @Param('gatheringId') gatheringId: string,
-    @Query() dto: GetChatMessagesDto,
-  ) {
-    return await this.chatsService.getPublicMessages(gatheringId, dto);
+  async getPublicMessages(@Param('gatheringId') gatheringId: string) {
+    return await this.chatsService.getPublicMessages(gatheringId);
   }
 
   //////////////////////////////////////////////////////

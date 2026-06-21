@@ -42,10 +42,9 @@ export class ChatsService {
   ///////////////////////////////////////
 
   // 2. 소모임방 단체 채팅 과거 내역 조회
-  async getPublicMessages(gatheringId: string, dto: GetChatMessagesDto) {
+  async getPublicMessages(gatheringId: string) {
     return await this.prisma.publicChat.findMany({
       where: { gatheringId },
-      take: dto.limit,
       orderBy: { createdAt: 'desc' },
       include: {
         sender: { select: { id: true, nickname: true, profileImg: true } },
@@ -171,7 +170,6 @@ export class ChatsService {
     }
 
     return await this.prisma.privateChat.findMany({
-   
       where: { roomId },
       take: dto.limit,
       orderBy: { createdAt: 'desc' },

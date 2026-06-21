@@ -40,9 +40,6 @@ export default function ChatsPage() {
     return (
       <div className="flex flex-col flex-1 h-96 justify-center items-center bg-[#FBFBF9] gap-3">
         <Loader2 className="w-10 h-10 animate-spin text-[#FF7A59]" />
-        <p className="text-sm font-semibold text-[#78716C]">
-          채팅방 목록을 불러오는 중입니다
-        </p>
       </div>
     );
   }
@@ -60,19 +57,19 @@ export default function ChatsPage() {
   }
 
   return (
-    <div className="w-full bg-[#FBFBF9] min-h-screen max-w-4xl mx-auto ">
+    <div className="w-full bg-[#FBFBF9] min-h-screen max-w-5xl mx-auto ">
       {/* 1. 상단 타이틀 바 */}
-      <header className="px-5 pt-[15px] pb-[15px]">
-        <h1 className="text-2xl font-black text-[#FF7A59] tracking-tight">
+      <header className="px-5 py-[15px]">
+        <h1 className="text-3xl font-black text-[#FF7A59] tracking-tight">
           Chatting
         </h1>
-        <p className="text-base font-bold text-[#292524] mt-0.5">
+        <p className="text-lg font-bold text-[#292524] mt-1 ml-1">
           💬 나의 실시간 채팅방
         </p>
       </header>
 
       {/* 2. 실시간 소모임 채팅 리스트 피드 */}
-      <main className="px-5 pt-1.5 pb-24 space-y-3">
+      <main className="px-6 pt-1.5 pb-24  grid grid-cols-1 md:grid-cols-2 gap-3">
         {chatRooms.map((item: any) => {
           // 카테고리에 맞는 아바타 테마 추출 (기본값 TALK)
           const categoryKey = item.category?.toUpperCase() || "TALK";
@@ -85,12 +82,12 @@ export default function ChatsPage() {
                 // 🚀 카드를 누르면 해당 소모임 상세 화면의 [실시간 채팅방] 탭 브랜치 주소로 무브
                 router.push(`/gatherings/${item.id}?tab=CHAT`)
               }
-              className="flex items-center bg-white p-4 rounded-[20px] border border-[#E7E5E4] cursor-pointer hover:shadow-md active:scale-[0.99] transition shadow-[0_4px_8px_rgba(0,0,0,0.01)]"
+              className="flex items-center bg-white p-3 rounded-[20px] border border-[#E7E5E4] cursor-pointer shadow-xs  hover:shadow-sm hover:shadow-orange-50 hover:border-orange-300 active:scale-[0.99] transition "
             >
               {/* 왼쪽: 모달 카테고리 기반 힙한 그래픽 아바타 */}
               <div
                 style={{ backgroundColor: theme.bg }}
-                className="w-[52px] h-[52px] rounded-[18px] flex justify-center items-center text-xl shrink-0"
+                className="w-13 h-13 rounded-[18px] flex justify-center items-center text-2xl shrink-0"
               >
                 {theme.icon}
               </div>
@@ -98,7 +95,7 @@ export default function ChatsPage() {
               {/* 가운데: 소모임 타이틀 & 최신 대화 요약 */}
               <div className="flex-1 min-w-0 mx-3.5">
                 <div className="flex justify-between items-center mb-1">
-                  <h3 className="text-[15px] font-bold text-[#292524] truncate max-w-[75%]">
+                  <h3 className="text-[15px] font-semibold text-[#292524] truncate max-w-[75%]">
                     {item.title}
                   </h3>
                   <span className="text-xs text-[#78716C] font-medium shrink-0">
@@ -107,7 +104,7 @@ export default function ChatsPage() {
                 </div>
 
                 <p
-                  className={`text-13px text-[#78716C] truncate leading-[18px] ${
+                  className={`text-sm text-[#78716C] truncate  ${
                     item.unreadCount > 0 ? "text-[#292524] font-semibold" : ""
                   }`}
                 >

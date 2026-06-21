@@ -177,16 +177,27 @@ export class GatheringsService {
 
   // 2. 모임 목록 조회
   async findAll(dto: FilterGatheringDto) {
-    const { types = [], categories = [], clientDay, latitude, longitude } = dto;
+    // 1. DTO에서 파라미터 구조 분해 할당
+    let { types = [], categories = [], clientDay, latitude, longitude } = dto;
 
     const whereClause: any = {
       status: GatheringStatus.RECRUITING,
     };
 
-    // --------------------------------------------------------
-    // [1] 카테고리 다중 필터링 (스터디 + 스포츠 + 게임 ...)
-    // --------------------------------------------------------
-    // '전체'가 포함되어 있거나 카테고리 선택이 아예 없으면 필터링 패스
+    if (categories) {
+      // 만약 categories가 배열이 아니라 순수 문자열('스터디')로 들어왔다면 ['스터디'] 배열로 수동 강제 변환합니다.
+      if (!Array.isArray(categories)) {
+        categories = [categories as unknown as string];
+      }
+    }
+
+    // 🌟 [추가] 동일하게 types 또한 단일 값으로 들어올 때 .includes 등에서 터지는 것을 방지하기 위해 방어막을 칩니다.
+    if (types && !Array.isArray(types)) {
+      types = [types as unknown as string];
+    }
+    // ----------------------------------------------------------------------
+
+    // [1] 카테고리 다중 필터링 (기존 성진님 코드 시작)
     if (categories.length > 0 && !categories.includes('전체')) {
       const categoryMap: Record<string, GatheringCategory> = {
         스터디: GatheringCategory.STUDY,
@@ -199,13 +210,14 @@ export class GatheringsService {
         투어: GatheringCategory.TOUR,
       };
 
-      // 선택된 한글 카테고리 배열을 Prisma Enum 배열로 치환
       const targetCategories = categories
         .map((cat) => categoryMap[cat])
-        .filter((cat) => !!cat); // 잘못된 값 필터링
+        // 🌟 [수정] !cat ➡️ !!cat 으로 변경 슛!
+        // 존재하지 않는 잘못된 값(undefined)을 걸러내고 진짜 변환된 Enum 값만 쏙 남깁니다.
+        .filter((cat) => !!cat);
 
       if (targetCategories.length > 0) {
-        // Prisma 'in' 연산자를 사용하여 포함된 항목 전부 매칭
+        // ⚡️ 이제 정상적인 Enum 배열이 들어와 데이터베이스 쿼리가 완벽하게 수행됩니다!
         whereClause.category = { in: targetCategories };
       }
     }

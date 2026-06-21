@@ -3,7 +3,15 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, MessageSquare, Sparkles, User } from "lucide-react";
+import {
+  Home,
+  MessageCircle,
+  MessageCircleIcon,
+  MessageCircleMore,
+  MessageSquare,
+  Sparkles,
+  User,
+} from "lucide-react";
 
 interface TabsLayoutProps {
   children: React.ReactNode;
@@ -22,8 +30,7 @@ export default function TabsLayout({ children }: TabsLayoutProps) {
     {
       name: "채팅",
       href: "/chats",
-      icon: MessageSquare,
-      badge: 3, // 🌟 기존 tabBarBadge: 3 완벽 재현
+      icon: MessageCircleMore,
     },
     {
       name: "AI 매칭",
@@ -40,7 +47,7 @@ export default function TabsLayout({ children }: TabsLayoutProps) {
   return (
     <div className="min-h-screen bg-[#FBFBF9] text-[#292524] flex flex-col justify-between">
       {/* 1. 상단 메인 콘텐츠 영역 */}
-      <main className="flex-1 w-full mx-auto bg-white min-h-screen pb-20 shadow-sm border-x border-[#E7E5E4]">
+      <main className="flex-1 w-full mx-auto min-h-screen pb-20 shadow-sm border-x border-[#E7E5E4]">
         {children}
       </main>
 
@@ -69,11 +76,11 @@ export default function TabsLayout({ children }: TabsLayoutProps) {
                   />
 
                   {/* 🔴 채팅 배지 알림 수치 (tabBarBadge) */}
-                  {tab.badge && tab.badge > 0 && (
+                  {/* {tab.badge && tab.badge > 0 && (
                     <span className="absolute -top-1 -right-2 bg-[#FF7A59] text-white text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center border-2 border-white ring-1 ring-[#FF7A59]/10">
                       {tab.badge}
                     </span>
-                  )}
+                  )} */}
                 </div>
 
                 {/* 텍스트 라벨 */}

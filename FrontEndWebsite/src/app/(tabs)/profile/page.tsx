@@ -278,6 +278,8 @@ export default function ProfilePage() {
     };
 
     updateProfileMutation.mutate(payload);
+
+    router.replace("/");
   };
 
   // 🚪 로그아웃 컴포넌트 이식
@@ -298,9 +300,6 @@ export default function ProfilePage() {
     return (
       <div className="flex flex-col flex-1 h-[70vh] justify-center items-center bg-[#FBFBF9] gap-3">
         <Loader2 className="w-8 h-8 animate-spin text-[#FF7A59]" />
-        <p className="text-sm font-semibold text-[#78716C]">
-          나의 프로필을 불러오고 있어요 🍑
-        </p>
       </div>
     );
   }
@@ -334,10 +333,10 @@ export default function ProfilePage() {
       {/* 글로벌 프로필 상단 탑 데크 */}
       <header className="py-4 flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-black text-[#FF7A59] tracking-tight">
+          <h1 className="text-3xl font-black text-[#FF7A59] tracking-tight">
             My Profile
           </h1>
-          <p className="text-sm font-bold text-[#292524] mt-0.5">
+          <p className="text-lg font-bold text-[#292524] mt-0.5">
             ✏️ 나의 소모임 취향 프로필
           </p>
         </div>
@@ -400,10 +399,10 @@ export default function ProfilePage() {
 
         {/* 인프라 폼 1: 기본 정보 */}
         <div className="bg-white rounded-3xl p-5 border border-[#E7E5E4] space-y-3.5">
-          <h2 className="text-sm font-extrabold text-[#292524]">기본 정보</h2>
+          <h2 className="text-md font-extrabold text-[#292524]">기본 정보</h2>
 
           <div className="flex items-center border-b border-stone-100 pb-2.5">
-            <span className="w-24 text-xs font-bold text-[#78716C]">
+            <span className="w-24 text-sm font-bold text-[#78716C]">
               닉네임
             </span>
             <input
@@ -416,11 +415,12 @@ export default function ProfilePage() {
           </div>
 
           <div className="flex items-center border-b border-stone-100 pb-2.5">
-            <span className="w-24 text-xs font-bold text-[#78716C]">나이</span>
+            <span className="w-24 text-sm font-bold text-[#78716C]">나이</span>
             <input
               type="text"
               value={age}
-              onChange={(e) => setAge(e.target.value.replace(/[^0-09]/g, ""))}
+              // 🌟 [수정] /[^0-09]/g  ➡️  /[^0-9]/g 로 변경 슛!
+              onChange={(e) => setAge(e.target.value.replace(/[^0-9]/g, ""))}
               placeholder="나이를 입력하세요"
               maxLength={2}
               className="flex-1 text-sm font-semibold text-[#292524] outline-none placeholder:text-stone-300"
@@ -428,12 +428,12 @@ export default function ProfilePage() {
           </div>
 
           <div className="flex items-center border-b border-stone-100 pb-2.5">
-            <span className="w-24 text-xs font-bold text-[#78716C]">MBTI</span>
+            <span className="w-24 text-sm font-bold text-[#78716C]">MBTI</span>
             <input
               type="text"
               value={mbti}
               onChange={(e) => setMbti(e.target.value)}
-              placeholder="MBTI를 입력해주세요"
+              placeholder="MBTI를 입력하세요"
               maxLength={4}
               className="flex-1 text-sm font-semibold text-[#292524] outline-none uppercase placeholder:text-stone-300"
             />
@@ -442,12 +442,12 @@ export default function ProfilePage() {
 
         {/* 인프라 폼 2: 취향 키워드 문장 에어리어 */}
         <div className="bg-white rounded-3xl p-5 border border-[#E7E5E4] space-y-4">
-          <h2 className="text-sm font-extrabold text-[#292524]">
+          <h2 className="text-md font-extrabold text-[#292524]">
             나의 취향 키워드
           </h2>
 
           <div className="space-y-1.5">
-            <span className="text-xs font-bold text-[#78716C] block">
+            <span className="text-sm font-bold text-[#78716C] block">
               내가 좋아하는 것
             </span>
             <textarea
@@ -455,12 +455,12 @@ export default function ProfilePage() {
               onChange={(e) => setFavorite(e.target.value)}
               placeholder="좋아하는 활동이나 관심사를 적어주세요!"
               rows={2}
-              className="w-full bg-[#F8F6F4] rounded-xl p-3 text-xs font-medium text-[#292524] outline-none resize-none"
+              className="w-full bg-[#F8F6F4] rounded-xl p-3 text-sm font-medium text-[#292524] outline-none resize-none"
             />
           </div>
 
           <div className="space-y-1.5">
-            <span className="text-xs font-bold text-[#78716C] block">
+            <span className="text-sm font-bold text-[#78716C] block">
               내가 싫어하는 것
             </span>
             <textarea
@@ -468,19 +468,19 @@ export default function ProfilePage() {
               onChange={(e) => setHate(e.target.value)}
               placeholder="모임에서 기피하는 상황을 적어주세요!"
               rows={2}
-              className="w-full bg-[#F8F6F4] rounded-xl p-3 text-xs font-medium text-[#292524] outline-none resize-none"
+              className="w-full bg-[#F8F6F4] rounded-xl p-3 text-sm font-medium text-[#292524] outline-none resize-none"
             />
           </div>
         </div>
 
         {/* 인프라 폼 3: 다중 토글 지역 관심사 매칭 바 */}
         <div className="bg-white rounded-3xl p-5 border border-[#E7E5E4] space-y-4">
-          <h2 className="text-sm font-extrabold text-[#292524]">
+          <h2 className="text-md font-extrabold text-[#292524]">
             나의 선호 모임 및 지역
           </h2>
 
           <div>
-            <span className="text-xs font-bold text-[#78716C] block mb-2">
+            <span className="text-sm font-bold text-[#78716C] block mb-2">
               관심 카테고리
             </span>
             <div className="flex flex-wrap gap-2">
@@ -497,7 +497,7 @@ export default function ProfilePage() {
                           : [...preferCategory, cat.key],
                       )
                     }
-                    className={`text-xs px-3 py-1.5 rounded-xl font-semibold transition ${
+                    className={`text-[13px] px-3 py-1.5 rounded-xl font-semibold transition ${
                       isSelected
                         ? "bg-[#FF7A59] text-white"
                         : "bg-[#F2F0EC] text-[#78716C]"
@@ -511,7 +511,7 @@ export default function ProfilePage() {
           </div>
 
           <div className="pt-2">
-            <span className="text-xs font-bold text-[#78716C] block mb-2">
+            <span className="text-sm font-bold text-[#78716C] block mb-2">
               활동 선호 지역
             </span>
             {/* 세그먼트 스위치 탭바 */}
@@ -528,7 +528,7 @@ export default function ProfilePage() {
                     key={city}
                     type="button"
                     onClick={() => setActiveCity(city)}
-                    className={`flex-1 text-xs py-2 text-center rounded-lg font-bold transition ${
+                    className={`flex-1 text-[13px] py-2 text-center rounded-lg font-bold transition ${
                       activeCity === city
                         ? "bg-white text-[#FF7A59] shadow-sm"
                         : "text-[#78716C]"
@@ -555,7 +555,7 @@ export default function ProfilePage() {
                           : [...preferDistrict, item.key],
                       )
                     }
-                    className={`text-xs px-3 py-1.5 rounded-xl font-semibold border transition ${
+                    className={`text-[13px] px-3 py-1.5 rounded-xl font-semibold border transition ${
                       isDistSelected
                         ? "bg-[#FFEBE5] border-[#FF7A59] text-[#FF7A59] font-bold"
                         : "bg-[#F2F0EC] border-transparent text-[#78716C]"
@@ -571,15 +571,15 @@ export default function ProfilePage() {
 
         {/* 인프라 폼 4: 선호 일정 매칭 국면 */}
         <div className="bg-white rounded-3xl p-5 border border-[#E7E5E4] space-y-5">
-          <h2 className="text-sm font-extrabold text-[#292524]">
+          <h2 className="text-md font-extrabold text-[#292524]">
             나의 선호 일정
           </h2>
 
           <div>
-            <span className="text-xs font-bold text-[#78716C] block mb-2">
+            <span className="text-sm font-bold text-[#78716C] block mb-2">
               선호 요일
             </span>
-            <div className="flex justify-between gap-1">
+            <div className="flex justify-between mx-2 gap-1">
               {DAY_ITEMS.map((day) => {
                 const isSelected = preferDays.includes(day.key);
                 return (
@@ -593,7 +593,7 @@ export default function ProfilePage() {
                           : [...preferDays, day.key],
                       )
                     }
-                    className={`w-9 h-9 rounded-full text-xs font-bold transition flex items-center justify-center ${
+                    className={` w-9 h-9 rounded-full text-[13px] font-bold transition flex items-center justify-center ${
                       isSelected
                         ? "bg-[#FF7A59] text-white"
                         : "bg-[#F2F0EC] text-[#78716C]"
@@ -607,7 +607,7 @@ export default function ProfilePage() {
           </div>
 
           <div>
-            <span className="text-xs font-bold text-[#78716C] block mb-2">
+            <span className="text-sm font-bold text-[#78716C] block mb-2">
               선호 시간대
             </span>
             <div className="flex bg-[#F2F0EC] p-1 rounded-xl mb-3">
@@ -616,7 +616,7 @@ export default function ProfilePage() {
                   key={type}
                   type="button"
                   onClick={() => setActiveTimeType(type)}
-                  className={`flex-1 text-xs py-1.5 text-center rounded-lg font-bold transition ${
+                  className={`flex-1 text-[13px] py-1.5 text-center rounded-lg font-bold transition ${
                     activeTimeType === type
                       ? "bg-white text-[#FF7A59]"
                       : "text-[#78716C]"
@@ -641,7 +641,7 @@ export default function ProfilePage() {
                           : [...preferTimes, time.key],
                       )
                     }
-                    className={`text-xs px-3 py-1.5 rounded-xl font-semibold transition ${
+                    className={`text-[13px] px-3 py-1.5 rounded-xl font-semibold transition ${
                       isSelected
                         ? "bg-[#FF7A59] text-white font-bold"
                         : "bg-[#F2F0EC] text-[#78716C]"
@@ -660,7 +660,7 @@ export default function ProfilePage() {
           type="button"
           onClick={handleSaveProfile}
           disabled={updateProfileMutation.isPending || isImageUploading}
-          className="w-full bg-[#292524] hover:bg-black active:scale-[0.99] text-white py-4 rounded-xl text-sm font-bold flex justify-center items-center transition disabled:opacity-70 shadow-md"
+          className="mt-9 w-full bg-[#292524] hover:bg-black active:scale-[0.99] text-white py-4 rounded-xl text-sm font-bold flex justify-center items-center transition disabled:opacity-70 shadow-md"
         >
           {updateProfileMutation.isPending ? (
             <Loader2 className="w-5 h-5 animate-spin" />

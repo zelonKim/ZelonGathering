@@ -53,9 +53,6 @@ export default function MatchingPage() {
     return (
       <div className="flex flex-col flex-1 h-[60vh] justify-center items-center bg-[#FBFBF9] gap-3   ">
         <Loader2 className="w-8 h-8 animate-spin text-[#FF7A59]" />
-        <p className="text-sm font-semibold text-[#78716C]">
-          AI 매칭 알림을 가져오고 있습니다.
-        </p>
       </div>
     );
   }
@@ -73,34 +70,34 @@ export default function MatchingPage() {
   }
 
   return (
-    <div className="bg-[#FBFBF9] min-h-screen max-w-4xl mx-auto">
+    <div className="bg-[#FBFBF9] min-h-screen max-w-5xl mx-auto">
       {/* 1. 상단 타이틀 바 */}
       <header className="px-5 pt-4 pb-4 bg-[#FBFBF9]">
         <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-black text-[#FF7A59] tracking-tight">
+          <h1 className="text-3xl font-black text-[#FF7A59] tracking-tight">
             AI Matching
           </h1>
         </div>
-        <p className="text-sm font-bold text-[#292524] mt-1">
+        <p className="text-lg font-bold text-[#292524] mt-1">
           🤖 AI가 찾아낸 취향 저격 소모임
         </p>
       </header>
 
       {/* 2. 실시간 피드 리스트 스트리밍 구역 */}
-      <div className="px-5 pb-10 space-y-4">
+      <div className="px-5 pb-10 grid grid-cols-1 md:grid-cols-2 gap-4 ">
         {notifications.map((item: any) => {
           const isCurrentItemDeleting = deletingId === item.id;
 
           return (
             <div
               key={item.id}
-              className="bg-white rounded-[24px] p-5 border border-[#E7E5E4] shadow-[0_4px_12px_rgba(28,25,23,0.02)] transition-all duration-200"
+              className="bg-white rounded-[24px] p-5 border border-[#E7E5E4]  transition-all duration-200 shadow-xs"
             >
               {/* 카드 상단: AI 매칭률 & 시간 */}
               <div className="flex justify-between items-center mb-3">
                 <div className="flex items-center bg-[#FFEBEB] px-2.5 py-1 rounded-lg gap-1">
                   <Sparkles className="w-3 h-3 text-[#F43F5E] fill-[#F43F5E]" />
-                  <span className="text-[11px] text-[#F43F5E] font-extrabold">
+                  <span className="text-[12px] text-[#F43F5E] font-extrabold">
                     매칭률 {item.matchRate}%
                   </span>
                 </div>
@@ -154,16 +151,18 @@ export default function MatchingPage() {
             </div>
           );
         })}
-
-        {/* 데이터가 비었을 때 처리 */}
-        {notifications.length === 0 && (
-          <div className="text-center py-20">
-            <p className="text-sm text-[#78716C] font-bold">
-              아직 들어온 매칭 알림이 없습니다. 🍑
-            </p>
-          </div>
-        )}
       </div>
+      {/* 데이터가 비었을 때 처리 */}
+      {notifications.length === 0 && (
+        <div className="text-center py-36 ">
+          <p className="text-[15px] text-[#78716C] font-bold">
+            아직 들어온 매칭 알림이 없습니다!
+          </p>
+          <p className="text-[15px] text-[#78716C] font-bold mt-2">
+            매칭 알림을 받고 싶다면, 소모임 취향 프로필을 작성해주세요 ✏️
+          </p>
+        </div>
+      )}
     </div>
   );
 }
