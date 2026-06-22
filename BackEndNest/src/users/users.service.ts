@@ -6,7 +6,7 @@ import {
   BadRequestException,
   InternalServerErrorException,
 } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { SignupDto, LoginDto, UpdateProfileDto } from './dto/auth.dto';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -250,7 +250,6 @@ export class UsersService {
 
   /////////////////////////////////////////////////
 
-  
   async getMyChats(userId: string) {
     // 1. 유저가 참여하고 있는 소모임(Gathering) 목록 조회
     const joinedGatherings = await this.prisma.gathering.findMany({
@@ -326,5 +325,4 @@ export class UsersService {
     // 그 외에는 월/일 표시
     return `${chatDate.getMonth() + 1}월 ${chatDate.getDate()}일`;
   }
-
 }

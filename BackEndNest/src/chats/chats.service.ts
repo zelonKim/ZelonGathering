@@ -3,7 +3,7 @@ import {
   NotFoundException,
   ForbiddenException,
 } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { SendChatMessagesDto } from './dto/send-chat-messages.dto';
 import { GetChatMessagesDto } from './dto/get-chat-messages.dto';
 
