@@ -11,7 +11,7 @@ import {
 import { ChatsService } from './chats.service';
 import { SendChatMessagesDto } from './dto/send-chat-messages.dto';
 import { GetChatMessagesDto } from './dto/get-chat-messages.dto';
-import { JwtAuthGuard } from 'src/users/jwt-auth.guard';
+import { JwtAuthGuard } from '../users/jwt-auth.guard';
 
 @Controller('chats')
 @UseGuards(JwtAuthGuard)
