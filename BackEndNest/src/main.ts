@@ -26,13 +26,15 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // 🌟 CORS 설정 (Next.js 프론트엔드 통신 허용)
   app.enableCors({
-    origin: 'http://localhost:3000', // Next.js 주소
+    origin: ['http://localhost:3000', 'https://zelon-gathering.vercel.app'],
     credentials: true,
   });
 
-  await app.listen(4000);
-  console.log(`Application is running on: ${await app.getUrl()}`);
+  const port = process.env.PORT || 3000;
+
+  await app.listen(port, '0.0.0.0');
+
+  console.log(`Application is running on port: ${port}`);
 }
 bootstrap();
