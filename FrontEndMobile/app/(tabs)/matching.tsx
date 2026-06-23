@@ -97,7 +97,7 @@ export default function MatchingScreen() {
           <Text style={styles.headerTitle}>AI Matching</Text>
         </View>
         <Text style={styles.headerSubtitle}>
-          🤖 AI가 찾아낸 취향 저격 소모임
+          🤖 AI가 발견한 취향 저격 소모임
         </Text>
       </View>
 
@@ -143,7 +143,6 @@ export default function MatchingScreen() {
 
               {/* 하단 액션 버튼 */}
               <View style={styles.actionRow}>
-       
                 <TouchableOpacity
                   style={[
                     styles.passButton,
@@ -280,7 +279,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: COLORS.textSub,
     textAlign: "center",
-    marginTop: 40,
+    paddingVertical: 265,
     fontWeight: "500",
   },
 });

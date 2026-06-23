@@ -1,8 +1,16 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import { Platform } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function TabsLayout() {
+  const insets = useSafeAreaInsets();
+
+  const tabBarHeight =
+    Platform.OS === "ios"
+      ? 60 + insets.bottom
+      : 64 + (insets.bottom > 0 ? insets.bottom : 12);
+
   return (
     <Tabs
       screenOptions={{
@@ -14,15 +22,27 @@ export default function TabsLayout() {
           backgroundColor: "#FFFFFF",
           borderTopWidth: 1,
           borderTopColor: "#E5E5EA",
+          height: tabBarHeight,
+          paddingBottom:
+            Platform.OS === "ios"
+              ? insets.bottom
+              : insets.bottom > 0
+                ? insets.bottom + 6
+                : 12,
 
-          // 🌟 [안드로이드 탭바 높이 및 여백 정밀 고정]
-          // 안드로이드는 시스템 바가 높이를 먹기 때문에 패딩보다 높이 자체를 안정적으로 확보하는 게 좋습니다.
-          height: Platform.OS === "ios" ? 82 : 63,
+          paddingTop: 8,
 
-          // 🌟 안드로이드 패딩 값을 0이나 4 정도로 대폭 줄여서 시스템 내비게이션 바와 충돌 시 탭바가 내려가는 현상을 방지합니다.
-          paddingBottom: Platform.OS === "ios" ? 10 : 4,
-          paddingTop: 10,
-      
+          elevation: 8,
+          shadowColor: "#000000",
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.05,
+          shadowRadius: 3,
+        },
+
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: "500",
+          marginBottom: Platform.OS === "android" ? 4 : 0,
         },
 
         headerStyle: {
@@ -43,7 +63,7 @@ export default function TabsLayout() {
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? "home" : "home-outline"}
-              size={24}
+              size={22} // 💡 살짝 줄여서 텍스트와 밸런스를 맞춰 가독성을 높입니다.
               color={color}
             />
           ),
@@ -58,7 +78,7 @@ export default function TabsLayout() {
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? "chatbubbles" : "chatbubbles-outline"}
-              size={24}
+              size={22}
               color={color}
             />
           ),
@@ -74,7 +94,7 @@ export default function TabsLayout() {
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? "sparkles" : "sparkles-outline"}
-              size={24}
+              size={22}
               color={color}
             />
           ),
@@ -89,7 +109,7 @@ export default function TabsLayout() {
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? "person" : "person-outline"}
-              size={24}
+              size={22}
               color={color}
             />
           ),

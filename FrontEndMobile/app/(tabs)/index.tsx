@@ -24,7 +24,7 @@ const COLORS = {
   primaryLight: "#FFEBE5",
   background: "#FBFBF9",
   surface: "#FFFFFF",
-  textMain: "#292524",
+  textMain: "#292524ed",
   textSub: "#78716C",
   border: "#E7E5E4",
 };
@@ -457,11 +457,12 @@ export default function HomeScreen() {
             activeOpacity={0.7}
             onPress={() => setIsDropdownOpen(!isDropdownOpen)}
           >
-            <Ionicons
+            {/* <Ionicons
               name={isDropdownOpen ? "apps" : "apps-outline"}
               size={22}
               color={isDropdownOpen ? "#FFFFFF" : COLORS.primary}
-            />
+            /> */}
+            <Text>🍑</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -630,7 +631,7 @@ export default function HomeScreen() {
           })}
           {gatherings.length === 0 && (
             <Text style={styles.dropdownEmptyText}>
-              주변에 열린 소모임방이 존재하지 않습니다
+              주변에 열린 소모임이 없습니다.
             </Text>
           )}
           <View style={{ height: 80 }} />
@@ -962,7 +963,6 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: 20, paddingTop: 15, paddingBottom: 8 },
   headerTopRow: {
     flexDirection: "row",
-    justifyStyle: "space-between",
     justifyContent: "space-between",
     alignItems: "center",
   },
@@ -1055,10 +1055,10 @@ const styles = StyleSheet.create({
     maxWidth: "90%",
   },
   dropdownEmptyText: {
-    fontSize: 12,
+    fontSize: 13,
     color: COLORS.textSub,
     textAlign: "center",
-    paddingVertical: 16,
+    paddingVertical: 200,
     fontWeight: "500",
   },
   filterWrapper: { height: 44, marginVertical: 2 },
@@ -1087,12 +1087,15 @@ const styles = StyleSheet.create({
   },
   catText: { fontSize: 12, color: COLORS.textSub, fontWeight: "600" },
   loadingBox: { flex: 1, justifyContent: "center", alignItems: "center" },
-  scrollContent: { padding: 20 },
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+  },
   card: {
     backgroundColor: COLORS.surface,
     padding: 20,
     borderRadius: 20,
-    marginBottom: 16,
+    marginBottom: 12,
     borderWidth: 1,
     borderColor: COLORS.border,
   },
@@ -1100,25 +1103,25 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 10,
   },
   distanceText: {
-    fontSize: 13,
+    fontSize: 12,
     color: COLORS.primary,
     fontWeight: "700",
     marginLeft: "auto",
   },
   cardTitle: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: "700",
     color: COLORS.textMain,
     lineHeight: 24,
-    marginBottom: 10,
+    marginBottom: 9,
   },
   infoRow: { flexDirection: "row", alignItems: "center" },
-  infoText: { fontSize: 13, color: COLORS.textSub },
-  categoryTag: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
-  categoryText: { fontSize: 12, fontWeight: "700" },
+  infoText: { fontSize: 12, color: COLORS.textSub },
+  categoryTag: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 8 },
+  categoryText: { fontSize: 10.5, fontWeight: "700" },
   fabButton: {
     position: "absolute",
     bottom: 24,

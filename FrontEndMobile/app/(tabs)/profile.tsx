@@ -843,19 +843,21 @@ const styles = StyleSheet.create({
   },
   tagContainer: {
     flexDirection: "row",
+
     flexWrap: "wrap",
     width: "100%",
-    gap: 8,
+    gap: 11,
   },
   dayTagContainer: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
   tag: {
     backgroundColor: "#F2F0EC",
     paddingVertical: 6,
     paddingHorizontal: 12,
+    justifyContent: "space-around",
     borderRadius: 12,
   },
   tagSelected: { backgroundColor: COLORS.primary },
-  tagText: { fontSize: 13, color: COLORS.textSub, fontWeight: "600" },
+  tagText: { fontSize: 12, color: COLORS.textSub, fontWeight: "600" },
   tagTextSelected: { color: "#FFFFFF" },
   dayTag: {
     width: 38,
@@ -921,7 +923,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   districtTagTextBase: {
-    fontSize: 13,
+    fontSize: 12,
     color: COLORS.textSub,
     fontWeight: "600",
   },

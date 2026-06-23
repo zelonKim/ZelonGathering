@@ -34,7 +34,7 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
   globalContainer: {
     flex: 1,
-    backgroundColor: "#FAFAFA", // 앱 상단바 영역 배경색
-    paddingTop: Platform.OS === "ios" ? 50 : 30,
+    backgroundColor: "#FAFAFA",
+    paddingTop: Platform.OS === "ios" ? 40 : 30,
   },
 });

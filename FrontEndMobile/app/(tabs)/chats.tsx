@@ -117,7 +117,7 @@ export default function ChatsScreen() {
                   size={22}
                   color={COLORS.textMain}
                 /> */}
-                <Text style={{ fontSize: Platform.OS === "ios" ? 20 : 15 }}>
+                <Text style={{ fontSize: Platform.OS === "ios" ? 20 : 16 }}>
                   {theme.icon}
                 </Text>
               </View>
@@ -157,8 +157,8 @@ export default function ChatsScreen() {
         }}
         ListEmptyComponent={
           <Text style={styles.emptyText}>
-            현재 참여 중인 소모임 채팅방이 없습니다.{"\n"}마음에 드는 소모임에
-            가입해 보세요! 🏃
+            현재 입장한 채팅방이 없습니다.
+            {"\n"} 마음에 드는 소모임에 참여해 보세요 🏃
           </Text>
         }
       />
@@ -199,15 +199,15 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingHorizontal: 20,
-    paddingTop: 5,
+    paddingBottom: 40,
   },
   chatCard: {
     flexDirection: "row",
     backgroundColor: COLORS.surface,
-    padding: 16,
+    padding: 13,
     borderRadius: 20,
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 11,
     borderWidth: 1,
     borderColor: COLORS.border,
     shadowColor: "#000",
@@ -235,19 +235,20 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   roomTitle: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "700",
     color: COLORS.textMain,
     maxWidth: "75%",
   },
   timeText: {
-    fontSize: 12,
+    fontSize: 11,
     color: COLORS.textSub,
     fontWeight: "500",
   },
   roomMessage: {
-    fontSize: 13,
+    fontSize: 12.5,
     color: COLORS.textSub,
+
     lineHeight: 18,
   },
   roomMessageUnread: {

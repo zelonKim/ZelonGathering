@@ -5,6 +5,7 @@ import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -52,24 +53,27 @@ export default function SignupScreen() {
 
   const handleSignup = () => {
     if (!email.trim() || !password.trim() || !passwordConfirm.trim()) {
-      alert("이메일과 비밀번호를 모두 입력해 주세요.");
+      Alert.alert("안내", "이메일과 비밀번호를 모두 입력해 주세요.");
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      alert("올바른 이메일 형식이 아닙니다.");
+      Alert.alert("안내", "올바른 이메일 형식이 아닙니다.");
       return;
     }
 
     const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
     if (!passwordRegex.test(password)) {
-      alert("비밀번호는 영문 and 숫자를 포함하여 8자리 이상이어야 합니다.");
+      Alert.alert(
+        "안내",
+        "비밀번호는 영문 and 숫자를 포함하여 8자리 이상이어야 합니다.",
+      );
       return;
     }
 
     if (password !== passwordConfirm) {
-      alert("비밀번호가 서로 일치하지 않습니다");
+      Alert.alert("안내", "비밀번호가 서로 일치하지 않습니다");
       return;
     }
 
@@ -90,12 +94,12 @@ export default function SignupScreen() {
       </View>
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
         // 🌟 오프셋 값을 조금 더 넉넉히 주어 키보드가 올라올 때 타이틀 섹션까지 확실하게 밀어 올립니다.
         keyboardVerticalOffset={Platform.select({
           ios: 20,
-          android: 10,
+          android: 32,
         })}
       >
         <ScrollView
@@ -107,9 +111,9 @@ export default function SignupScreen() {
           <View style={styles.innerContainer}>
             {/* 1. 타이틀 레이어 */}
             <View style={styles.titleSection}>
-              <Text style={styles.mainTitle}>반가워요! 🍑</Text>
+              <Text style={styles.mainTitle}>하이루 👋</Text>
               <Text style={styles.subTitle}>
-                간단한 정보만 입력하고 바로 시작해요.
+                가입하고, 새로운 사람들과 인사해봐요.
               </Text>
             </View>
 
@@ -121,7 +125,7 @@ export default function SignupScreen() {
                   style={styles.textInput}
                   value={email}
                   onChangeText={setEmail}
-                  placeholder="example@zelon.com"
+                  placeholder="example@gmail.com"
                   placeholderTextColor={COLORS.textOpac}
                   keyboardType="email-address"
                   autoCapitalize="none"
@@ -166,7 +170,7 @@ export default function SignupScreen() {
                 {isPending ? (
                   <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
-                  <Text style={styles.signupButtonText}>가입 완료하기</Text>
+                  <Text style={styles.signupButtonText}>가입하기</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -209,7 +213,7 @@ const styles = StyleSheet.create({
     color: COLORS.textSub,
     marginTop: 6,
   },
-  formSection: { gap: 18 },
+  formSection: { gap: 18, marginTop: 30 },
   inputWrapper: { gap: 6 },
   inputLabel: { fontSize: 13, fontWeight: "700", color: COLORS.textSub },
   textInput: {

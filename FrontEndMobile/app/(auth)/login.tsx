@@ -6,6 +6,7 @@ import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -55,13 +56,13 @@ export default function LoginScreen() {
 
   const handleLogin = () => {
     if (!email.trim() || !password.trim()) {
-      alert("이메일과 비밀번호를 모두 입력해 주세요.");
+      Alert.alert("안내", "이메일과 비밀번호를 모두 입력해 주세요.");
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      alert("올바른 이메일 형식이 아닙니다.");
+      Alert.alert("안내", "올바른 이메일 형식이 아닙니다.");
       return;
     }
 
@@ -73,11 +74,11 @@ export default function LoginScreen() {
     <View style={styles.container}>
       <KeyboardAvoidingView
         // 🌟 [수정 2] iOS는 padding, 안드로이드는 네이티브 매커니즘(height 또는 생략) 분기 슛!
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
         keyboardVerticalOffset={Platform.select({
           ios: 30, // 헤더나 탭바 높이에 맞춰 오프셋 보정
-          android: 20,
+          android: 32,
         })}
       >
         <ScrollView
@@ -88,9 +89,9 @@ export default function LoginScreen() {
         >
           {/* 1. 감성 상단 로고 & 타이틀 */}
           <View style={styles.headerSection}>
-            <Text style={styles.logoText}>Zelon {"\n"}Gathering</Text>
+            <Text style={styles.logoText}>Zelon{"\n"}Gathering </Text>
             <Text style={styles.subtitleText}>
-              현생 탈출 완료!{"\n"}지금 내 주변 힙한 소모임 속으로 🚀
+              외출 준비 완료! 🍑{"\n"}지금 내 주변 힙한 소모임 속으로
             </Text>
           </View>
 
@@ -172,11 +173,11 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1, // 🌟 필수 추가: 스크롤 뷰 내부 내용물이 키보드 위로 유연하게 늘어나도록 보장
     paddingHorizontal: 28,
-    paddingTop: Platform.OS === "ios" ? 0 : 20,
+    paddingTop: Platform.OS === "ios" ? 0 : 60,
     paddingBottom: 100,
     justifyContent: "center", // 전체 중앙 정렬 벨런싱 유지
   },
-  headerSection: { marginBottom: 30, marginTop: 10 },
+  headerSection: { marginBottom: 24, marginTop: 10 },
   logoText: {
     fontSize: 36,
     fontWeight: "900",
@@ -189,6 +190,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: COLORS.textMain,
     marginTop: 12,
+    marginBottom: 24,
     lineHeight: 24,
   },
   formSection: { gap: 20, marginTop: 6 },
