@@ -282,19 +282,19 @@ export default function ProfilePage() {
     router.replace("/");
   };
 
-  // 🚪 로그아웃 컴포넌트 이식
-  const handleLogoutClick = () => {
-    if (confirm("정말 로그아웃 하시겠습니까?")) {
-      removeAccessToken()
-        .then(() => {
-          queryClient.clear();
-          router.replace("/login");
-        })
-        .catch(() => {
-          alert("로그아웃 처리 중 오류가 발생했습니다.");
-        });
+
+const handleLogoutClick = async () => {
+  if (confirm("정말 로그아웃 하시겠습니까?")) {
+    try {
+      await removeAccessToken(); 
+      queryClient.clear();
+      router.replace("/login");
+    } catch (err) {
+      console.log(err)
+      alert("로그아웃 처리 중 오류가 발생했습니다.");
     }
-  };
+  }
+};
 
   if (isLoading) {
     return (

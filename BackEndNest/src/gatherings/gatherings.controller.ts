@@ -16,11 +16,11 @@ import { CreateGatheringDto } from './dto/create-gathering.dto';
 import { FilterGatheringDto } from './dto/filter-gathering.dto';
 
 @Controller('gatherings')
+@UseGuards(JwtAuthGuard)
 export class GatheringsController {
   constructor(private readonly gatheringsService: GatheringsService) {}
 
   // 1. 소모임 개설
-  @UseGuards(JwtAuthGuard)
   @Post()
   async create(
     @Req() req: { user: { sub: string } },
@@ -43,7 +43,6 @@ export class GatheringsController {
   }
 
   // 4-1. 소모임 참여 신청
-  @UseGuards(JwtAuthGuard)
   @Post(':id/join')
   async toggleJoin(
     @Param('id') id: string,
@@ -54,7 +53,6 @@ export class GatheringsController {
   }
 
   // 4-2. 소모임 참여 취소
-  @UseGuards(JwtAuthGuard)
   @Delete(':id/leave')
   async leaveGathering(
     @Param('id') id: string,
@@ -65,7 +63,6 @@ export class GatheringsController {
   }
 
   // 5. 소모임 상태 변경 (방장 전용)
-  @UseGuards(JwtAuthGuard)
   @Patch(':id')
   async updateStatus(
     @Param('id') id: string,
@@ -77,7 +74,6 @@ export class GatheringsController {
   }
 
   // 6. 소모임 삭제 (방장 전용)
-  @UseGuards(JwtAuthGuard)
   @Delete(':id')
   async remove(@Param('id') id: string, @Req() req: { user: { sub: string } }) {
     const hostId = req.user.sub;
@@ -85,7 +81,6 @@ export class GatheringsController {
   }
 
   // 7. [방장 전용] 소모임 신청자 명단 및 상태 조회
-  @UseGuards(JwtAuthGuard)
   @Get(':id/participants')
   async getParticipants(
     @Param('id') id: string,
@@ -96,7 +91,6 @@ export class GatheringsController {
   }
 
   // 8. [방장 전용] 소모임 참여 신청 승인/거절 처리
-  @UseGuards(JwtAuthGuard)
   @Patch(':id/participants')
   async reviewParticipant(
     @Param('id') id: string,

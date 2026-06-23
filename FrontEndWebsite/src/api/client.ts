@@ -1,5 +1,5 @@
 import axios from "axios";
-import { getAccessToken } from "./token";
+import { getAccessToken, removeAccessToken } from "./token";
 
 export const client = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
@@ -7,8 +7,6 @@ export const client = axios.create({
     "Content-Type": "application/json",
   },
 });
-
-
 
 client.interceptors.request.use(
   async (config) => {
@@ -21,6 +19,20 @@ client.interceptors.request.use(
     return config;
   },
   (error) => {
+    return Promise.reject(error);
+  },
+);
+
+
+client.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (error.response && error.response.status === 401) {
+      if (typeof window !== "undefined") {
+        await removeAccessToken();
+        window.location.href = "/login";
+      }
+    }
     return Promise.reject(error);
   },
 );
