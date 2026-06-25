@@ -282,19 +282,18 @@ export default function ProfilePage() {
     router.replace("/");
   };
 
-
-const handleLogoutClick = async () => {
-  if (confirm("정말 로그아웃 하시겠습니까?")) {
-    try {
-      await removeAccessToken(); 
-      queryClient.clear();
-      router.replace("/login");
-    } catch (err) {
-      console.log(err)
-      alert("로그아웃 처리 중 오류가 발생했습니다.");
+  const handleLogoutClick = async () => {
+    if (confirm("정말 로그아웃 하시겠습니까?")) {
+      try {
+        await removeAccessToken();
+        queryClient.clear();
+        router.replace("/login");
+      } catch (err) {
+        console.log(err);
+        alert("로그아웃 처리 중 오류가 발생했습니다.");
+      }
     }
-  }
-};
+  };
 
   if (isLoading) {
     return (
@@ -342,7 +341,7 @@ const handleLogoutClick = async () => {
         </div>
         <button
           onClick={handleLogoutClick}
-          className="flex items-center gap-1 text-xs font-bold text-[#78716C] bg-[#F2F0EC] hover:bg-stone-200 px-3 py-2 rounded-xl transition"
+          className="flex items-center gap-1 text-xs font-bold text-[#78716C] bg-[#F2F0EC] hover:bg-red-50 hover:text-red-500 px-3 py-2 rounded-xl transition"
         >
           <LogOut className="w-3.5 h-3.5" />
           <span>로그아웃</span>
@@ -391,7 +390,7 @@ const handleLogoutClick = async () => {
             </div>
           </div>
 
-          <div className="flex items-center bg-red-50 text-[#EF4444] px-3 py-1 rounded-full gap-1 text-xs font-bold">
+          <div className="flex items-center bg-orange-50 text-orange-500 px-3 py-1 rounded-full gap-1 text-xs font-bold">
             <Thermometer className="w-3.5 h-3.5" />
             <span>매너 온도 {userProfile?.mannerTemperature ?? 36.5}°C</span>
           </div>
@@ -401,7 +400,7 @@ const handleLogoutClick = async () => {
         <div className="bg-white rounded-3xl p-5 border border-[#E7E5E4] space-y-3.5">
           <h2 className="text-md font-extrabold text-[#292524]">기본 정보</h2>
 
-          <div className="flex items-center border-b border-stone-100 pb-2.5">
+          <div className="ml-1 flex items-center border-b border-stone-100 pb-2.5">
             <span className="w-24 text-sm font-bold text-[#78716C]">
               닉네임
             </span>
@@ -414,7 +413,7 @@ const handleLogoutClick = async () => {
             />
           </div>
 
-          <div className="flex items-center border-b border-stone-100 pb-2.5">
+          <div className="ml-1 flex items-center border-b border-stone-100 pb-2.5">
             <span className="w-24 text-sm font-bold text-[#78716C]">나이</span>
             <input
               type="text"
@@ -427,7 +426,7 @@ const handleLogoutClick = async () => {
             />
           </div>
 
-          <div className="flex items-center border-b border-stone-100 pb-2.5">
+          <div className="ml-1 flex items-center border-b border-stone-100 pb-2.5">
             <span className="w-24 text-sm font-bold text-[#78716C]">MBTI</span>
             <input
               type="text"
@@ -447,7 +446,7 @@ const handleLogoutClick = async () => {
           </h2>
 
           <div className="space-y-1.5">
-            <span className="text-sm font-bold text-[#78716C] block">
+            <span className="ml-1 text-sm font-bold text-[#78716C] block">
               내가 좋아하는 것
             </span>
             <textarea
@@ -460,7 +459,7 @@ const handleLogoutClick = async () => {
           </div>
 
           <div className="space-y-1.5">
-            <span className="text-sm font-bold text-[#78716C] block">
+            <span className="ml-1 text-sm font-bold text-[#78716C] block">
               내가 싫어하는 것
             </span>
             <textarea
@@ -511,7 +510,7 @@ const handleLogoutClick = async () => {
           </div>
 
           <div className="pt-2">
-            <span className="text-sm font-bold text-[#78716C] block mb-2">
+            <span className="text-[15px] font-bold text-[#78716C] block mb-2">
               활동 선호 지역
             </span>
             {/* 세그먼트 스위치 탭바 */}
@@ -528,7 +527,7 @@ const handleLogoutClick = async () => {
                     key={city}
                     type="button"
                     onClick={() => setActiveCity(city)}
-                    className={`flex-1 text-[13px] py-2 text-center rounded-lg font-bold transition ${
+                    className={`flex-1 text-[13.5px] py-2 text-center rounded-lg font-bold transition ${
                       activeCity === city
                         ? "bg-white text-[#FF7A59] shadow-sm"
                         : "text-[#78716C]"
@@ -576,7 +575,7 @@ const handleLogoutClick = async () => {
           </h2>
 
           <div>
-            <span className="text-sm font-bold text-[#78716C] block mb-2">
+            <span className="text-[13.5px] font-bold text-[#78716C] block mb-2">
               선호 요일
             </span>
             <div className="flex justify-between mx-2 gap-1">
@@ -593,7 +592,7 @@ const handleLogoutClick = async () => {
                           : [...preferDays, day.key],
                       )
                     }
-                    className={` w-9 h-9 rounded-full text-[13px] font-bold transition flex items-center justify-center ${
+                    className={` w-9 h-9 rounded-full text-[14px] font-bold transition flex items-center justify-center ${
                       isSelected
                         ? "bg-[#FF7A59] text-white"
                         : "bg-[#F2F0EC] text-[#78716C]"
@@ -616,7 +615,7 @@ const handleLogoutClick = async () => {
                   key={type}
                   type="button"
                   onClick={() => setActiveTimeType(type)}
-                  className={`flex-1 text-[13px] py-1.5 text-center rounded-lg font-bold transition ${
+                  className={`flex-1 text-[13.5px] py-1.5 text-center rounded-lg font-bold transition ${
                     activeTimeType === type
                       ? "bg-white text-[#FF7A59]"
                       : "text-[#78716C]"

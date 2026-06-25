@@ -860,7 +860,7 @@ export default function HomeScreen() {
                           gatheringTime,
                           setGatheringTime,
                           time.key,
-                        )
+                        ) - 20
                       }
                     >
                       <Text
@@ -1143,12 +1143,14 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.4)",
     justifyContent: "flex-end",
+    paddingBottom: Platform.OS === "ios" ? 0 : 48,
   },
   modalContent: {
     backgroundColor: COLORS.surface,
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
-    height: "85%",
+    maxHeight: "85%",
+    width: "100%",
     padding: 24,
   },
   modalHeader: {
@@ -1158,7 +1160,9 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   modalTitle: { fontSize: 19, fontWeight: "800", color: COLORS.textMain },
-  modalForm: { paddingBottom: 40 },
+  modalForm: {
+    paddingBottom: 30,
+  },
   inputLabel: {
     fontSize: 13,
     fontWeight: "700",

@@ -16,6 +16,7 @@ import {
   AlertCircle,
   UserX,
   Loader2,
+  Thermometer,
 } from "lucide-react";
 import { client } from "@/api/client";
 
@@ -180,7 +181,6 @@ export default function GatheringDetailPage() {
       return data;
     },
     onSuccess: (data) => {
-      if (data?.message) alert(data.message);
       queryClient.invalidateQueries({ queryKey: ["gatheringDetail", id] });
     },
     onError: (error: any) => {
@@ -243,10 +243,11 @@ export default function GatheringDetailPage() {
   // 💬 [수정 완공] 엔터키 연속 버스팅 및 리프레시 버그 차단막이 탑재된 핸들러 함수
   const handleSendMessage = (e?: React.KeyboardEvent<HTMLInputElement>) => {
     if (e && e.key === "Enter") {
-      e.preventDefault(); // 🌟 브라우저 기본 전송 버그 원천 락다운 슛!
+      e.preventDefault();
     }
 
-    if (!chatInput.trim()) return;
+    // 🍏 [더블 방어막] 이미 전송 중이거나 인풋이 비어있으면 아예 패스!
+    if (!chatInput.trim() || sendChatMessageMutation.isPending) return;
 
     sendChatMessageMutation.mutate(chatInput.trim());
   };
@@ -359,7 +360,7 @@ export default function GatheringDetailPage() {
       <div className="flex bg-white border-b border-[#E7E5E4] shrink-0">
         <button
           onClick={() => setActiveTab("INFO")}
-          className={`flex-1 py-3 text-center text-sm font-bold transition-all border-b-[3px] ${
+          className={`flex-1 py-3 text-center text-[15px] font-bold transition-all border-b-[3px] ${
             activeTab === "INFO"
               ? "border-[#FF7A59] text-[#FF7A59] font-black"
               : "border-transparent text-[#78716C]"
@@ -372,14 +373,14 @@ export default function GatheringDetailPage() {
             if (!canAccessChat) {
               alert(
                 isKicked
-                  ? "강퇴된 소모임이므로 채팅방에 입장할 수 없습니다. ❌"
+                  ? "강퇴된 소모임이므로 채팅방에 입장할 수 없습니다."
                   : "소모임에 참여한 멤버만 채팅방에 입장할 수 있습니다.",
               );
               return;
             }
             setActiveTab("CHAT");
           }}
-          className={`flex-1 py-3 text-center text-sm font-bold transition-all border-b-[3px] ${
+          className={`flex-1 py-3 text-center text-[15px] font-bold transition-all border-b-[3px] ${
             activeTab === "CHAT"
               ? "border-[#FF7A59] text-[#FF7A59] font-black"
               : "border-transparent text-[#78716C]"
@@ -408,12 +409,12 @@ export default function GatheringDetailPage() {
                     내가 만든 모임 👑
                   </span>
                 ) : isKicked ? (
-                  <span className="text-[11px] font-bold text-[#EF4444] bg-red-50 border border-red-200 px-3 py-1 rounded-lg flex items-center gap-1">
+                  <span className="text-[12px] font-bold text-[#EF4444] bg-red-50 border border-red-200 px-3 py-1 rounded-lg flex items-center gap-1">
                     <Ban className="w-3 h-3" />
                     참여 불가
                   </span>
                 ) : isAlreadyParticipant ? (
-                  <span className="text-[11px] font-bold text-[#FF7A59] bg-[#FFEBE5] border border-[#FF7A59]/30 px-3 py-1 rounded-lg flex items-center gap-1">
+                  <span className="text-[12px] font-extrabold text-[#FF7A59] bg-[#FFEBE5] border border-[#FF7A59]/30 px-3 py-1 rounded-lg flex items-center gap-1">
                     <CheckCircle className="w-3 h-3" />
                     참여 완료
                   </span>
@@ -421,14 +422,18 @@ export default function GatheringDetailPage() {
                   <button
                     onClick={handleJoinPress}
                     disabled={joinGatheringMutation.isPending}
-                    className="bg-[#FF7A59] text-white text-[11px] font-extrabold px-3 py-1.5 rounded-lg shadow-sm hover:bg-[#e06848] transition"
+                    className="bg-[#FF7A59] text-white text-xs font-extrabold px-4 py-1.5 rounded-lg shadow-sm hover:bg-[#e06848] transition"
                   >
-                    참여하기 🚀
+                    {joinGatheringMutation.isPending ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      "참여하기 🚀"
+                    )}
                   </button>
                 )}
               </div>
 
-              <h3 className="text-xl font-black text-[#292524] tracking-tight leading-snug">
+              <h3 className="text-[22px] font-black text-[#292524] tracking-tight leading-snug">
                 {gathering.title}
               </h3>
               <div className="inline-block bg-stone-100 px-2.5 py-1 rounded-md text-xs font-bold text-[#78716C]">
@@ -436,7 +441,7 @@ export default function GatheringDetailPage() {
                 {gathering.maxParticipants ?? 4}명
               </div>
 
-              <div className="space-y-2 pt-1 border-t border-stone-50 text-[13px] font-semibold text-[#78716C]">
+              <div className="space-y-2 pt-1 border-t border-stone-50 text-[13.5px] font-semibold text-[#78716C]">
                 <div className="flex items-center gap-1.5">
                   <MapPin className="w-3.5 h-3.5 text-[#FF7A59]" />
                   <span>{gathering.gatheringPlace}</span>
@@ -460,17 +465,19 @@ export default function GatheringDetailPage() {
               </div>
 
               <div className="h-px bg-stone-100 my-4" />
-              <p className="text-sm font-black text-[#292524] mb-1">
+              <p className="text-[15px] font-black text-[#292524] mb-1">
                 모임 소개
               </p>
-              <p className="text-[13px] font-medium text-stone-600 leading-relaxed whitespace-pre-wrap">
+              <p className="text-[14px] font-medium text-stone-600 leading-relaxed whitespace-pre-wrap">
                 {gathering.description || "등록된 소개글이 없습니다."}
               </p>
             </div>
 
             {/* 방장 컴포넌트 */}
             <div className="space-y-2">
-              <h4 className="text-sm font-black text-[#292524] pl-1">방장</h4>
+              <h4 className="text-[15px] font-black text-[#292524] pl-1">
+                방장
+              </h4>
               <div className="md:max-w-[486px] shadow-xs bg-white border border-[#E7E5E4] rounded-2xl p-3.5 flex items-center gap-3">
                 <div className="w-11 h-11 bg-stone-100 rounded-xl flex items-center justify-center font-bold overflow-hidden">
                   {gathering.host?.profileImg ? (
@@ -484,11 +491,12 @@ export default function GatheringDetailPage() {
                   )}
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-[#292524]">
+                  <p className="text-[15px] font-bold text-[#292524]">
                     {gathering.host?.nickname || "방장"}
                   </p>
-                  <p className="text-[12px] font-bold text-[#FF7A59] mt-0.5">
-                    🌡️ 매너 온도 {gathering.host?.mannerTemperature}°C
+                  <p className="text-[12px] font-bold text-[#FF7A59] mt-0.5 flex flex-row">
+                    <Thermometer className="w-3.5 h-3.5 mt-0.5 -ml-1" /> 매너
+                    온도 {gathering.host?.mannerTemperature}°C
                   </p>
                 </div>
               </div>
@@ -496,7 +504,7 @@ export default function GatheringDetailPage() {
 
             {/* 참여 멤버 명단 */}
             <div className="space-y-2">
-              <h4 className="text-sm font-black text-[#292524] pl-1 ">
+              <h4 className="text-[15px] font-black text-[#292524] pl-1 ">
                 참여 중인 멤버 ({activeParticipants.length}명)
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 ">
@@ -520,11 +528,12 @@ export default function GatheringDetailPage() {
                           )}
                         </div>
                         <div>
-                          <p className="text-sm font-bold text-[#292524]">
+                          <p className="text-[15px] font-bold text-[#292524]">
                             {p.user?.nickname || "참여자"}
                           </p>
-                          <p className="text-[12px] font-bold text-[#FF7A59] mt-0.5">
-                            🌡️ 매너 온도 {p.user?.mannerTemperature ?? 36.5}°C
+                          <p className="text-[12px] font-bold text-[#FF7A59] mt-0.5 flex flex-row">
+                            <Thermometer className="w-3.5 h-3.5 mt-0.5 -ml-1" />{" "}
+                            매너 온도 {p.user?.mannerTemperature ?? 36.5}°C
                           </p>
                         </div>
                       </div>
@@ -611,8 +620,13 @@ export default function GatheringDetailPage() {
                 type="text"
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
-                // 🌟 [연동 반영] 엔터 키보드 슛 시 버그 차단막 가드 전달 적용 완료
-                onKeyDown={(e) => e.key === "Enter" && handleSendMessage(e)}
+                // 🍏 [해결] onKeyDown 대신 onKeyUp을 사용하면 한글 조합 버그 및 더블 서브밋이 완벽하게 치료됩니다!
+                onKeyUp={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleSendMessage();
+                  }
+                }}
                 placeholder="메시지를 입력해주세요"
                 className="flex-1 bg-[#F5F5F4] px-4 py-2.5 rounded-full text-sm font-semibold focus:outline-none focus:ring-1 focus:ring-[#FF7A59]"
               />

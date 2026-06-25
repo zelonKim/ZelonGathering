@@ -393,8 +393,8 @@ export default function GatheringDetailScreen() {
         {canAccessChat ? (
           <TouchableOpacity onPress={handleHeaderBack} activeOpacity={0.7}>
             <Ionicons
-              name={isHost ? "trash-bin-outline" : "exit-outline"}
-              size={24}
+              name={isHost ? "trash-outline" : "exit-outline"}
+              size={Platform.OS === "ios" ? 22 : 21}
               color={COLORS.textMain}
             />
           </TouchableOpacity>
@@ -421,6 +421,7 @@ export default function GatheringDetailScreen() {
             모임 소개 정보
           </Text>
         </TouchableOpacity>
+
         <TouchableOpacity
           style={[
             styles.tabButton,
@@ -623,16 +624,16 @@ export default function GatheringDetailScreen() {
         </ScrollView>
       )}
 
-      {/* TAB 2. 실시간 단체 채팅방 */}
       {activeTab === "CHAT" && canAccessChat && (
         <KeyboardAvoidingView
-          style={styles.chatWrapper}
-          behavior={"padding"}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.chatWrapper} // 👈 flex: 1이 들어간 기존 스타일 그대로 활용
           keyboardVerticalOffset={Platform.select({
-            ios: 40,
-            android: 0,
+            ios: 53,
+            android: 26,
           })}
         >
+          {/* 2. 메시지가 흘러가는 스크롤 영역 */}
           <ScrollView
             ref={chatScrollViewRef}
             contentContainerStyle={styles.chatScrollContent}
@@ -697,7 +698,7 @@ export default function GatheringDetailScreen() {
             )}
           </ScrollView>
 
-          {/* 하단 입력 바 */}
+          {/* 3. 하단 메시지 입력창 바 (이제 키보드 바로 위에 이쁘게 밀착합니다) */}
           <View style={styles.inputContainer}>
             <TextInput
               style={styles.chatInput}
@@ -725,7 +726,11 @@ export default function GatheringDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+    paddingBottom: Platform.OS === "ios" ? 10 : 50,
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
@@ -854,7 +859,7 @@ const styles = StyleSheet.create({
   peopleText: { fontSize: 12, color: COLORS.textSub, fontWeight: "700" },
   titleText: {
     fontSize: 22,
-    fontWeight: "900",
+    fontWeight: Platform.OS === "ios" ? "900" : "700",
     color: COLORS.textMain,
     marginBottom: 14,
     marginTop: 10,
@@ -932,8 +937,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingTop: Platform.OS === "ios" ? 14 : 12,
-    paddingBottom: Platform.OS === "ios" ? 28 : 48,
+    paddingTop: Platform.OS === "ios" ? 15 : 14,
+    paddingBottom: Platform.OS === "ios" ? 8 : 15,
     backgroundColor: COLORS.surface,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,

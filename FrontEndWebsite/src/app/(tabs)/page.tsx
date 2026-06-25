@@ -438,7 +438,7 @@ export default function HomePage() {
                     내가 참여 중인 소모임
                   </span>
                 </div>
-                <div className="max-h-56 overflow-y-auto space-y-1">
+                <div className="max-h-90 overflow-y-auto space-y-1">
                   {myJoinedGatherings.map((g: any, idx: number) => (
                     <div
                       key={g.id || idx}
@@ -507,7 +507,7 @@ export default function HomePage() {
                       }
                     : {}
                 }
-                className={`px-3 py-1 rounded-lg text-xs font-semibold border transition whitespace-nowrap ${
+                className={`px-3 py-1 rounded-lg text-[13px] font-semibold border transition whitespace-nowrap ${
                   isActive
                     ? "font-extrabold "
                     : "bg-[#F2F0EC] border-[#F2F0EC] text-[#78716C]"
@@ -550,7 +550,7 @@ export default function HomePage() {
                           backgroundColor: catTheme.bg,
                           color: catTheme.text,
                         }}
-                        className="px-2.5 py-1 rounded-md text-xs font-bold"
+                        className="px-2.5 py-1 rounded-md text-[12.5px] font-bold"
                       >
                         {catTheme.emoji} {catTheme.label}
                       </span>
@@ -558,12 +558,12 @@ export default function HomePage() {
                         {item.distanceStr || "위치 확인 중"}
                       </span>
                     </div>
-                    <h3 className="text-base font-semibold text-[#292524] line-clamp-2 leading-snug mb-2">
+                    <h3 className="text-[17px] font-bold text-gray-800 line-clamp-2 leading-snug mb-2">
                       {item.title}
                     </h3>
                   </div>
-                  <div className="text-xs text-[#78716C] mt-2 flex items-center gap-1">
-                    <MapPin className="w-3.5 h-3.5 text-stone-400 shrink-0 " />
+                  <div className="text-[13px] text-[#78716C] mt-2 flex items-center gap-1">
+                    📍
                     <span className="truncate">{item.gatheringPlace}</span>
                   </div>
                 </div>
@@ -660,7 +660,7 @@ export default function HomePage() {
 
               {/* 🌟 [새로운 대단위 인프라]: 행정 구역 정밀 선택 섹션 */}
               <div>
-                <label className="mt-8 text-sm font-bold text-[#292524] block mb-2">
+                <label className="mt-8 text-[13.5px] font-bold text-[#292524] block mb-2">
                   모임 지역 선택
                 </label>
                 <div className="flex bg-[#F2F0EC] p-1 rounded-xl mb-3 ">
@@ -678,7 +678,7 @@ export default function HomePage() {
                         onClick={() => {
                           setActiveDistrictTab(cityKey);
                         }}
-                        className={`flex-1 text-[13px] py-2 text-center rounded-lg font-bold transition ${
+                        className={`flex-1 text-sm py-2 text-center rounded-lg font-bold transition ${
                           activeDistrictTab === cityKey
                             ? "bg-white text-[#FF7A59] shadow-sm"
                             : "text-[#78716C]"
@@ -690,7 +690,7 @@ export default function HomePage() {
                   })}
                 </div>
 
-                <span className="text-[12px] font-bold text-[#78716C] block mb-2">
+                <span className="text-[12.5px] font-bold text-[#78716C] block mb-2">
                   세부 지역 선택
                 </span>
                 <div className="flex flex-wrap gap-2 max-h-44 overflow-y-auto p-2 border border-dashed border-stone-200 rounded-xl bg-stone-50/50">
@@ -701,7 +701,7 @@ export default function HomePage() {
                         key={item.key}
                         type="button"
                         onClick={() => setDistrict(item.key)}
-                        className={`text-xs px-3 py-1.5 rounded-xl font-semibold border transition ${
+                        className={`text-[12.5px] px-3 py-1.5 rounded-xl font-semibold border transition ${
                           isSelectedDistrict
                             ? "bg-[#FFEBE5] border-[#FF7A59] text-[#FF7A59] font-black"
                             : "bg-white border-stone-200 text-[#78716C] hover:bg-stone-100"
@@ -721,7 +721,7 @@ export default function HomePage() {
                 </label>
                 <button
                   onClick={() => setIsMapModalOpen(true)}
-                  className={`w-full flex items-center justify-center gap-1.5 p-3 rounded-xl text-[13px] font-bold border transition ${
+                  className={`w-full flex items-center justify-center gap-1.5 p-3 rounded-xl text-sm font-bold border transition ${
                     selectedPlaceCoords
                       ? "bg-[#fa937a] border-[#FF7A59] text-white"
                       : "bg-[#FFEBE5] border-[#FF7A59] text-[#FF7A59]"
@@ -759,7 +759,7 @@ export default function HomePage() {
                             day.key,
                           )
                         }
-                        className={`w-10 h-10 rounded-full text-[13px] font-bold transition ${isSel ? "bg-[#FF7A59] text-white" : "bg-[#F2F0EC] text-[#78716C]"}`}
+                        className={`w-10 h-10 rounded-full text-[13.5px] font-bold transition ${isSel ? "bg-[#FF7A59] text-white" : "bg-[#F2F0EC] text-[#78716C]"}`}
                       >
                         {day.label}
                       </button>
@@ -779,13 +779,13 @@ export default function HomePage() {
                       key={timeType}
                       type="button"
                       onClick={() => setActiveTimeTab(timeType)}
-                      className={`flex-1 text-[13px] py-1.5 text-center rounded-lg font-black transition ${
+                      className={`flex-1 text-[13.5px] py-1.5 text-center rounded-lg font-bold transition ${
                         activeTimeTab === timeType
                           ? "bg-white text-[#FF7A59]"
                           : "text-[#78716C]"
                       }`}
                     >
-                      {timeType === "AM" ? "오전" : "오후"}
+                      {timeType === "AM" ? "오전 (AM)" : "오후 (PM)"}
                     </button>
                   ))}
                 </div>

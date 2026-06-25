@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
     padding: 13,
     borderRadius: 20,
     alignItems: "center",
-    marginBottom: 11,
+    marginBottom: 10,
     borderWidth: 1,
     borderColor: COLORS.border,
     shadowColor: "#000",

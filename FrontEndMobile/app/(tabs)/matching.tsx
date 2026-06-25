@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderWidth: 1,
     borderColor: COLORS.border,
-    elevation: 3,
+
   },
   cardHeader: {
     flexDirection: "row",

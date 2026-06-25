@@ -87,12 +87,12 @@ export default function SignupPage() {
         {/* 메인 영역 (form 태그를 div 박스로 전면 교체) */}
         <main className="flex-1 flex flex-col justify-center px-4 pt-4 pb-20">
           {/* 1. 타이틀 레이어 */}
-          <section className="mb-8">
+          <section className="my-10">
             <h1 className="text-3xl font-black tracking-tight text-[#292524]">
-              반가워요! 🍑
+              하이루 👋
             </h1>
             <p className="text-[15px] font-semibold text-[#78716C] mt-2">
-              간단한 정보만 입력하고 바로 시작해요.
+              가입하고, 새로운 사람들과 인사해봐요.
             </p>
           </section>
 
@@ -100,7 +100,7 @@ export default function SignupPage() {
           <div className="flex flex-col gap-[18px]">
             {/* 이메일 계정 */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-[#78716C]">
+              <label className="text-sm font-bold text-[#78716C]">
                 이메일 계정
               </label>
               <input
@@ -110,13 +110,13 @@ export default function SignupPage() {
                 onKeyDown={handleKeyDown} // 엔터키 이벤트 바인딩
                 placeholder="example@zelon.com"
                 disabled={isPending}
-                className="w-full bg-white border border-[#E7E5E4] rounded-[14px] px-4 py-3.5 text-sm font-semibold text-[#292524] placeholder-[#8d8d8d9b] focus:outline-none focus:ring-2 focus:ring-[#FF7A59]/20 focus:border-[#FF7A59] transition disabled:bg-stone-100"
+                className="w-full bg-white border border-[#E7E5E4] rounded-[14px] px-4 py-3.5 text-base font-semibold text-[#292524] placeholder-[#8d8d8d9b] focus:outline-none focus:ring-2 focus:ring-[#FF7A59]/20 focus:border-[#FF7A59] transition disabled:bg-stone-100"
               />
             </div>
 
             {/* 비밀번호 */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-[#78716C]">
+              <label className="text-sm font-bold text-[#78716C]">
                 비밀번호
               </label>
               <input
@@ -126,13 +126,13 @@ export default function SignupPage() {
                 onKeyDown={handleKeyDown} // 엔터키 이벤트 바인딩
                 placeholder="영문, 숫자 포함 8자 이상"
                 disabled={isPending}
-                className="w-full bg-white border border-[#E7E5E4] rounded-[14px] px-4 py-3.5 text-sm font-semibold text-[#292524] placeholder-[#8d8d8d9b] focus:outline-none focus:ring-2 focus:ring-[#FF7A59]/20 focus:border-[#FF7A59] transition disabled:bg-stone-100"
+                className="w-full bg-white border border-[#E7E5E4] rounded-[14px] px-4 py-3.5 text-base font-semibold text-[#292524] placeholder-[#8d8d8d9b] focus:outline-none focus:ring-2 focus:ring-[#FF7A59]/20 focus:border-[#FF7A59] transition disabled:bg-stone-100"
               />
             </div>
 
             {/* 비밀번호 확인 */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-[#78716C]">
+              <label className="text-sm font-bold text-[#78716C]">
                 비밀번호 확인
               </label>
               <input
@@ -142,7 +142,7 @@ export default function SignupPage() {
                 onKeyDown={handleKeyDown} // 엔터키 이벤트 바인딩
                 placeholder="비밀번호를 한번 더 입력해 주세요"
                 disabled={isPending}
-                className="w-full bg-white border border-[#E7E5E4] rounded-[14px] px-4 py-3.5 text-sm font-semibold text-[#292524] placeholder-[#8d8d8d9b] focus:outline-none focus:ring-2 focus:ring-[#FF7A59]/20 focus:border-[#FF7A59] transition disabled:bg-stone-100"
+                className="w-full bg-white border border-[#E7E5E4] rounded-[14px] px-4 py-3.5 text-base font-semibold text-[#292524] placeholder-[#8d8d8d9b] focus:outline-none focus:ring-2 focus:ring-[#FF7A59]/20 focus:border-[#FF7A59] transition disabled:bg-stone-100"
               />
             </div>
 
@@ -156,7 +156,7 @@ export default function SignupPage() {
               {isPending ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
-                "가입 완료하기"
+                    <div className="text-base">가입하기</div>
               )}
             </button>
           </div>

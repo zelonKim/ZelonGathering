@@ -82,7 +82,7 @@ export default function ChatsPage() {
                 // 🚀 카드를 누르면 해당 소모임 상세 화면의 [실시간 채팅방] 탭 브랜치 주소로 무브
                 router.push(`/gatherings/${item.id}?tab=CHAT`)
               }
-              className="flex items-center bg-white p-3 rounded-[20px] border border-[#E7E5E4] cursor-pointer shadow-xs  hover:shadow-sm hover:shadow-orange-50 hover:border-orange-300 active:scale-[0.99] transition "
+              className="flex items-center bg-white p-3 rounded-[20px] border border-[#E7E5E4] cursor-pointer shadow-xs  hover:shadow-sm hover:shadow-orange-50 hover:border-orange-400 active:scale-[0.99] transition "
             >
               {/* 왼쪽: 모달 카테고리 기반 힙한 그래픽 아바타 */}
               <div
@@ -95,7 +95,7 @@ export default function ChatsPage() {
               {/* 가운데: 소모임 타이틀 & 최신 대화 요약 */}
               <div className="flex-1 min-w-0 mx-3.5">
                 <div className="flex justify-between items-center mb-1">
-                  <h3 className="text-[15px] font-semibold text-[#292524] truncate max-w-[75%]">
+                  <h3 className="text-[15px] font-bold text-[#292524] truncate max-w-[75%]">
                     {item.title}
                   </h3>
                   <span className="text-xs text-[#78716C] font-medium shrink-0">
