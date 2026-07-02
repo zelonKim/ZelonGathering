@@ -17,7 +17,7 @@ import {
   TouchableWithoutFeedback,
   View,
 } from "react-native";
-import MapView, { Marker } from "react-native-maps"; // 🌟 지도 핵심 컴포넌트 추가
+import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps"; // 🌟 지도 핵심 컴포넌트 추가
 
 const COLORS = {
   primary: "#FF7A59", // 메인 피치 코랄
@@ -343,12 +343,6 @@ export default function HomeScreen() {
       return;
     }
 
-    // 🌟 [지도 선택 여부 가드벨트 장착]
-    if (!selectedPlaceCoords) {
-      Alert.alert("알림", "지도에서 모임 장소 위치를 지정해 주세요! 📍");
-      return;
-    }
-
     if (
       !title ||
       !description ||
@@ -367,9 +361,8 @@ export default function HomeScreen() {
       category,
       maxParticipants: parseInt(maxParticipants, 10),
       gatheringPlace,
-      // 🌟 내 현재 기기 좌표가 아닌, 지도에서 핀으로 집어넣은 목적지 좌표를 백엔드로 발송!
-      latitude: selectedPlaceCoords.latitude,
-      longitude: selectedPlaceCoords.longitude,
+      latitude: selectedPlaceCoords?.latitude || location.latitude,
+      longitude: selectedPlaceCoords?.longitude || location.longitude,
       district,
       gatheringDay,
       gatheringTime,
@@ -780,31 +773,32 @@ export default function HomeScreen() {
               </View>
 
               {/* 🌟 [수정 세션]: 지도 위치 선택 버튼 및 텍스트 자동 동기화 란 */}
-              <Text style={styles.inputLabel}>모임 장소 지정 (위치)</Text>
-              <TouchableOpacity
-                style={[
-                  styles.mapSelectBtn,
-                  selectedPlaceCoords && styles.mapSelectBtnActive,
-                ]}
-                onPress={() => setIsMapModalOpen(true)}
-              >
-                <Ionicons
-                  name="map-outline"
-                  size={16}
-                  color={selectedPlaceCoords ? "#FFFFFF" : COLORS.primary}
-                />
-                <Text
+              <Text style={styles.inputLabel}>모임 장소 (위치)</Text>
+              {Platform.OS === "android" && (
+                <TouchableOpacity
                   style={[
-                    styles.mapSelectBtnText,
-                    selectedPlaceCoords && { color: "#FFFFFF" },
+                    styles.mapSelectBtn,
+                    selectedPlaceCoords && styles.mapSelectBtnActive,
                   ]}
+                  onPress={() => setIsMapModalOpen(true)}
                 >
-                  {selectedPlaceCoords
-                    ? "📍 위치 지정 완료 (다시 선택)"
-                    : "지도에서 모임 장소 찍기 🗺️"}
-                </Text>
-              </TouchableOpacity>
-
+                  <Ionicons
+                    name="map-outline"
+                    size={16}
+                    color={selectedPlaceCoords ? "#FFFFFF" : COLORS.primary}
+                  />
+                  <Text
+                    style={[
+                      styles.mapSelectBtnText,
+                      selectedPlaceCoords && { color: "#FFFFFF" },
+                    ]}
+                  >
+                    {selectedPlaceCoords
+                      ? "📍 위치 지정 완료 (다시 선택)"
+                      : "지도에서 모임 장소 찍기 🗺️"}
+                  </Text>
+                </TouchableOpacity>
+              )}
               <TextInput
                 style={[styles.input, { marginTop: 8 }]}
                 placeholder="상세 주소 및 모임 장소명을 입력해주세요 (지도 선택 시 자동 입력)"
@@ -913,8 +907,7 @@ export default function HomeScreen() {
         <View style={styles.mapModalContainer}>
           <MapView
             style={styles.mapView}
-            // 🌟 iOS는 빈값(기본 Apple Maps), 안드로이드는 Google Maps를 바라보도록 튜닝 슛!
-            provider={Platform.OS === "android" ? "google" : undefined}
+            provider={PROVIDER_GOOGLE}
             initialRegion={{
               latitude: location.latitude,
               longitude: location.longitude,
@@ -1236,11 +1229,16 @@ const styles = StyleSheet.create({
     borderColor: COLORS.primary,
   },
   mapSelectBtnText: { fontSize: 13, color: COLORS.primary, fontWeight: "700" },
-  mapModalContainer: { flex: 1, backgroundColor: "#000" },
-  mapView: { flex: 1 },
+  mapModalContainer: {
+    flex: 1,
+    width: "100%",
+    height: "100%",
+    backgroundColor: "#000",
+  },
+  mapView: { flex: 1, width: "100%", height: "100%" },
   mapFloatingCard: {
     position: "absolute",
-    bottom: 30,
+    bottom: 65,
     left: 20,
     right: 20,
     backgroundColor: "#FFFFFF",

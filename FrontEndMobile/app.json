@@ -19,6 +19,9 @@
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "내 주변의 소모임 거리를 계산하고, 지도에서 모임 장소를 지정하기 위해서는 위치 권한이 필요합니다",
         "ITSAppUsesNonExemptEncryption": false
+      },
+      "config": {
+        "googleMapsApiKey": "AIzaSyCcax07G38JA4r-BVQrdm7J6wd6yT05Zkg"
       }
     },
     "android": {
@@ -28,14 +31,18 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyDZ-Gnv9z61HYyGJZF_VU-B3OJBDfZfI6A"
+        }
+      }
     },
     "web": {
       "bundler": "metro",
       "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
-    "plugins": ["expo-router", "expo-secure-store"],
     "experiments": {
       "typedRoutes": true
     },
