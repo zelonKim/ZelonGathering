@@ -68,18 +68,15 @@ export default function ChatsPage() {
       </header>
 
       {/* 2. 실시간 소모임 채팅 리스트 피드 */}
+      <main className="px-6 pt-1.5  grid grid-cols-1 md:grid-cols-2 gap-3">
+        {chatRooms.map((item: any) => {
+          // 카테고리에 맞는 아바타 테마 추출 (기본값 TALK)
+          const categoryKey = item.category?.toUpperCase() || "TALK";
+          const theme = CATEGORY_MAP[categoryKey] || CATEGORY_MAP.TALK;
 
-      {chatRooms.map((item: any) => {
-        // 카테고리에 맞는 아바타 테마 추출 (기본값 TALK)
-        const categoryKey = item.category?.toUpperCase() || "TALK";
-        const theme = CATEGORY_MAP[categoryKey] || CATEGORY_MAP.TALK;
-
-        return (
-          <main
-            key={item.id}
-            className="px-6 pt-1.5 pb-24  grid grid-cols-1 md:grid-cols-2 gap-3"
-          >
+          return (
             <div
+              key={item.id}
               onClick={() =>
                 // 🚀 카드를 누르면 해당 소모임 상세 화면의 [실시간 채팅방] 탭 브랜치 주소로 무브
                 router.push(`/gatherings/${item.id}?tab=CHAT`)
@@ -122,9 +119,9 @@ export default function ChatsPage() {
                 </div>
               )}
             </div>
-          </main>
-        );
-      })}
+          );
+        })}
+      </main>
 
       {/* 채팅방 엠티 컴포넌트 처리 */}
       {chatRooms.length === 0 && (

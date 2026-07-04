@@ -200,6 +200,7 @@ export default function GatheringDetailPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["gatherings"] });
+      queryClient.invalidateQueries({ queryKey: ["myChats"] });
       router.back();
     },
     onError: (error: any) => {
@@ -217,6 +218,7 @@ export default function GatheringDetailPage() {
     onSuccess: (data) => {
       if (data?.message) alert(data.message);
       queryClient.invalidateQueries({ queryKey: ["gatherings"] });
+      queryClient.invalidateQueries({ queryKey: ["myChats"] });
       router.back();
     },
     onError: (error: any) => {
