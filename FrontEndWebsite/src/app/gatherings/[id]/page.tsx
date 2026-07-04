@@ -182,6 +182,7 @@ export default function GatheringDetailPage() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["gatheringDetail", id] });
+      queryClient.invalidateQueries({ queryKey: ["myChats"] });
     },
     onError: (error: any) => {
       alert(

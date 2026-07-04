@@ -21,7 +21,6 @@ const CATEGORY_MAP: Record<string, { bg: string; icon: string }> = {
 export default function ChatsPage() {
   const router = useRouter();
 
-  // 🔄 1. 내가 속한 소모임 채팅방 목록 API Fetch (React Query v5 규격 유지)
   const {
     data: chatRooms = [],
     isLoading,
