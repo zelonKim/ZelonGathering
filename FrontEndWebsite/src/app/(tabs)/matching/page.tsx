@@ -154,7 +154,7 @@ export default function MatchingPage() {
       </div>
       {/* 데이터가 비었을 때 처리 */}
       {notifications.length === 0 && (
-        <div className="text-center py-36 ">
+        <div className="text-center py-36 gap-2 flex flex-col items-center justify-center">
           <p className="text-[15px] text-[#78716C] font-bold">
             아직 들어온 매칭 알림이 없습니다!
           </p>
