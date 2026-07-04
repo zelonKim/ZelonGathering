@@ -12,6 +12,7 @@ import {
   Loader2,
   CheckCircle,
   ArrowRight,
+  Navigation,
 } from "lucide-react";
 import { client } from "@/api/client";
 import { GoogleMap, MarkerF, useJsApiLoader } from "@react-google-maps/api";
@@ -913,22 +914,15 @@ export default function HomePage() {
             </button>
           </div>
 
-          <div className="bg-white w-full max-w-md mx-auto mt-4 p-5 rounded-2xl border border-stone-200 shadow-2xl space-y-3 shrink-0">
-            <div className="text-center">
-              <p className="text-sm font-black text-stone-500 uppercase tracking-wider">
-                선택된 모임 장소 주소
+          <div className="bg-white w-full max-w-md mx-auto mt-4 p-3 pb-4 rounded-2xl border border-stone-200 shadow-2xl space-y-3 shrink-0">
+            <div className="text-center"></div>
+
+            <div>
+              <MapPin className="w-6 h-6 mx-auto text-[#FF7A59] animate-bounce" />
+              <p className="flex flex-col items-center text-sm text-center text-stone-500 font-medium py-4">
+                지도를 클릭하여 모임 장소에 핀을 꽂아주세요!
               </p>
             </div>
-
-            {gatheringAddress ? (
-              <div className="text-sm text-center font-black text-[#FF7A59] border border-[#FFEBE5] bg-[#FFEBE5]/40 p-3 rounded-xl whitespace-pre-wrap leading-relaxed animate-in fade-in duration-200">
-                📍 {gatheringAddress}
-              </div>
-            ) : (
-              <p className="text-xs text-center text-stone-400 font-medium py-4">
-                지도를 클릭하여 모임 장소 핀을 꽂아주세요!
-              </p>
-            )}
 
             <button
               type="button"
