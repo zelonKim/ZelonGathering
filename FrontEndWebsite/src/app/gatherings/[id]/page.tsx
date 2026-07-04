@@ -166,8 +166,8 @@ export default function GatheringDetailPage() {
     },
     onSuccess: () => {
       setChatInput("");
-      // 🌟 [교정] 무효화 타겟 주소의 대소문자를 'gatheringChats'로 한 자의 오차 없이 정렬했습니다.
       queryClient.invalidateQueries({ queryKey: ["gatheringChats", id] });
+      queryClient.invalidateQueries({ queryKey: ["myChats"] });
     },
     onError: (error: any) => {
       alert(error.response?.data?.message || "메시지를 보내지 못했습니다.");
