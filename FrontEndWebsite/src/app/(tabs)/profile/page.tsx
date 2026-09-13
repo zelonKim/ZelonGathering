@@ -9,11 +9,10 @@ import {
   Thermometer,
   AlertCircle,
   Loader2,
-} from "lucide-react"; // lucide 아이콘 도입
+} from "lucide-react";
 import { client } from "@/api/client";
 import { removeAccessToken } from "@/api/token";
 
-// --- 정적 옵션 데이터 (기존 데이터 구조 100% 이식) ---
 const CATEGORY_ITEMS = [
   { key: "STUDY", label: "📑 스터디" },
   { key: "SPORTS", label: "⚽️ 스포츠" },
@@ -56,7 +55,6 @@ const TIME_ITEMS = [
 ];
 
 export const DISTRICT_ITEMS = [
-  // === 서울특별자치시 (SEOUL) ===
   { key: "SEOUL_GANGDONG", label: "강동구", city: "SEOUL" },
   { key: "SEOUL_GANGSEO", label: "강서구", city: "SEOUL" },
   { key: "SEOUL_GANGNAM", label: "강남구", city: "SEOUL" },
@@ -83,7 +81,6 @@ export const DISTRICT_ITEMS = [
   { key: "SEOUL_JUNGGU", label: "중구", city: "SEOUL" },
   { key: "SEOUL_JUNGNANG", label: "중랑구", city: "SEOUL" },
 
-  // === 경기도 (GYEONGGI) ===
   { key: "GYEONGGI_SUWON", label: "수원시", city: "GYEONGGI" },
   { key: "GYEONGGI_SEONGNAM", label: "성남시", city: "GYEONGGI" },
   { key: "GYEONGGI_GOYANG", label: "고양시", city: "GYEONGGI" },
@@ -116,7 +113,6 @@ export const DISTRICT_ITEMS = [
   { key: "GYEONGGI_GAPYEONG", label: "가평군", city: "GYEONGGI" },
   { key: "GYEONGGI_YEONCHEON", label: "연천군", city: "GYEONGGI" },
 
-  // === 기타 광역시 및 도 단위 지역 (OTHER) ===
   { key: "INCHEON", label: "인천광역시", city: "OTHER" },
   { key: "DAEJEON", label: "대전광역시", city: "OTHER" },
   { key: "DAEGU", label: "대구광역시", city: "OTHER" },
@@ -152,7 +148,6 @@ export default function ProfilePage() {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // 1. 프로필 데이터 로드 (React Query)
   const {
     data: userProfile,
     isLoading,
@@ -165,7 +160,6 @@ export default function ProfilePage() {
     },
   });
 
-  // 2. 프로필 최종 업데이트 Mutation (PATCH)
   const updateProfileMutation = useMutation({
     mutationFn: async (payload: UpdateProfilePayload) => {
       const { data } = await client.patch("/users/profile", payload);
@@ -181,7 +175,6 @@ export default function ProfilePage() {
     },
   });
 
-  // 로컬 컴포넌트 입력 상태 관리
   const [nickname, setNickname] = useState("");
   const [age, setAge] = useState("");
   const [mbti, setMbti] = useState("");
@@ -194,13 +187,11 @@ export default function ProfilePage() {
   const [profileImg, setProfileImg] = useState<string>("");
   const [isImageUploading, setIsImageUploading] = useState(false);
 
-  // 대분류 제어 탭 상태
   const [activeCity, setActiveCity] = useState<"SEOUL" | "GYEONGGI" | "OTHER">(
     "SEOUL",
   );
   const [activeTimeType, setActiveTimeType] = useState<"AM" | "PM">("PM");
 
-  // 데이터 동기화 이펙트
   useEffect(() => {
     if (userProfile) {
       setNickname(userProfile.nickname || "");
@@ -220,19 +211,17 @@ export default function ProfilePage() {
     }
   }, [userProfile]);
 
-  // 📸 웹 브라우저 파일 선택 및 Cloudflare R2 서버 업로드 처리 핸들러
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // 용량 제한 가드벨트 (예: 5MB)
     if (file.size > 5 * 1024 * 1024) {
       alert("파일 크기는 5MB 이하여야 합니다.");
       return;
     }
 
     const formData = new FormData();
-    formData.append("file", file); // 백엔드 @UploadedFile() 파라미터 매핑 이름 "file" 고정
+    formData.append("file", file);
 
     try {
       setIsImageUploading(true);
@@ -240,7 +229,6 @@ export default function ProfilePage() {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      // 캐시 버스팅 파라미터 붙여서 로컬 상태 갱신
       if (response.data && response.data.imageUrl) {
         setProfileImg(`${response.data.imageUrl}?t=${new Date().getTime()}`);
       } else if (typeof response.data === "string") {
@@ -254,14 +242,12 @@ export default function ProfilePage() {
     }
   };
 
-  // 💾 프로필 저장 로직 및 데이터 정제 슛
   const handleSaveProfile = () => {
     if (!nickname.trim()) {
       alert("닉네임은 필수 항목입니다.");
       return;
     }
 
-    // 💡 쿼리 스트링(?t=...) 제거하여 백엔드 DB 순수성 유지
     const cleanProfileImg = profileImg ? profileImg.split("?")[0] : undefined;
 
     const payload: UpdateProfilePayload = {
@@ -329,7 +315,6 @@ export default function ProfilePage() {
 
   return (
     <div className=" min-h-screen px-4 pb-12 max-w-4xl mx-auto ">
-      {/* 글로벌 프로필 상단 탑 데크 */}
       <header className="py-4 flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-black text-[#FF7A59] tracking-tight">
@@ -348,7 +333,6 @@ export default function ProfilePage() {
         </button>
       </header>
 
-      {/* 히든 파일 인풋 (브라우저 업로드 유틸) */}
       <input
         type="file"
         accept="image/*"
@@ -358,7 +342,6 @@ export default function ProfilePage() {
       />
 
       <div className="space-y-4">
-        {/* 아바타 프로필 온도 카드 */}
         <div className="bg-white rounded-3xl p-6 border border-[#E7E5E4] flex flex-col items-center justify-center">
           <div className="relative mb-3">
             <button
@@ -396,7 +379,6 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* 인프라 폼 1: 기본 정보 */}
         <div className="bg-white rounded-3xl p-5 border border-[#E7E5E4] space-y-3.5">
           <h2 className="text-md font-extrabold text-[#292524]">기본 정보</h2>
 
@@ -418,7 +400,6 @@ export default function ProfilePage() {
             <input
               type="text"
               value={age}
-              // 🌟 [수정] /[^0-09]/g  ➡️  /[^0-9]/g 로 변경 슛!
               onChange={(e) => setAge(e.target.value.replace(/[^0-9]/g, ""))}
               placeholder="나이를 입력하세요"
               maxLength={2}
@@ -439,7 +420,6 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* 인프라 폼 2: 취향 키워드 문장 에어리어 */}
         <div className="bg-white rounded-3xl p-5 border border-[#E7E5E4] space-y-4">
           <h2 className="text-md font-extrabold text-[#292524]">
             나의 취향 키워드
@@ -472,7 +452,6 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* 인프라 폼 3: 다중 토글 지역 관심사 매칭 바 */}
         <div className="bg-white rounded-3xl p-5 border border-[#E7E5E4] space-y-4">
           <h2 className="text-md font-extrabold text-[#292524]">
             나의 선호 모임 및 지역
@@ -513,7 +492,7 @@ export default function ProfilePage() {
             <span className="text-[15px] font-bold text-[#78716C] block mb-2">
               활동 선호 지역
             </span>
-            {/* 세그먼트 스위치 탭바 */}
+
             <div className="flex bg-[#F2F0EC] p-1 rounded-xl mb-3">
               {(["SEOUL", "GYEONGGI", "OTHER"] as const).map((city) => {
                 const label =
@@ -539,7 +518,6 @@ export default function ProfilePage() {
               })}
             </div>
 
-            {/* 세부 자치구역 멀티 칩스 리스트 */}
             <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto p-1 border border-dashed border-stone-100 rounded-xl">
               {filteredDistricts.map((item) => {
                 const isDistSelected = preferDistrict.includes(item.key);
@@ -568,7 +546,6 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* 인프라 폼 4: 선호 일정 매칭 국면 */}
         <div className="bg-white rounded-3xl p-5 border border-[#E7E5E4] space-y-5">
           <h2 className="text-md font-extrabold text-[#292524]">
             나의 선호 일정
@@ -654,7 +631,6 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* 최종 전송 액션 단추 */}
         <button
           type="button"
           onClick={handleSaveProfile}

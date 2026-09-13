@@ -30,7 +30,6 @@ export default function MatchingScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
 
-  // 🔄 1. 백엔드에서 AI 매칭 알림 리스트 Fetch
   const {
     data: notifications = [],
     isLoading,
@@ -45,13 +44,11 @@ export default function MatchingScreen() {
     refetchOnWindowFocus: true,
   });
 
-  // 🗑️ 2. 특정 알림 삭제를 위한 useMutation
   const deleteNotificationMutation = useMutation({
     mutationFn: async (notificationId: string) => {
       return await client.delete(`/users/notifications/${notificationId}`);
     },
     onSuccess: () => {
-      // 삭제 완료 후 실시간 리스트 갱신
       queryClient.invalidateQueries({ queryKey: ["aiMatchingNotifications"] });
     },
     onError: (error) => {
@@ -60,7 +57,6 @@ export default function MatchingScreen() {
     },
   });
 
-  // 🌟 현재 로딩 스피너를 보여줄 타겟 아이템 ID 추출
   const deletingId = deleteNotificationMutation.isPending
     ? deleteNotificationMutation.variables
     : null;
@@ -91,7 +87,6 @@ export default function MatchingScreen() {
 
   return (
     <View style={styles.container}>
-      {/* 1. 상단 타이틀 바 */}
       <View style={styles.header}>
         <View style={styles.headerTitleRow}>
           <Text style={styles.headerTitle}>AI Matching</Text>
@@ -101,18 +96,15 @@ export default function MatchingScreen() {
         </Text>
       </View>
 
-      {/* 2. 실시간 피드 리스트 */}
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         {notifications.map((item: any) => {
-          // 🌟 현재 아이템이 지워지는 중인지 검사
           const isCurrentItemDeleting = deletingId === item.id;
 
           return (
             <View key={item.id} style={styles.matchCard}>
-              {/* 카드 상단: AI 매칭률 */}
               <View style={styles.cardHeader}>
                 <View style={styles.aiBadge}>
                   <Ionicons name="sparkles" size={12} color={COLORS.aiPurple} />
@@ -128,12 +120,10 @@ export default function MatchingScreen() {
                 </Text>
               </View>
 
-              {/* 카드 본문: 실제 백엔드 소모임 타이틀 매핑 */}
               <Text style={styles.cardTitle} numberOfLines={2}>
                 {item.title}
               </Text>
 
-              {/* AI가 추천한 이유 구역 */}
               <View style={styles.aiReasonBox}>
                 <Text style={styles.aiReasonText}>
                   <Text style={styles.aiReasonHighlight}>AI의 한마디: </Text>
@@ -141,7 +131,6 @@ export default function MatchingScreen() {
                 </Text>
               </View>
 
-              {/* 하단 액션 버튼 */}
               <View style={styles.actionRow}>
                 <TouchableOpacity
                   style={[
@@ -159,7 +148,6 @@ export default function MatchingScreen() {
                   )}
                 </TouchableOpacity>
 
-                {/* 🚀 참석하기 클릭 시 소모임방 상세로 이동 */}
                 <TouchableOpacity
                   style={styles.joinButton}
                   activeOpacity={0.8}
@@ -207,7 +195,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderWidth: 1,
     borderColor: COLORS.border,
-
   },
   cardHeader: {
     flexDirection: "row",

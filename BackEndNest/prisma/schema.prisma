@@ -7,7 +7,7 @@ generator client {
   provider = "prisma-client-js"
 }
 
-// 사용자 테이블
+// 유저
 model User {
   id                String              @id @default(uuid()) @db.Uuid
   email             String              @unique
@@ -31,9 +31,8 @@ model User {
   hostedGatherings Gathering[]            @relation("HostedGatherings")
   joinedGatherings GatheringParticipant[]
   publicChats      PublicChat[]
-  matchingQueues   MatchingQueue[] // 💡 (참고) MatchingQueue 모델은 아래에 없지만 관계가 걸려있어 유지했습니다.
+  matchingQueues   MatchingQueue[] 
 
-  // 💡 1:1 DM 관계 추가 (PrivateChatRoom의 관계 이름과 매칭)
   privateChatRoomsA PrivateChatRoom[] @relation("UserAChats")
   privateChatRoomsB PrivateChatRoom[] @relation("UserBChats")
   sentPrivateChats  PrivateChat[]     @relation("SentPrivateChats")
@@ -43,7 +42,7 @@ model User {
   @@map("users")
 }
 
-// 실시간 소모임 테이블
+// 실시간 소모임 
 model Gathering {
   id                  String            @id @default(uuid()) @db.Uuid
   hostId              String            @map("host_id") @db.Uuid
@@ -69,7 +68,7 @@ model Gathering {
   @@map("gatherings")
 }
 
-// 소모임 참여 매칭 중간 테이블 (N:M 해소)
+// 소모임 매칭 중간 테이블 
 model GatheringParticipant {
   id          String            @id @default(uuid()) @db.Uuid
   gatheringId String            @map("gathering_id") @db.Uuid
@@ -85,7 +84,7 @@ model GatheringParticipant {
   @@map("gathering_participants")
 }
 
-// 실시간 단체 채팅 
+// 소모임 단체 채팅 
 model PublicChat {
   id          String   @id @default(uuid()) @db.Uuid
   gatheringId String   @map("gathering_id") @db.Uuid
@@ -99,7 +98,7 @@ model PublicChat {
   @@map("public_chats")
 }
 
-// 다이렉트 메시지 방 테이블
+// 다이렉트 메시지 방
 model PrivateChatRoom {
   id        String   @id @default(uuid()) @db.Uuid
   userAId   String   @map("user_a_id") @db.Uuid
@@ -116,7 +115,7 @@ model PrivateChatRoom {
   @@map("private_chat_rooms")
 }
 
-// 다이렉트 메시지 내용 테이블
+// 다이렉트 메시지 내용
 model PrivateChat {
   id        String   @id @default(uuid()) @db.Uuid
   roomId    String   @map("room_id") @db.Uuid
@@ -131,7 +130,7 @@ model PrivateChat {
   @@map("private_chats")
 }
 
-// 위치 기반 실시간 매칭 큐 테이블
+// 위치 기반 실시간 매칭 큐 
 model MatchingQueue {
   id                String      @id @default(uuid()) @db.Uuid
   userId            String      @map("user_id") @db.Uuid
@@ -146,13 +145,13 @@ model MatchingQueue {
   @@map("matching_queues")
 }
 
+// 매칭 알림
 model Notification {
   id        String           @id @default(uuid()) @db.Uuid
-  userId    String           @map("user_id") @db.Uuid // 알림을 받을 유저 id
-  type      NotificationType // 알림 종류
-  title     String // 알림 제목 
-  message   String           @db.Text // 알림 내용
-  linkId    String?          @map("link_id") @db.Uuid // 여기서는 생성된 Gathering의 ID가 들어감
+  userId    String           @map("user_id") @db.Uuid 
+  title     String 
+  message   String           @db.Text 
+  linkId    String?          @map("link_id") @db.Uuid 
   createdAt DateTime         @default(now()) @map("created_at")
   matchRate Int              @default(80)
 
@@ -163,24 +162,26 @@ model Notification {
 
 /////////////////////////////////////////
 
+
+
 enum GatheringStatus {
-  RECRUITING // 모집중
-  FULL // 인원 마감
-  ONGOING // 모임 진행중
-  FINISHED // 모임 종료
-  CANCELED // 모임 취소
+  RECRUITING 
+  FULL 
+  ONGOING 
+  FINISHED 
+  CANCELED 
 }
 
 enum ParticipantRole {
-  HOST
-  MEMBER
+  HOST 
+  MEMBER 
 }
 
 enum ParticipantStatus {
-  PENDING // 승인대기
-  ACCEPTED // 참여승인
-  REJECTED // 거절됨
-  EXITED // 퇴장함
+  PENDING 
+  ACCEPTED 
+  REJECTED 
+  EXITED
 }
 
 enum QueueStatus {
@@ -201,33 +202,33 @@ enum GatheringCategory {
 }
 
 enum Day {
-  MON // 월요일
-  TUE // 화요일
-  WED // 수요일
-  THU // 목요일
-  FRI // 금요일
-  SAT // 토요일
-  SUN // 일요일
+  MON 
+  TUE
+  WED
+  THU
+  FRI 
+  SAT
+  SUN
 }
 
 enum Time {
-  AM_06 // 오전 06:00 ~ 07:00
-  AM_07 // 오전 07:00 ~ 08:00
-  AM_08 // 오전 08:00 ~ 09:00
-  AM_09 // 오전 09:00 ~ 10:00
-  AM_10 // 오전 10:00 ~ 11:00
-  AM_11 // 오전 11:00 ~ 12:00
-  PM_12 // 오후 12:00 ~ 01:00 (정오/점심)
-  PM_01 // 오후 01:00 ~ 02:00
-  PM_02 // 오후 02:00 ~ 03:00
-  PM_03 // 오후 03:00 ~ 04:00
-  PM_04 // 오후 04:00 ~ 05:00
-  PM_05 // 오후 05:00 ~ 06:00
-  PM_06 // 오후 06:00 ~ 07:00 
-  PM_07 // 오후 07:00 ~ 08:00
-  PM_08 // 오후 08:00 ~ 09:00
-  PM_09 // 오후 09:00 ~ 10:00
-  PM_10 // 오후 10:00 ~ 11:00 
+  AM_06
+  AM_07 
+  AM_08 
+  AM_09 
+  AM_10 
+  AM_11 
+  PM_12 
+  PM_01 
+  PM_02
+  PM_03
+  PM_04 
+  PM_05 
+  PM_06 
+  PM_07
+  PM_08 
+  PM_09 
+  PM_10 
 }
 
 enum District {
@@ -258,14 +259,14 @@ enum District {
   SEOUL_JUNGNANG // 중랑구
 
   GYEONGGI_SUWON // 수원시
-  GYEONGGI_SEONGNAM // 성남시 (분당/판교 포함)
-  GYEONGGI_GOYANG // 고양시 (일산 포함)
-  GYEONGGI_YONGIN // 용인시 (수지/기흥 포함)
+  GYEONGGI_SEONGNAM // 성남시 
+  GYEONGGI_GOYANG // 고양시 
+  GYEONGGI_YONGIN // 용인시 
   GYEONGGI_BUCHEON // 부천시
   GYEONGGI_ANSAN // 안산시
   GYEONGGI_ANYANG // 안양시
   GYEONGGI_NAMYANGJU // 남양주시
-  GYEONGGI_HWASEONG // 화성시 (동탄 포함) 
+  GYEONGGI_HWASEONG // 화성시 
   GYEONGGI_PYEONGTAEK // 평택시
   GYEONGGI_UIJEONGBU // 의정부시
   GYEONGGI_SIHEUNG // 시흥시
@@ -303,7 +304,7 @@ enum District {
   JEONNAM // 전라남도
   GYEONGBUK // 경상북도
   GYEONGNAM // 경상남도
-  JEJU // 제주특별자치도
+  JEJU // 제주도
 }
 
 enum Mbti {
@@ -323,9 +324,4 @@ enum Mbti {
   ESFJ
   ENFJ
   ENTJ
-}
-
-enum NotificationType {
-  AI_MATCHING // AI 매칭 알림
-  NEW_CHAT // 새 채팅 알림
 }

@@ -1,5 +1,4 @@
 from pydantic import BaseModel, Field
-from typing import List
 
 
 class GatheringData(BaseModel):
@@ -28,15 +27,18 @@ class CandidateUser(BaseModel):
 class MatchingPayload(BaseModel):
     gathering: GatheringData
     host: HostData
-    candidates: List[CandidateUser]
+    candidates: list[CandidateUser]
+
+
+#############################################################
 
 
 class RecommendedNotification(BaseModel):
-    userId: str = Field(description="추천된 매칭 유저의 고유 ID")
-    title: str = Field(description="유저에게 보낼 알림 제목")
-    message: str = Field(description="유저별 맞춤형 추천 사유가 담긴 알림 메시지 본문")
+    userId: str = Field(description="매칭된 유저의 고유 ID")
+    title: str = Field(description="소모임 매칭 알림 제목")
+    message: str = Field(description="해당 소모임 추천 사유 및 메시지 본문")
     matchRate: int = Field(description="추천된 소모임과 유저간의 매칭률")
 
 
 class MatchingResponse(BaseModel):
-    notifications: List[RecommendedNotification]
+    notifications: list[RecommendedNotification]

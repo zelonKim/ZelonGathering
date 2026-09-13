@@ -20,7 +20,7 @@ import {
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps"; // 🌟 지도 핵심 컴포넌트 추가
 
 const COLORS = {
-  primary: "#FF7A59", // 메인 피치 코랄
+  primary: "#FF7A59",
   primaryLight: "#FFEBE5",
   background: "#FBFBF9",
   surface: "#FFFFFF",
@@ -203,7 +203,6 @@ export default function HomeScreen() {
   const [gatheringDay, setGatheringDay] = useState<string[]>([]);
   const [gatheringTime, setGatheringTime] = useState<string[]>([]);
 
-  // 내 기기 GPS 위치 보관
   const [location, setLocation] = useState<{
     latitude: number;
     longitude: number;
@@ -213,7 +212,6 @@ export default function HomeScreen() {
   });
   const [isLocationLoading, setIsLocationLoading] = useState(true);
 
-  // 🌟 [추가] 모임 장소 결정을 위한 지도 전용 상태 관리 인프라
   const [isMapModalOpen, setIsMapModalOpen] = useState(false);
   const [selectedPlaceCoords, setSelectedPlaceCoords] = useState<{
     latitude: number;
@@ -253,24 +251,22 @@ export default function HomeScreen() {
     return days[new Date().getDay()];
   };
 
-  // 🔄 소모임 리스트 가져오기 (배열 직렬화 파라미터 가드 빌드업 완료)
   const { data: gatherings = [], isLoading: isGatheringsLoading } = useQuery({
     queryKey: ["gatherings", selectedTypes, selectedCategories, location],
     queryFn: async () => {
       const response = await client.get("gatherings", {
         params: {
           types: selectedTypes,
-          categories: selectedCategories, // 백엔드가 수용하는 순수 한글 배열
+          categories: selectedCategories,
           clientDay: getClientDayEnum(),
           latitude: location.latitude,
           longitude: location.longitude,
         },
-        // 🌟 [핵심 추가] 배열 파라미터가 주소창에서 깨지지 않도록 백엔드 맞춤 규격 직렬화를 수행합니다.
+
         paramsSerializer: (params) => {
           const searchParams = new URLSearchParams();
           Object.entries(params).forEach(([key, value]) => {
             if (Array.isArray(value)) {
-              // 💡 ["스터디", "스포츠"] -> categories=스터디&categories=스포츠 형태로 정밀 가공
               value.forEach((v) => searchParams.append(key, v));
             } else if (value !== undefined && value !== null) {
               searchParams.append(key, String(value));
@@ -329,7 +325,7 @@ export default function HomeScreen() {
     setDistrict("SEOUL_GWANGJIN");
     setGatheringDay([]);
     setGatheringTime([]);
-    setSelectedPlaceCoords(null); // 🌟 좌표 리셋
+    setSelectedPlaceCoords(null);
   };
 
   const handleCreateSubmit = () => {
@@ -371,12 +367,10 @@ export default function HomeScreen() {
     createGatheringMutation.mutate(payload);
   };
 
-  // 🌟 [지도 클릭/롱 프레스 이벤트] 맵 터치 시 해당 위경도 자동 포착 캡처
   const handleMapPress = async (e: any) => {
     const coords = e.nativeEvent.coordinate;
     setSelectedPlaceCoords(coords);
 
-    // 역지오코딩(Reverse Geocoding)으로 터치한 곳의 텍스트 주소 자동 파싱 슛!
     try {
       const addressResult = await Location.reverseGeocodeAsync(coords);
       if (addressResult && addressResult.length > 0) {
@@ -435,7 +429,6 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      {/* 헤더 */}
       <View style={styles.header}>
         <View style={styles.headerTopRow}>
           <View>
@@ -450,17 +443,11 @@ export default function HomeScreen() {
             activeOpacity={0.7}
             onPress={() => setIsDropdownOpen(!isDropdownOpen)}
           >
-            {/* <Ionicons
-              name={isDropdownOpen ? "apps" : "apps-outline"}
-              size={22}
-              color={isDropdownOpen ? "#FFFFFF" : COLORS.primary}
-            /> */}
             <Text>🍑</Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* 내가 참여 중인 소모임 드롭다운 */}
       {isDropdownOpen && (
         <View style={styles.dropdownOverlay}>
           <TouchableWithoutFeedback onPress={() => setIsDropdownOpen(false)}>
@@ -505,7 +492,6 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {/* 상단 1, 2단 다중 필터Wrapper 생략 */}
       <View style={styles.filterWrapper}>
         <ScrollView
           horizontal
@@ -576,7 +562,6 @@ export default function HomeScreen() {
         </ScrollView>
       </View>
 
-      {/* 리스트 피드 */}
       {isCombinedLoading ? (
         <View style={styles.loadingBox}>
           <ActivityIndicator size="large" color={COLORS.primary} />
@@ -631,7 +616,6 @@ export default function HomeScreen() {
         </ScrollView>
       )}
 
-      {/* ➕ 플로팅 개설 버튼 */}
       <TouchableOpacity
         style={styles.fabButton}
         activeOpacity={0.8}
@@ -640,7 +624,6 @@ export default function HomeScreen() {
         <Ionicons name="add" size={28} color="#FFFFFF" />
       </TouchableOpacity>
 
-      {/* 🔮 개설 모달 창 세션 */}
       <Modal
         animationType="slide"
         transparent={true}
@@ -660,7 +643,6 @@ export default function HomeScreen() {
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.modalForm}
             >
-              {/* 카테고리, 제목 등 기존 입력란 동일 유지 */}
               <Text style={styles.inputLabel}>카테고리 선택</Text>
               <View style={styles.gridRow}>
                 {Object.keys(CATEGORY_MAP)
@@ -772,7 +754,6 @@ export default function HomeScreen() {
                 ))}
               </View>
 
-              {/* 🌟 [수정 세션]: 지도 위치 선택 버튼 및 텍스트 자동 동기화 란 */}
               <Text style={styles.inputLabel}>모임 장소 (위치)</Text>
               {Platform.OS === "android" && (
                 <TouchableOpacity
@@ -807,7 +788,6 @@ export default function HomeScreen() {
                 onChangeText={setGatheringPlace}
               />
 
-              {/* 요일, 시간대 옵션 동일 유지 */}
               <Text style={styles.inputLabel}>모임 요일 (복수 선택 가능)</Text>
               <View style={styles.gridRow}>
                 {DAY_OPTIONS.map((day) => {
@@ -897,7 +877,6 @@ export default function HomeScreen() {
         </View>
       </Modal>
 
-      {/* 🌟 [추가]: 지도에서 핀 찍는 풀스크린 서브 모달 인프라 공정 */}
       <Modal
         animationType="fade"
         transparent={false}
@@ -916,7 +895,6 @@ export default function HomeScreen() {
             }}
             onPress={handleMapPress}
           >
-            {/* 고른 좌표가 있을 때 지도 상에 마커 핀 생성 */}
             {selectedPlaceCoords && (
               <Marker
                 coordinate={selectedPlaceCoords}
@@ -926,7 +904,6 @@ export default function HomeScreen() {
             )}
           </MapView>
 
-          {/* 하단 안내 가이드 레이블 독 */}
           <View style={styles.mapFloatingCard}>
             <Text style={styles.mapGuideText}>
               🎯 모임 장소로 지정할 곳을 터치해 주세요!

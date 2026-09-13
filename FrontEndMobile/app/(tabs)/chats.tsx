@@ -13,7 +13,6 @@ import {
   View,
 } from "react-native";
 
-// 🍑 ZelonGathering 일관된 감성 배색 세트
 const COLORS = {
   primary: "#FF7A59",
   primaryLight: "#FFEBE5",
@@ -24,7 +23,6 @@ const COLORS = {
   border: "#E7E5E4",
 };
 
-// 🎨 카테고리별 아바타 테마 색상 및 이모지 맵 (공통 스펙 싱크)
 const CATEGORY_MAP: Record<string, { bg: string; icon: string }> = {
   STUDY: { bg: "#E0F2FE", icon: "📖" },
   SPORTS: { bg: "#E6F4EA", icon: "⚽️" },
@@ -39,8 +37,6 @@ const CATEGORY_MAP: Record<string, { bg: string; icon: string }> = {
 export default function ChatsScreen() {
   const router = useRouter();
 
-  // 🔄 1. 내가 속한 소모임 채팅방 목록 API Fetch
-  // (백엔드에서 참여 중인 모임의 최신 메시지, 안 읽은 개수, 스펙을 맵핑해서 준다고 가정합니다.)
   const {
     data: chatRooms = [],
     isLoading,
@@ -52,7 +48,7 @@ export default function ChatsScreen() {
       const { data } = await client.get("/users/chats");
       return data;
     },
-    refetchInterval: 5000, // 실시간 메시지 요약을 위한 폴링 주기 설정
+    refetchInterval: 5000,
   });
 
   if (isLoading) {
@@ -79,20 +75,17 @@ export default function ChatsScreen() {
 
   return (
     <View style={styles.container}>
-      {/* 1. 상단 타이틀 바 */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Chatting</Text>
         <Text style={styles.headerSubtitle}>💬 나의 실시간 채팅방</Text>
       </View>
 
-      {/* 2. 실시간 소모임 채팅 리스트 피드 */}
       <FlatList
         data={chatRooms}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         renderItem={({ item }) => {
-          // 카테고리에 맞는 아바타 테마 추출 (기본값 TALK)
           const categoryKey = item.category?.toUpperCase() || "TALK";
           const theme = CATEGORY_MAP[categoryKey] || CATEGORY_MAP.TALK;
 
@@ -100,7 +93,6 @@ export default function ChatsScreen() {
             <TouchableOpacity
               style={styles.chatCard}
               activeOpacity={0.8}
-              // 🚀 카드를 누르면 해당 소모임 상세 화면의 [실시간 채팅방] 탭으로 다이렉트 랜딩되도록 설계할 수 있습니다.
               onPress={() =>
                 router.push({
                   pathname: `/gatherings/${item.id}`,
@@ -108,27 +100,20 @@ export default function ChatsScreen() {
                 })
               }
             >
-              {/* 왼쪽: 모달 카테고리 기반 힙한 그래픽 아바타 */}
               <View
                 style={[styles.avatarContainer, { backgroundColor: theme.bg }]}
               >
-                {/* <Ionicons
-                  name={theme.icon as any}
-                  size={22}
-                  color={COLORS.textMain}
-                /> */}
                 <Text style={{ fontSize: Platform.OS === "ios" ? 20 : 16 }}>
                   {theme.icon}
                 </Text>
               </View>
 
-              {/* 가운데: 소모임 타이틀 & 최신 대화 요약 */}
               <View style={styles.chatInfo}>
                 <View style={styles.titleRow}>
                   <Text style={styles.roomTitle} numberOfLines={1}>
                     {item.title}
                   </Text>
-                  {/* 백엔드에서 최신 메시지 시간(lastMessageAt)을 줄 경우 표시 */}
+
                   <Text style={styles.timeText}>
                     {item.lastMessageTime || ""}
                   </Text>
@@ -146,7 +131,6 @@ export default function ChatsScreen() {
                 </Text>
               </View>
 
-              {/* 오른쪽: 안 읽은 알림 카운트 배지 (데이터가 존재할 때만 노출) */}
               {item.unreadCount > 0 && (
                 <View style={styles.unreadBadge}>
                   <Text style={styles.unreadText}>{item.unreadCount}</Text>

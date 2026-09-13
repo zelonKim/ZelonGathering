@@ -13,9 +13,13 @@ import {
   Param,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { SignupDto, LoginDto, UpdateProfileDto } from './dto/auth.dto';
+import { SignupDto } from './dto/signup.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { LoginDto } from './dto/login.dto';
+import { UpdateProfileDto } from './dto/update-profile';
+import type { Express } from 'express';
+import 'multer';
 
 @Controller('users')
 export class UsersController {
@@ -33,7 +37,7 @@ export class UsersController {
     return await this.usersService.login(loginDto);
   }
 
-  // 3. 내 정보 조회 (마이페이지)
+  // 3. 나의 프로필 조회
   @UseGuards(JwtAuthGuard)
   @Get('me')
   async getMe(@Req() req: { user: { sub: string } }) {
@@ -41,7 +45,7 @@ export class UsersController {
     return await this.usersService.getProfile(userId);
   }
 
-  // 4. 프로필 수정
+  // 4. 프로필 정보 수정
   @UseGuards(JwtAuthGuard)
   @Patch('profile')
   async updateProfile(
@@ -52,43 +56,38 @@ export class UsersController {
     return await this.usersService.updateProfile(userId, updateProfileDto);
   }
 
-  // 5. 클라우드에 이미지 업로드
+  // 5. 프로필 이미지 업로드
+  @UseGuards(JwtAuthGuard)
   @Post('image')
   @UseInterceptors(FileInterceptor('file'))
   async uploadImage(@UploadedFile() file: Express.Multer.File) {
-    // 파일이 요청에 누락되었을 경우 가드 조치
     if (!file) {
       throw new BadRequestException('업로드할 이미지 파일이 필요합니다.');
     }
-
-    // 서비스 로직을 통해 R2에 올리고 최종 저장된 HTTPS URL 주소를 획득합니다.
     const imageUrl = await this.usersService.uploadProfileImage(file);
-
-    // 프론트엔드가 다음 스텝(PATCH /users/profile)에서 활용할 수 있게 URL을 그대로 리턴!
     return { imageUrl };
   }
 
-  // 6-1. 매칭 알림 조회
+  // 6. 알림 조회
   @UseGuards(JwtAuthGuard)
   @Get('notifications')
   async getMyNotifications(@Req() req: { user: { sub: string } }) {
-    const userId = req.user.sub; 
+    const userId = req.user.sub;
     return await this.usersService.getMyNotifications(userId);
   }
 
-  // 6-2. 매칭 알림 삭제
+  // 7. 알림 삭제
   @UseGuards(JwtAuthGuard)
   @Delete('notifications/:id')
   async deleteNotification(@Param('id') id: string) {
     return await this.usersService.deleteNotification(id);
   }
 
-  // 7. 채팅방 조회
+  // 8. 나의 채팅방 조회
   @UseGuards(JwtAuthGuard)
   @Get('chats')
   async getMyChats(@Req() req: { user: { sub: string } }) {
-    const userId = req.user.sub; 
+    const userId = req.user.sub;
     return await this.usersService.getMyChats(userId);
   }
-
 }

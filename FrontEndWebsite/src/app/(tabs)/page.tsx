@@ -17,7 +17,6 @@ import {
 import { client } from "@/api/client";
 import { GoogleMap, MarkerF, useJsApiLoader } from "@react-google-maps/api";
 
-// --- 디자인 테마 및 필터 데이터 ---
 const COLORS = {
   primary: "#FF7A59",
   primaryLight: "#FFEBE5",
@@ -61,7 +60,6 @@ const DAY_OPTIONS = [
   { key: "SUN", label: "일" },
 ];
 
-// 🌟 백엔드 enum Time 규격에 완전 맞춤화한 17개 타임 딕셔너리
 const TIME_OPTIONS = [
   { key: "AM_06", label: "오전 06:00", type: "AM" },
   { key: "AM_07", label: "오전 07:00", type: "AM" },
@@ -82,9 +80,7 @@ const TIME_OPTIONS = [
   { key: "PM_10", label: "오후 10:00", type: "PM" },
 ];
 
-// 🌟 백엔드 enum District 규격을 100% 반영한 68개 자치구 대데이터 매핑 테이블
 const DISTRICT_OPTIONS = [
-  // 서울 (SEOUL)
   { key: "SEOUL_GANGDONG", label: "강동구", city: "SEOUL" },
   { key: "SEOUL_GANGSEO", label: "강서구", city: "SEOUL" },
   { key: "SEOUL_GANGNAM", label: "강남구", city: "SEOUL" },
@@ -110,7 +106,7 @@ const DISTRICT_OPTIONS = [
   { key: "SEOUL_JONGNO", label: "종로구", city: "SEOUL" },
   { key: "SEOUL_JUNGGU", label: "중구", city: "SEOUL" },
   { key: "SEOUL_JUNGNANG", label: "중랑구", city: "SEOUL" },
-  // 경기 (GYEONGGI)
+
   { key: "GYEONGGI_SUWON", label: "수원시", city: "GYEONGGI" },
   { key: "GYEONGGI_SEONGNAM", label: "성남시 (분당/판교)", city: "GYEONGGI" },
   { key: "GYEONGGI_GOYANG", label: "고양시 (일산)", city: "GYEONGGI" },
@@ -142,7 +138,7 @@ const DISTRICT_OPTIONS = [
   { key: "GYEONGGI_YANGPYEONG", label: "양평군", city: "GYEONGGI" },
   { key: "GYEONGGI_GAPYEONG", label: "가평군", city: "GYEONGGI" },
   { key: "GYEONGGI_YEONCHEON", label: "연천군", city: "GYEONGGI" },
-  // 기타 지방 광역시 (ETC)
+
   { key: "INCHEON", label: "인천광역시", city: "ETC" },
   { key: "DAEJEON", label: "대전광역시", city: "ETC" },
   { key: "DAEGU", label: "대구광역시", city: "ETC" },
@@ -177,7 +173,6 @@ export default function HomePage() {
   const router = useRouter();
   const queryClient = useQueryClient();
 
-  // 필터 및 메뉴 토글 상태
   const [selectedTypes, setSelectedTypes] = useState<string[]>(["전체"]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([
     "전체",
@@ -185,13 +180,11 @@ export default function HomePage() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
-  // 개설 서브 제어 로컬 탭 상태바인딩
   const [activeDistrictTab, setActiveDistrictTab] = useState<
     "SEOUL" | "GYEONGGI" | "ETC"
   >("SEOUL");
   const [activeTimeTab, setActiveTimeTab] = useState<"AM" | "PM">("PM");
 
-  // 폼 입력 상태
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("FOOD");
@@ -199,26 +192,22 @@ export default function HomePage() {
   const [gatheringPlace, setGatheringPlace] = useState("");
   const [gatheringAddress, setGatheringAddress] = useState("");
 
-  // 🌟 최종 Prisma Dto에 담길 단일 자치구 Enum Key 상태 (기본값 강남구 지정)
   const [district, setDistrict] = useState("SEOUL_GANGNAM");
   const [gatheringDay, setGatheringDay] = useState<string[]>([]);
   const [gatheringTime, setGatheringTime] = useState<string[]>([]);
 
-  // GPS 브라우저 위치 보관 상태 (기본값 서울시청)
   const [location, setLocation] = useState({
     latitude: 37.5665,
     longitude: 126.978,
   });
   const [isLocationLoading, setIsLocationLoading] = useState(true);
 
-  // 🗺️ 웹용 지도 전용 상태
   const [isMapModalOpen, setIsMapModalOpen] = useState(false);
   const [selectedPlaceCoords, setSelectedPlaceCoords] = useState<{
     latitude: number;
     longitude: number;
   } | null>(null);
 
-  // 🌐 브라우저 Geolocation API 연동
   useEffect(() => {
     if (typeof window !== "undefined" && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -244,7 +233,6 @@ export default function HomePage() {
     return days[new Date().getDay()];
   };
 
-  // 🔄 소모임 리스트 가져오기 (백엔드 DTO @Transform 가드와 100% 싱크 완료)
   const { data: gatherings = [], isLoading: isGatheringsLoading } = useQuery({
     queryKey: ["gatherings", selectedTypes, selectedCategories, location],
     queryFn: async () => {
@@ -256,12 +244,11 @@ export default function HomePage() {
           latitude: location.latitude,
           longitude: location.longitude,
         },
-        // 🌟 [최종 수정] 백엔드 DTO가 온전하게 수신할 수 있도록 대괄호([]) 없이 순수 직렬화를 수행합니다.
+
         paramsSerializer: (params) => {
           const searchParams = new URLSearchParams();
           Object.entries(params).forEach(([key, value]) => {
             if (Array.isArray(value)) {
-              // 💡 1개일 때는 key=value, 여러 개일 때는 key=value1&key=value2 표준 포맷 슛!
               value.forEach((v) => searchParams.append(key, v));
             } else if (value !== undefined && value !== null) {
               searchParams.append(key, String(value));
@@ -275,7 +262,7 @@ export default function HomePage() {
     refetchInterval: 5000,
   });
 
-  // 내 프로필 가져오기
+ 
   const { data: userProfile } = useQuery({
     queryKey: ["myProfile"],
     queryFn: async () => {
@@ -288,7 +275,7 @@ export default function HomePage() {
   const myJoinedGatherings =
     userProfile?.joinedGatherings?.map((jg: any) => jg.gathering) || [];
 
-  // 소모임 생성 Mutation
+  
   const createGatheringMutation = useMutation({
     mutationFn: async (newGathering: any) => {
       const { data } = await client.post("/gatherings", newGathering);
@@ -332,7 +319,7 @@ export default function HomePage() {
       return;
     }
 
-    // 🌟 [UI 가드 완화 교정]: 시간대 미선택 방지를 방어하되, 선택했는지 더 직관적으로 제어
+   
     if (
       !title ||
       !description ||
@@ -394,7 +381,7 @@ export default function HomePage() {
 
   const isCombinedLoading = isGatheringsLoading || isLocationLoading;
 
-  // 지역 및 시간대 세그먼트 필터링 컴퓨팅 변수
+
   const filteredDistricts = DISTRICT_OPTIONS.filter(
     (d) => d.city === activeDistrictTab,
   );
@@ -402,7 +389,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-[#FBFBF9] text-[#292524] relative pb-24">
-      {/* 글로벌 네비게이션 헤더 */}
+
       <header className="max-w-6xl mx-auto px-5 py-5 flex justify-between items-center border-b border-[#E7E5E4]">
         <div>
           <h1 className="text-3xl font-black text-[#FF7A59] tracking-tight">
@@ -423,7 +410,7 @@ export default function HomePage() {
             }`}
           >
             <div className="text-[19px]">🍑</div>
-            {/* <Grid className="w-5 h-5" /> */}
+  
           </button>
 
           {isDropdownOpen && (
@@ -469,7 +456,7 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* 필터 래퍼 섹션 */}
+
       <section className="max-w-6xl mx-auto px-4 mt-4 space-y-3">
         <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
           {TYPE_FILTERS.map((filter) => (
@@ -521,7 +508,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 리스트 피드 대시보드 */}
+
       <main className="max-w-6xl mx-auto px-4 mt-4">
         {isCombinedLoading ? (
           <div className="flex h-64 justify-center items-center">
@@ -580,7 +567,7 @@ export default function HomePage() {
         )}
       </main>
 
-      {/* 플로팅 개설 버튼 */}
+
       <button
         onClick={() => setIsCreateModalOpen(true)}
         className="fixed bottom-21 right-6 w-14 h-14 bg-[#FF7A59] text-white rounded-full flex items-center justify-center shadow-lg hover:bg-[#e06848] transition z-90 transform active:scale-95"
@@ -588,7 +575,7 @@ export default function HomePage() {
         <Plus className="w-7 h-7" />
       </button>
 
-      {/* 🔮 소모임 방 개설 바텀 시트형 웹 모달 서포트 */}
+
       {isCreateModalOpen && (
         <div className="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center z-100 p-0 sm:p-4">
           <div className="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-2xl h-[90vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-200">
@@ -605,7 +592,7 @@ export default function HomePage() {
             </div>
 
             <div className="flex-1 overflow-y-auto p-5 space-y-5 pb-16">
-              {/* 카테고리 선택 */}
+    
               <div>
                 <label className="text-sm font-bold text-[#292524] block mb-2">
                   카테고리 선택
@@ -659,7 +646,7 @@ export default function HomePage() {
                 />
               </div>
 
-              {/* 🌟 [새로운 대단위 인프라]: 행정 구역 정밀 선택 섹션 */}
+       
               <div>
                 <label className="mt-8 text-[13.5px] font-bold text-[#292524] block mb-2">
                   모임 지역 선택
@@ -715,7 +702,7 @@ export default function HomePage() {
                 </div>
               </div>
 
-              {/* 지도 위치 지정 */}
+    
               <div>
                 <label className="text-sm font-bold text-[#292524] block mb-1.5 mt-6">
                   모임 장소 지정
@@ -742,7 +729,7 @@ export default function HomePage() {
                 />
               </div>
 
-              {/* 요일 다중 선택 피커 */}
+    
               <div>
                 <label className="text-sm font-bold text-[#292524] block mb-1.5 mt-10">
                   모임 요일 (중복 가능)
@@ -769,7 +756,7 @@ export default function HomePage() {
                 </div>
               </div>
 
-              {/* 🌟 [새로운 대단위 인프라]: 17개 시간대 분할 선택 피커 덱 */}
+           
               <div>
                 <label className="text-sm font-bold text-[#292524] block mb-2 mt-4">
                   모임 시간대 (중복 가능)
@@ -818,7 +805,7 @@ export default function HomePage() {
                 </div>
               </div>
 
-              {/* 정원 기입 */}
+     
               <div>
                 <label className="text-sm font-bold text-[#292524] block mb-1 mt-6">
                   모임 정원 (명)
@@ -848,7 +835,7 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* 진짜 구글 맵 인터랙티브 모달 */}
+
       {isMapModalOpen && (
         <div className="fixed inset-0 bg-stone-950 z-[120] flex flex-col justify-between p-4 md:p-6 animate-in fade-in duration-200">
           <div className="flex-1 bg-stone-900 rounded-2xl relative overflow-hidden border border-stone-800 flex flex-col shadow-inner">

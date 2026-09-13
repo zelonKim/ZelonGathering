@@ -18,11 +18,11 @@ import {
 } from "react-native";
 
 const COLORS = {
-  primary: "#FF7A59", // 🍑 피치 코랄
+  primary: "#FF7A59",
   primaryLight: "#FFEBE5",
-  background: "#FBFBF9", // 웜 화이트
+  background: "#FBFBF9",
   surface: "#FFFFFF",
-  textMain: "#292524", // 딥 차콜
+  textMain: "#292524",
   textSub: "#78716C",
   border: "#E7E5E4",
   textOpac: "#8d8d8d9b",
@@ -70,24 +70,20 @@ export default function LoginScreen() {
   };
 
   return (
-    // 🌟 [수정 1] 최상단을 전체 배경색과 flex: 1을 가진 View로 랩핑합니다.
     <View style={styles.container}>
       <KeyboardAvoidingView
-        // 🌟 [수정 2] iOS는 padding, 안드로이드는 네이티브 매커니즘(height 또는 생략) 분기 슛!
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
         keyboardVerticalOffset={Platform.select({
-          ios: 30, // 헤더나 탭바 높이에 맞춰 오프셋 보정
+          ios: 30,
           android: 32,
         })}
       >
         <ScrollView
-          // 🌟 [수정 3] flexGrow: 1을 주어야 키보드가 올라올 때 내부 아이템들이 가변적으로 스크롤 축소 연산을 합니다.
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled" // 입력창 외의 곳을 터치하면 키보드가 부드럽게 닫히도록 서포트
+          keyboardShouldPersistTaps="handled"
         >
-          {/* 1. 감성 상단 로고 & 타이틀 */}
           <View style={styles.headerSection}>
             <Text style={styles.logoText}>Zelon{"\n"}Gathering </Text>
             <Text style={styles.subtitleText}>
@@ -95,7 +91,6 @@ export default function LoginScreen() {
             </Text>
           </View>
 
-          {/* 2. 입력 폼 섹션 */}
           <View style={styles.formSection}>
             <View style={styles.inputWrapper}>
               <Text style={styles.inputLabel}>이메일 주소</Text>
@@ -152,7 +147,6 @@ export default function LoginScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* 3. 하단 링크 */}
           <View style={styles.footerLinks}>
             <Text style={styles.footerText}>아직 계정이 없으신가요?</Text>
             <TouchableOpacity
@@ -171,11 +165,11 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   scrollContent: {
-    flexGrow: 1, // 🌟 필수 추가: 스크롤 뷰 내부 내용물이 키보드 위로 유연하게 늘어나도록 보장
+    flexGrow: 1,
     paddingHorizontal: 28,
     paddingTop: Platform.OS === "ios" ? 0 : 60,
     paddingBottom: 100,
-    justifyContent: "center", // 전체 중앙 정렬 벨런싱 유지
+    justifyContent: "center", 
   },
   headerSection: { marginBottom: 24, marginTop: 10 },
   logoText: {

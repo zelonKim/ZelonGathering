@@ -12,7 +12,6 @@ export default function MatchingPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
 
-  // 🔄 1. 백엔드에서 AI 매칭 알림 리스트 실시간 Fetch
   const {
     data: notifications = [],
     isLoading,
@@ -21,20 +20,18 @@ export default function MatchingPage() {
     queryKey: ["aiMatchingNotifications"],
     queryFn: async () => {
       const { data } = await client.get("/users/notifications");
-      // AI_MATCHING 타입 데이터만 필터링 슛
+
       return data.filter((item: any) => item.type === "AI_MATCHING");
     },
     refetchInterval: 3000,
     refetchOnWindowFocus: true,
   });
 
-  // 🗑️ 2. 특정 알림 삭제(넘기기)를 위한 useMutation
   const deleteNotificationMutation = useMutation({
     mutationFn: async (notificationId: string) => {
       return await client.delete(`/users/notifications/${notificationId}`);
     },
     onSuccess: () => {
-      // 인프라 무효화를 통한 실시간 피드 갱신
       queryClient.invalidateQueries({ queryKey: ["aiMatchingNotifications"] });
     },
     onError: (error) => {
@@ -43,12 +40,10 @@ export default function MatchingPage() {
     },
   });
 
-  // 현재 지워지는 중인 아이템 ID 포착 (스피너 분기용)
   const deletingId = deleteNotificationMutation.isPending
     ? deleteNotificationMutation.variables
     : null;
 
-  // 로딩 인프라 뷰
   if (isLoading) {
     return (
       <div className="flex flex-col flex-1 h-[60vh] justify-center items-center bg-[#FBFBF9] gap-3   ">
@@ -57,7 +52,6 @@ export default function MatchingPage() {
     );
   }
 
-  // 에러 핸들링 뷰
   if (isError) {
     return (
       <div className="flex flex-col flex-1 h-[60vh] justify-center items-center bg-[#FBFBF9] gap-3">
@@ -71,7 +65,6 @@ export default function MatchingPage() {
 
   return (
     <div className="bg-[#FBFBF9] min-h-screen max-w-5xl mx-auto">
-      {/* 1. 상단 타이틀 바 */}
       <header className="px-5 pt-4 pb-4 bg-[#FBFBF9]">
         <div className="flex items-center gap-2">
           <h1 className="text-3xl font-black text-[#FF7A59] tracking-tight">
@@ -83,7 +76,6 @@ export default function MatchingPage() {
         </p>
       </header>
 
-      {/* 2. 실시간 피드 리스트 스트리밍 구역 */}
       <div className="px-5 pb-10 grid grid-cols-1 md:grid-cols-2 gap-4 ">
         {notifications.map((item: any) => {
           const isCurrentItemDeleting = deletingId === item.id;
@@ -93,7 +85,6 @@ export default function MatchingPage() {
               key={item.id}
               className="bg-white rounded-[24px] p-5 border border-[#E7E5E4]  transition-all duration-200 shadow-xs"
             >
-              {/* 카드 상단: AI 매칭률 & 시간 */}
               <div className="flex justify-between items-center mb-3">
                 <div className="flex items-center bg-[#FFEBEB] px-2.5 py-1 rounded-lg gap-1">
                   <Sparkles className="w-3 h-3 text-[#F43F5E] fill-[#F43F5E]" />
@@ -109,12 +100,10 @@ export default function MatchingPage() {
                 </span>
               </div>
 
-              {/* 카드 본문: 타이틀 */}
               <h3 className="text-[17px] font-bold text-[#292524] leading-normal line-clamp-2 mb-2">
                 {item.title}
               </h3>
 
-              {/* AI가 추천한 이유 구역 (감성 박스) */}
               <div className="bg-[#F8F6F4] p-3.5 rounded-[14px] mb-4 text-sm leading-relaxed text-[#292524]">
                 <span className="text-[#F43F5E] font-extrabold">
                   AI의 한마디:{" "}
@@ -122,9 +111,7 @@ export default function MatchingPage() {
                 {item.message}
               </div>
 
-              {/* 하단 액션 버튼 그룹 */}
               <div className="flex gap-2.5">
-                {/* 넘기기 버튼 */}
                 <button
                   type="button"
                   onClick={() => deleteNotificationMutation.mutate(item.id)}
@@ -138,7 +125,6 @@ export default function MatchingPage() {
                   )}
                 </button>
 
-                {/* 참여하러 가기 버튼 */}
                 <button
                   type="button"
                   onClick={() => router.push(`/gatherings/${item.linkId}`)}
@@ -152,7 +138,7 @@ export default function MatchingPage() {
           );
         })}
       </div>
-      {/* 데이터가 비었을 때 처리 */}
+
       {notifications.length === 0 && (
         <div className="text-center py-36 gap-2 flex flex-col items-center justify-center">
           <p className="text-[15px] text-[#78716C] font-bold">

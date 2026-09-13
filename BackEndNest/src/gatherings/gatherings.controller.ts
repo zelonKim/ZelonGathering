@@ -14,6 +14,7 @@ import { GatheringsService } from './gatherings.service';
 import { JwtAuthGuard } from '../users/jwt-auth.guard';
 import { CreateGatheringDto } from './dto/create-gathering.dto';
 import { FilterGatheringDto } from './dto/filter-gathering.dto';
+import { GatheringStatus } from '@prisma/client';
 
 @Controller('gatherings')
 @UseGuards(JwtAuthGuard)
@@ -22,75 +23,73 @@ export class GatheringsController {
 
   // 1. 소모임 개설
   @Post()
-  async create(
+  async createGathering(
     @Req() req: { user: { sub: string } },
     @Body() createDto: CreateGatheringDto,
   ) {
     const hostId = req.user.sub;
-    return await this.gatheringsService.create(hostId, createDto);
+    return await this.gatheringsService.createGathering(hostId, createDto);
   }
 
-  // 2. 소모임 조회
+  // 2. 소모임 전체 조회
   @Get()
-  async findAll(@Query() dto: FilterGatheringDto) {
-    return await this.gatheringsService.findAll(dto);
+  async findAllGathering(@Query() dto: FilterGatheringDto) {
+    return await this.gatheringsService.findAllGathering(dto);
   }
 
   // 3. 소모임 상세 조회
   @Get(':id')
-  async findOne(@Param('id') id: string) {
-    return await this.gatheringsService.findOne(id);
+  async findOneGathering(@Param('id') id: string) {
+    return await this.gatheringsService.findOneGathering(id);
   }
 
-  // 4-1. 소모임 참여 신청
+  // 4. 소모임 참여 신청
   @Post(':id/join')
-  async toggleJoin(
-    @Param('id') id: string,
+  async joinGathering(
     @Req() req: { user: { sub: string } },
+    @Param('id') id: string,
   ) {
     const userId = req.user.sub;
-    return await this.gatheringsService.join(id, userId);
+    return await this.gatheringsService.joinGathering(id, userId);
   }
 
-  // 4-2. 소모임 참여 취소
+  // 5. 소모임 참여 취소
   @Delete(':id/leave')
   async leaveGathering(
     @Param('id') id: string,
     @Req() req: { user: { sub: string } },
   ) {
     const userId = req.user.sub;
-    return await this.gatheringsService.leave(id, userId);
+    return await this.gatheringsService.leaveGathering(id, userId);
   }
 
-  // 5. 소모임 상태 변경 (방장 전용)
+  // 6. 소모임 상태 변경
   @Patch(':id')
-  async updateStatus(
+  async updateStatusGathering(
     @Param('id') id: string,
     @Req() req: { user: { sub: string } },
-    @Body('status') status: string,
+    @Body('status') status: GatheringStatus,
   ) {
     const hostId = req.user.sub;
-    return await this.gatheringsService.updateStatus(id, hostId, status);
+    return await this.gatheringsService.updateStatusGathering(id, hostId, status);
   }
 
-  // 6. 소모임 삭제 (방장 전용)
+  // 7. 소모임 삭제
   @Delete(':id')
-  async remove(@Param('id') id: string, @Req() req: { user: { sub: string } }) {
+  async removeGathering(@Param('id') id: string, @Req() req: { user: { sub: string } }) {
     const hostId = req.user.sub;
-    return await this.gatheringsService.remove(id, hostId);
+    return await this.gatheringsService.removeGathering(id, hostId);
   }
 
-  // 7. [방장 전용] 소모임 신청자 명단 및 상태 조회
+  // 8. 소모임 신청자 조회
   @Get(':id/participants')
   async getParticipants(
     @Param('id') id: string,
-    @Req() req: { user: { sub: string } },
   ) {
-    const hostId = req.user.sub;
-    return await this.gatheringsService.getParticipants(id, hostId);
+    return await this.gatheringsService.getParticipants(id);
   }
 
-  // 8. [방장 전용] 소모임 참여 신청 승인/거절 처리
+  // 9. 소모임 참여 승인/거절
   @Patch(':id/participants')
   async reviewParticipant(
     @Param('id') id: string,

@@ -63,7 +63,7 @@ export default function TabsLayout() {
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? "home" : "home-outline"}
-              size={22} // 💡 살짝 줄여서 텍스트와 밸런스를 맞춰 가독성을 높입니다.
+              size={22} 
               color={color}
             />
           ),

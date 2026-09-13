@@ -17,7 +17,6 @@ import {
   View,
 } from "react-native";
 
-// 🍑 ZelonGathering 브랜드 컬러 시스템
 const COLORS = {
   primary: "#FF7A59",
   primaryLight: "#FFEBE5",
@@ -161,7 +160,6 @@ export default function ProfileScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
 
-  // 1. 프로필 데이터 조회 (GET)
   const {
     data: userProfile,
     isLoading,
@@ -174,7 +172,6 @@ export default function ProfileScreen() {
     },
   });
 
-  // 2. 프로필 최종 업데이트 (PATCH)
   const updateProfileMutation = useMutation({
     mutationFn: async (payload: UpdateProfilePayload) => {
       const { data } = await client.patch("/users/profile", payload);
@@ -228,7 +225,6 @@ export default function ProfileScreen() {
     }
   }, [userProfile]);
 
-  // 📸 이미지 파일 선택 및 Cloudflare R2 서버 업로드 핸들러
   const handlePickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
@@ -266,14 +262,12 @@ export default function ProfileScreen() {
     try {
       setIsImageUploading(true);
 
-      // 🔗 백엔드 Cloudflare R2 이미지 업로드 전용 엔드포인트 호출
       const response = await client.post("/users/image", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
       });
 
-      // 💡 [수정] 고유 타임스탬프 파라미터를 추가하여 모바일 기기의 기존 이미지 캐시 메모리를 무효화(Busting)합니다.
       if (response.data && response.data.imageUrl) {
         setProfileImg(`${response.data.imageUrl}?t=${new Date().getTime()}`);
       } else if (typeof response.data === "string") {
@@ -287,14 +281,12 @@ export default function ProfileScreen() {
     }
   };
 
-  // 💾 프로필 저장 버튼 클릭 이벤트 핸들러
   const handleSaveProfile = () => {
     if (!nickname.trim()) {
       Alert.alert("알림", "닉네임은 필수 항목입니다.");
       return;
     }
 
-    // 💡 쿼리 스트링(?t=...)이 달라붙은 상태로 DB에 저장되면 주소가 지저분해지므로, 순수 URL만 남겨 정제합니다.
     const cleanProfileImg = profileImg ? profileImg.split("?")[0] : undefined;
 
     const payload: UpdateProfilePayload = {
@@ -307,7 +299,7 @@ export default function ProfileScreen() {
       preferDistrict,
       preferDay: preferDays,
       preferTime: preferTimes,
-      profileImg: cleanProfileImg, // 👈 정제된 클린 URL 주소를 백엔드로 전송
+      profileImg: cleanProfileImg,
     };
 
     updateProfileMutation.mutate(payload);
@@ -385,7 +377,7 @@ export default function ProfileScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* 프로필 카드 */}
+
         <View style={styles.profileCard}>
           <TouchableOpacity
             style={styles.avatarWrapper}
@@ -422,7 +414,7 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* 기본 정보 */}
+
         <View style={styles.sectionCard}>
           <Text style={styles.sectionTitle}>기본 정보</Text>
           <View style={styles.inputRow}>
@@ -461,7 +453,7 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* 취향 키워드 */}
+
         <View style={styles.sectionCard}>
           <Text style={styles.sectionTitle}>나의 취향 키워드</Text>
           <View style={styles.textareaBlock}>
@@ -488,7 +480,7 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* 선호 카테고리 및 지역 설정 */}
+ 
         <View style={styles.sectionCard}>
           <Text style={styles.sectionTitle}>나의 선호 모임 및 지역</Text>
           <Text style={styles.subLabel}>관심 카테고리</Text>
@@ -587,7 +579,7 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* 선호 일정 설정 */}
+
         <View style={styles.sectionCard}>
           <Text style={styles.sectionTitle}>나의 선호 일정</Text>
           <Text style={styles.subLabel}>선호 요일</Text>
@@ -671,7 +663,7 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* 저장하기 버튼 */}
+
         <TouchableOpacity
           style={[
             styles.saveButton,

@@ -20,7 +20,6 @@ import {
 } from "lucide-react";
 import { client } from "@/api/client";
 
-// --- 매핑 및 테마 딕셔너리 ---
 const CATEGORY_MAP: Record<
   string,
   { label: string; emoji: string; bg: string; text: string }
@@ -81,7 +80,6 @@ export default function GatheringDetailPage() {
 
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // 컴포넌트 언마운트 시 캐시 초기화 가드
   useEffect(() => {
     return () => {
       queryClient.resetQueries({ queryKey: ["gatheringDetail", id] });
@@ -89,7 +87,6 @@ export default function GatheringDetailPage() {
     };
   }, [id, queryClient]);
 
-  // 🔄 1. 백엔드 소모임 단건 상세 정보 FETCH
   const {
     data: gathering,
     isLoading: isGatheringLoading,
@@ -104,7 +101,6 @@ export default function GatheringDetailPage() {
     refetchInterval: 3000,
   });
 
-  // 👤 2. 현재 로그인 세션 내 프로필 캐시 FETCH
   const {
     data: userProfile,
     isLoading: isProfileLoading,
@@ -119,7 +115,6 @@ export default function GatheringDetailPage() {
 
   const myId = userProfile?.id;
 
-  // 🛡️ [권한 로직 인터셉터]
   const myParticipation = gathering?.participants?.find(
     (p: any) => p.user?.id === myId || p.userId === myId,
   );
@@ -130,7 +125,6 @@ export default function GatheringDetailPage() {
   const isHost = !!myId && gathering?.hostId === myId;
   const canAccessChat = (isHost || isAlreadyParticipant) && !isKicked;
 
-  // 쿼리 스트링 서브 탭 동기화 효과
   useEffect(() => {
     if (tabParam === "CHAT" && canAccessChat) {
       setActiveTab("CHAT");
@@ -139,9 +133,8 @@ export default function GatheringDetailPage() {
     }
   }, [tabParam, canAccessChat]);
 
-  // 💬 3. 실시간 단체 채팅 목록 수신
   const { data: chatMessages = [] } = useQuery({
-    queryKey: ["gatheringChats", id], // 🌟 기준 정형 키 설정 완료
+    queryKey: ["gatheringChats", id],
     queryFn: async () => {
       const { data } = await client.get(`/chats/public/${id}`);
       return [...data].reverse();
@@ -152,14 +145,12 @@ export default function GatheringDetailPage() {
 
   console.log(chatMessages);
 
-  // 새로운 메시지 수신 시 아래로 부드럽게 스크롤링
   useEffect(() => {
     if (activeTab === "CHAT") {
       chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
   }, [chatMessages, activeTab]);
 
-  // 🚀 4. 메시지 전송 MUTATION
   const sendChatMessageMutation = useMutation({
     mutationFn: async (message: string) => {
       return await client.post(`/chats/public/${id}`, { message });
@@ -174,7 +165,6 @@ export default function GatheringDetailPage() {
     },
   });
 
-  // 🚀 5. 소모임 참여 신청 MUTATION
   const joinGatheringMutation = useMutation({
     mutationFn: async () => {
       const { data } = await client.post(`/gatherings/${id}/join`);
@@ -192,7 +182,6 @@ export default function GatheringDetailPage() {
     },
   });
 
-  // 🚪 6. 참여 철회 및 탈퇴 MUTATION
   const leaveGatheringMutation = useMutation({
     mutationFn: async () => {
       const { data } = await client.delete(`/gatherings/${id}/leave`);
@@ -209,7 +198,6 @@ export default function GatheringDetailPage() {
     },
   });
 
-  // 🗑️ 7. 소모임 폭파 MUTATION (방장 전용)
   const deleteGatheringMutation = useMutation({
     mutationFn: async () => {
       const { data } = await client.delete(`/gatherings/${id}`);
@@ -226,7 +214,6 @@ export default function GatheringDetailPage() {
     },
   });
 
-  // 🚫 8. 유저 멤버 강퇴 MUTATION (방장 전용)
   const kickParticipantMutation = useMutation({
     mutationFn: async (targetUserId: string) => {
       return await client.patch(`/gatherings/${id}/participants`, {
@@ -243,13 +230,11 @@ export default function GatheringDetailPage() {
     },
   });
 
-  // 💬 [수정 완공] 엔터키 연속 버스팅 및 리프레시 버그 차단막이 탑재된 핸들러 함수
   const handleSendMessage = (e?: React.KeyboardEvent<HTMLInputElement>) => {
     if (e && e.key === "Enter") {
       e.preventDefault();
     }
 
-    // 🍏 [더블 방어막] 이미 전송 중이거나 인풋이 비어있으면 아예 패스!
     if (!chatInput.trim() || sendChatMessageMutation.isPending) return;
 
     sendChatMessageMutation.mutate(chatInput.trim());
@@ -331,7 +316,6 @@ export default function GatheringDetailPage() {
 
   return (
     <div className="min-h-screen text-[#292524] flex flex-col max-w-5xl mx-auto bg-white border-x border-[#E7E5E4] relative">
-      {/* 1. 상단 타이틀 헤더 바 */}
       <header className="flex justify-between items-center px-4 py-3.5 bg-white border-b border-[#E7E5E4] shrink-0 sticky top-0 z-20">
         <button
           onClick={() => router.back()}
@@ -359,7 +343,6 @@ export default function GatheringDetailPage() {
         )}
       </header>
 
-      {/* 2. 네비게이션 탭 토글 바 */}
       <div className="flex bg-white border-b border-[#E7E5E4] shrink-0">
         <button
           onClick={() => setActiveTab("INFO")}
@@ -393,9 +376,7 @@ export default function GatheringDetailPage() {
         </button>
       </div>
 
-      {/* 3. 본문 뷰 렌더링 파이프라인 */}
       <div className="flex-1 overflow-y-auto hidden-scrollbar flex flex-col">
-        {/* TAB 1. 소모임 정보 피드 란 */}
         {activeTab === "INFO" && (
           <div className="p-5 space-y-6 flex-1 pb-16">
             <div className="bg-white shadow-xs border border-[#E7E5E4] rounded-3xl p-5 space-y-4 shadow-[0_2px_8px_rgba(0,0,0,0.01)]">
@@ -505,7 +486,6 @@ export default function GatheringDetailPage() {
               </div>
             </div>
 
-            {/* 참여 멤버 명단 */}
             <div className="space-y-2">
               <h4 className="text-[15px] font-black text-[#292524] pl-1 ">
                 참여 중인 멤버 ({activeParticipants.length}명)
@@ -562,7 +542,6 @@ export default function GatheringDetailPage() {
           </div>
         )}
 
-        {/* TAB 2. 단체 실시간 채팅방 피드 란 */}
         {activeTab === "CHAT" && canAccessChat && (
           <div className="flex flex-col flex-1 h-full min-h-[60vh] bg-orange-50">
             <div className="flex-1 p-4 overflow-y-auto space-y-4 max-h-[calc(100vh-12rem)]">
@@ -617,13 +596,11 @@ export default function GatheringDetailPage() {
               <div ref={chatEndRef} />
             </div>
 
-            {/* 웹 하단 플로팅 챗 샌더 인풋 덱 */}
             <div className="p-5 bg-white border-t border-[#E7E5E4] flex items-center gap-2 shrink-0">
               <input
                 type="text"
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
-                // 🍏 [해결] onKeyDown 대신 onKeyUp을 사용하면 한글 조합 버그 및 더블 서브밋이 완벽하게 치료됩니다!
                 onKeyUp={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();

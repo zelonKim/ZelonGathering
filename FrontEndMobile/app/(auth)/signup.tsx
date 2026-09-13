@@ -86,7 +86,6 @@ export default function SignupScreen() {
 
   return (
     <View style={styles.container}>
-      {/* 뒤로가기 버튼 헤더 */}
       <View style={styles.navHeader}>
         <TouchableOpacity onPress={() => router.back()} disabled={isPending}>
           <Ionicons name="arrow-back" size={24} color={COLORS.textMain} />
@@ -96,7 +95,6 @@ export default function SignupScreen() {
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
-        // 🌟 오프셋 값을 조금 더 넉넉히 주어 키보드가 올라올 때 타이틀 섹션까지 확실하게 밀어 올립니다.
         keyboardVerticalOffset={Platform.select({
           ios: 20,
           android: 32,
@@ -107,9 +105,7 @@ export default function SignupScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* 🌟 [구조 변경] 타이틀과 폼을 하나의 흐름 컨테이너로 감싸 전체 레이아웃이 동시에 반응하도록 유도 */}
           <View style={styles.innerContainer}>
-            {/* 1. 타이틀 레이어 */}
             <View style={styles.titleSection}>
               <Text style={styles.mainTitle}>하이루 👋</Text>
               <Text style={styles.subTitle}>
@@ -117,7 +113,6 @@ export default function SignupScreen() {
               </Text>
             </View>
 
-            {/* 2. 회원가입 폼 */}
             <View style={styles.formSection}>
               <View style={styles.inputWrapper}>
                 <Text style={styles.inputLabel}>이메일 계정</Text>
@@ -194,10 +189,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
     paddingBottom: 120,
   },
-  // 🌟 [추가] 내부 요소를 균형 있게 배치하고 아래에서부터 유연하게 스크롤이 밀리도록 유도하는 코어 컨테이너
+
   innerContainer: {
     flex: 1,
-    justifyContent: "center", // 화면 전체 기준 중앙 정렬 배치 구조
+    justifyContent: "center", 
     paddingTop: 20,
   },
   titleSection: { marginBottom: 24 },

@@ -11,7 +11,7 @@ import { GetChatMessagesDto } from './dto/get-chat-messages.dto';
 export class ChatsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  // 1. 소모임방 단체 메시지 저장
+  // 1. 소모임 단체 메시지 저장
   async savePublicMessage(
     gatheringId: string,
     senderId: string,
@@ -39,9 +39,9 @@ export class ChatsService {
     });
   }
 
-  ///////////////////////////////////////
+  ////////////////////////////////////////////////////////////////////////
 
-  // 2. 소모임방 단체 채팅 과거 내역 조회
+  // 2. 소모임방 채팅 메시지 조회
   async getPublicMessages(gatheringId: string) {
     return await this.prisma.publicChat.findMany({
       where: { gatheringId },
@@ -52,9 +52,9 @@ export class ChatsService {
     });
   }
 
-  ///////////////////////////////////////
+  ////////////////////////////////////////////////////////////////////////
 
-  // 3. 1:1 채팅방 개설 및 가져오기
+  // 3. DM 채팅방 가져오기 및 개설
   async getOrCreatePrivateChatRoom(myId: string, partnerUserId: string) {
     if (myId === partnerUserId) {
       throw new ForbiddenException(
@@ -77,9 +77,9 @@ export class ChatsService {
     });
   }
 
-  ///////////////////////////////////////
+  ////////////////////////////////////////////////////////////////////////
 
-  // 4. 내가 참여 중인 모든 1:1 채팅방 리스트 가져오기
+  // 4. 내가 참여 중인 DM 채팅방 가져오기
   async getMyPrivateChatRooms(myId: string) {
     return await this.prisma.privateChatRoom.findMany({
       where: {
@@ -111,10 +111,9 @@ export class ChatsService {
     });
   }
 
-  ///////////////////////////////////////
+  ////////////////////////////////////////////////////////////////////////
 
-  // 5. 특정 1:1 채팅방에 DM 전송 및 방 타임스탬프 업데이트 (트랜잭션)
-  // 5. 특정 1:1 채팅방에 DM 전송 및 방 타임스탬프 업데이트
+  // 5. DM 전송 및 타임스탬프 업데이트
   async savePrivateMessage(
     roomId: string,
     senderId: string,
@@ -129,8 +128,7 @@ export class ChatsService {
       throw new ForbiddenException('본인이 속한 채팅방이 아닙니다.');
     }
 
-    // 👑 제네릭 자리를 <any>로 바꿔주어 최종 리턴될 message 객체 타입과 맞춰줍니다!
-    return await this.prisma.$transaction<any>(async (tx) => {
+    return await this.prisma.$transaction(async (tx) => {
       const message = await tx.privateChat.create({
         data: {
           roomId,
@@ -142,7 +140,6 @@ export class ChatsService {
         },
       });
 
-      // 방 목록 최신화를 위해 updatedAt 타임스탬프 스냅샷 찍기
       await tx.privateChatRoom.update({
         where: { id: roomId },
         data: { updatedAt: new Date() },
@@ -152,9 +149,10 @@ export class ChatsService {
     });
   }
 
-  ///////////////////////////////////////
 
-  // 6. 특정 1:1 채팅방 과거 대화 내역 조회하기
+  ////////////////////////////////////////////////////////////////////////
+
+  // 6. DM 채팅방 대화 내역 조회
   async getPrivateMessages(
     roomId: string,
     userId: string,

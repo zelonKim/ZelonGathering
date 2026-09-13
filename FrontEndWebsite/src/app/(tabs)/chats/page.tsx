@@ -6,7 +6,6 @@ import { useQuery } from "@tanstack/react-query";
 import { MessageSquare, AlertCircle, Loader2 } from "lucide-react"; // Ionicons 대체
 import { client } from "@/api/client";
 
-// 🎨 카테고리별 아바타 테마 색상 및 이모지 맵 (공통 스펙 싱크 보존)
 const CATEGORY_MAP: Record<string, { bg: string; icon: string }> = {
   STUDY: { bg: "#E0F2FE", icon: "📖" },
   SPORTS: { bg: "#E6F4EA", icon: "⚽️" },
@@ -31,10 +30,11 @@ export default function ChatsPage() {
       const { data } = await client.get("/users/chats");
       return data;
     },
-    refetchInterval: 5000, // 실시간 메시지 요약을 위한 폴링 주기 유지
+    refetchInterval: 5000,
   });
 
-  // 로딩 상태 UI 공정
+
+  
   if (isLoading) {
     return (
       <div className="flex flex-col flex-1 h-96 justify-center items-center bg-[#FBFBF9] gap-3">
@@ -43,7 +43,6 @@ export default function ChatsPage() {
     );
   }
 
-  // 에러 상태 UI 공정
   if (isError) {
     return (
       <div className="flex flex-col flex-1 h-96 justify-center items-center bg-[#FBFBF9] gap-3">
@@ -57,7 +56,6 @@ export default function ChatsPage() {
 
   return (
     <div className="w-full bg-[#FBFBF9] min-h-screen max-w-5xl mx-auto ">
-      {/* 1. 상단 타이틀 바 */}
       <header className="px-5 py-[15px]">
         <h1 className="text-3xl font-black text-[#FF7A59] tracking-tight">
           Chatting
@@ -67,23 +65,17 @@ export default function ChatsPage() {
         </p>
       </header>
 
-      {/* 2. 실시간 소모임 채팅 리스트 피드 */}
       <main className="px-6 pt-1.5  grid grid-cols-1 md:grid-cols-2 gap-3">
         {chatRooms.map((item: any) => {
-          // 카테고리에 맞는 아바타 테마 추출 (기본값 TALK)
           const categoryKey = item.category?.toUpperCase() || "TALK";
           const theme = CATEGORY_MAP[categoryKey] || CATEGORY_MAP.TALK;
 
           return (
             <div
               key={item.id}
-              onClick={() =>
-                // 🚀 카드를 누르면 해당 소모임 상세 화면의 [실시간 채팅방] 탭 브랜치 주소로 무브
-                router.push(`/gatherings/${item.id}?tab=CHAT`)
-              }
+              onClick={() => router.push(`/gatherings/${item.id}?tab=CHAT`)}
               className="flex items-center bg-white p-3 rounded-[20px] border border-[#E7E5E4] cursor-pointer shadow-xs  hover:shadow-sm hover:shadow-orange-50 hover:border-orange-400 active:scale-[0.99] transition "
             >
-              {/* 왼쪽: 모달 카테고리 기반 힙한 그래픽 아바타 */}
               <div
                 style={{ backgroundColor: theme.bg }}
                 className="w-13 h-13 rounded-[18px] flex justify-center items-center text-2xl shrink-0"
@@ -91,7 +83,6 @@ export default function ChatsPage() {
                 {theme.icon}
               </div>
 
-              {/* 가운데: 소모임 타이틀 & 최신 대화 요약 */}
               <div className="flex-1 min-w-0 mx-3.5">
                 <div className="flex justify-between items-center mb-1">
                   <h3 className="text-[15px] font-bold text-[#292524] truncate max-w-[75%]">
@@ -112,7 +103,6 @@ export default function ChatsPage() {
                 </p>
               </div>
 
-              {/* 오른쪽: 안 읽은 알림 카운트 배지 */}
               {item.unreadCount > 0 && (
                 <div className="bg-[#FF7A59] min-w-[20px] h-5 rounded-full flex justify-center items-center px-1.5 text-[11px] text-white font-black shrink-0">
                   {item.unreadCount}
@@ -123,7 +113,6 @@ export default function ChatsPage() {
         })}
       </main>
 
-      {/* 채팅방 엠티 컴포넌트 처리 */}
       {chatRooms.length === 0 && (
         <div className="flex flex-col gap-3 items-center text-center text-[15px] font-bold text-[#78716C] pt-50 leading-[22px] whitespace-pre-line ]">
           <span>현재 참여 중인 채팅방이 없습니다.</span>

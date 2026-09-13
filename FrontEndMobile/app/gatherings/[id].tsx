@@ -80,7 +80,6 @@ export default function GatheringDetailScreen() {
     tab?: "INFO" | "CHAT";
   }>();
 
-  // 잔상 방지용 캐시 클리어 슛
   useEffect(() => {
     return () => {
       queryClient.resetQueries({ queryKey: ["gatheringDetail", id] });
@@ -95,7 +94,6 @@ export default function GatheringDetailScreen() {
   const [chatInput, setChatInput] = useState("");
   const chatScrollViewRef = useRef<ScrollView>(null);
 
-  // 🔄 1. 백엔드 상세 조회 엔드포인트 연동
   const {
     data: gathering,
     isLoading: isGatheringLoading,
@@ -110,7 +108,6 @@ export default function GatheringDetailScreen() {
     refetchInterval: 3000,
   });
 
-  // 👤 2. 현재 로그인한 내 정보 캐시 조회
   const {
     data: userProfile,
     isLoading: isProfileLoading,
@@ -125,34 +122,27 @@ export default function GatheringDetailScreen() {
 
   const myId = userProfile?.id;
 
-  // 🛡️ [권한 로직 정밀 튜닝 슛]
-  // 내 참여 정보 객체를 명확하게 찾습니다.
   const myParticipation = gathering?.participants?.find(
     (p: any) => p.user?.id === myId || p.userId === myId,
   );
 
-  // 1. 내가 강퇴당한 유저인지 체크 ('REJECTED' 상태인지 확인)
   const isKicked = myParticipation?.status === "REJECTED";
 
-  // 2. 승인된(ACCEPTED) 유저이거나 별도의 status 필드가 명시되지 않은 기존 정상 참여자만 인정
   const isAlreadyParticipant =
     !!myId && !!myParticipation && myParticipation.status !== "REJECTED";
 
   const isHost = !!myId && gathering?.hostId === myId;
 
-  // 3. 🌟 [채팅 가드 강화] 방장이거나 정상 참여자여야 하며, '강퇴당한 상태(isKicked)'가 절대 아니어야만 채팅 접근 허용
   const canAccessChat = (isHost || isAlreadyParticipant) && !isKicked;
 
   useEffect(() => {
     if (tab === "CHAT" && canAccessChat) {
       setActiveTab("CHAT");
     } else if (tab === "CHAT" && !canAccessChat) {
-      // 혹시라도 탭 파라미터로 강퇴 유저가 CHAT 진입 시 자동으로 INFO로 튕겨내기
       setActiveTab("INFO");
     }
   }, [tab, canAccessChat]);
 
-  // 💬 3. [채팅] 백엔드 단체 채팅 과거 내역 조회 연동
   const { data: chatMessages = [] } = useQuery({
     queryKey: ["gatheringChats", id],
     queryFn: async () => {
@@ -165,7 +155,7 @@ export default function GatheringDetailScreen() {
     refetchInterval: 2000,
   });
 
-  // 🚀 4. [채팅] 메시지 전송 뮤테이션
+
   const sendChatMessageMutation = useMutation({
     mutationFn: async (message: string) => {
       return await client.post(`/chats/public/${id}`, { message });
@@ -185,7 +175,7 @@ export default function GatheringDetailScreen() {
     },
   });
 
-  // 🚀 5. 참여 신청 뮤테이션
+
   const joinGatheringMutation = useMutation({
     mutationFn: async () => {
       const { data } = await client.post(`/gatherings/${id}/join`);
@@ -203,7 +193,7 @@ export default function GatheringDetailScreen() {
     },
   });
 
-  // 🚪 6. 방 나가기 처리 뮤테이션 (참여자 전용)
+
   const leaveGatheringMutation = useMutation({
     mutationFn: async () => {
       const { data } = await client.delete(`/gatherings/${id}/leave`);
@@ -222,7 +212,7 @@ export default function GatheringDetailScreen() {
     },
   });
 
-  // 🗑️ 7. 소모임 삭제 처리 뮤테이션 (방장 전용)
+
   const deleteGatheringMutation = useMutation({
     mutationFn: async () => {
       const { data } = await client.delete(`/gatherings/${id}`);
@@ -243,7 +233,7 @@ export default function GatheringDetailScreen() {
     },
   });
 
-  // 🚫 8. 멤버 강퇴 처리 뮤테이션 (방장 전용)
+
   const kickParticipantMutation = useMutation({
     mutationFn: async (targetUserId: string) => {
       return await client.patch(`/gatherings/${id}/participants`, {
@@ -373,13 +363,13 @@ export default function GatheringDetailScreen() {
     text: "#292524",
   };
 
-  // 👥 [목록 정화 필터 추가] 강퇴당한 유저(`status === 'REJECTED'`)는 명단 리스트에서 원천 제외
+
   const activeParticipants =
     gathering.participants?.filter((p: any) => p.status !== "REJECTED") || [];
 
   return (
     <View style={styles.container}>
-      {/* 상단 헤더 */}
+
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7}>
           <Ionicons name="chevron-back" size={24} color={COLORS.textMain} />
@@ -389,7 +379,7 @@ export default function GatheringDetailScreen() {
           {gathering.title}
         </Text>
 
-        {/* 방장이거나 참여 완료된 정회원만 나가기/삭제 아이콘 단추 활성화 */}
+     
         {canAccessChat ? (
           <TouchableOpacity onPress={handleHeaderBack} activeOpacity={0.7}>
             <Ionicons
@@ -403,7 +393,7 @@ export default function GatheringDetailScreen() {
         )}
       </View>
 
-      {/* 상단 탭 구조바 */}
+
       <View style={styles.tabContainer}>
         <TouchableOpacity
           style={[
@@ -451,7 +441,7 @@ export default function GatheringDetailScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* TAB 1. 모임 소개 정보 */}
+
       {activeTab === "INFO" && (
         <ScrollView
           showsVerticalScrollIndicator={false}
@@ -467,13 +457,13 @@ export default function GatheringDetailScreen() {
                 </Text>
               </View>
 
-              {/* 🌟 [우측 상단 버튼 액션 분기 처리 고도화] */}
+      
               {isHost ? (
                 <View style={[styles.joinActionBtn, styles.hostBadge]}>
                   <Text style={styles.hostBadgeText}>내가 만든 모임 👑</Text>
                 </View>
               ) : isKicked ? (
-                // 강퇴당한 멤버인 경우 참여 완료 대신 '참여 불가' 렌더링 슛
+
                 <View style={[styles.joinActionBtn, styles.kickedBadge]}>
                   <Ionicons name="ban-outline" size={14} color="#EF4444" />
                   <Text style={styles.kickedBadgeText}>참여 불가</Text>
@@ -575,7 +565,7 @@ export default function GatheringDetailScreen() {
           <Text style={[styles.sectionTitle, { marginTop: 24 }]}>
             참여 중인 멤버 ({activeParticipants.length}명)
           </Text>
-          {/* 👥 [수정] 강퇴되지 않은 activeParticipants 목록만 화면에 맵핑 배포 */}
+
           {activeParticipants.map((p: any, idx: number) => {
             const participantUserId = p.user?.id || p.userId;
 
@@ -627,13 +617,13 @@ export default function GatheringDetailScreen() {
       {activeTab === "CHAT" && canAccessChat && (
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
-          style={styles.chatWrapper} // 👈 flex: 1이 들어간 기존 스타일 그대로 활용
+          style={styles.chatWrapper} 
           keyboardVerticalOffset={Platform.select({
             ios: 53,
             android: 26,
           })}
         >
-          {/* 2. 메시지가 흘러가는 스크롤 영역 */}
+
           <ScrollView
             ref={chatScrollViewRef}
             contentContainerStyle={styles.chatScrollContent}
@@ -698,7 +688,7 @@ export default function GatheringDetailScreen() {
             )}
           </ScrollView>
 
-          {/* 3. 하단 메시지 입력창 바 (이제 키보드 바로 위에 이쁘게 밀착합니다) */}
+
           <View style={styles.inputContainer}>
             <TextInput
               style={styles.chatInput}

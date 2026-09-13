@@ -2,7 +2,6 @@ import { PartialType } from '@nestjs/mapped-types';
 import { CreateGatheringDto } from './create-gathering.dto';
 import { IsEnum, IsOptional } from 'class-validator';
 
-// 💡 스키마에 정의된 상태값들을 TypeScript 열거형 형태로 체크합니다.
 export enum GatheringStatus {
   RECRUITING = 'RECRUITING',
   FULL = 'FULL',

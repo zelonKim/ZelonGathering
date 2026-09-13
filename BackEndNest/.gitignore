@@ -1,8 +1,7 @@
 # compiled output
 /dist
-
+*.tsbuildinfo
 /node_modules
-
 /build
 
 # Logs

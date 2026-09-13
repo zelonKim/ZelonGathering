@@ -12,13 +12,13 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
 
-  // 회원가입 API 요청 함수
+
   const signupUser = async (signupData: any) => {
     const { data } = await client.post("/users/signup", signupData);
     return data;
   };
 
-  // TanStack Query Mutation
+
   const { mutate: signupMutate, isPending } = useMutation({
     mutationFn: signupUser,
     onSuccess: (data) => {
@@ -32,7 +32,7 @@ export default function SignupPage() {
     },
   });
 
-  // 🌟 [변경] e.preventDefault() 없이 호출되는 순수 회원가입 핸들러 함수
+
   const handleSignup = () => {
     if (!email.trim() || !password.trim() || !passwordConfirm.trim()) {
       alert("이메일과 비밀번호를 모두 입력해 주세요.");
@@ -63,7 +63,7 @@ export default function SignupPage() {
     });
   };
 
-  // 🌟 인풋 창에서 엔터키를 쳤을 때도 자연스럽게 가입 프로세스가 작동하도록 가드 처리
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
       handleSignup();
@@ -73,7 +73,7 @@ export default function SignupPage() {
   return (
     <div className="min-h-screen bg-[#FBFBF9] text-[#292524] flex flex-col items-center justify-start p-4 md:p-6">
       <div className="w-full max-w-md bg-[#FBFBF9] flex flex-col h-full">
-        {/* 뒤로가기 버튼 헤더 */}
+
         <header className="h-14 flex items-center justify-start">
           <button
             onClick={() => router.back()}
@@ -84,9 +84,9 @@ export default function SignupPage() {
           </button>
         </header>
 
-        {/* 메인 영역 (form 태그를 div 박스로 전면 교체) */}
+
         <main className="flex-1 flex flex-col justify-center px-4 pt-4 pb-20">
-          {/* 1. 타이틀 레이어 */}
+     
           <section className="my-10">
             <h1 className="text-3xl font-black tracking-tight text-[#292524]">
               하이루 👋
@@ -96,9 +96,9 @@ export default function SignupPage() {
             </p>
           </section>
 
-          {/* 2. 회원가입 폼 컨테이너 (div) */}
+    
           <div className="flex flex-col gap-[18px]">
-            {/* 이메일 계정 */}
+
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-bold text-[#78716C]">
                 이메일 계정
@@ -107,14 +107,14 @@ export default function SignupPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                onKeyDown={handleKeyDown} // 엔터키 이벤트 바인딩
+                onKeyDown={handleKeyDown} 
                 placeholder="example@zelon.com"
                 disabled={isPending}
                 className="w-full bg-white border border-[#E7E5E4] rounded-[14px] px-4 py-3.5 text-base font-semibold text-[#292524] placeholder-[#8d8d8d9b] focus:outline-none focus:ring-2 focus:ring-[#FF7A59]/20 focus:border-[#FF7A59] transition disabled:bg-stone-100"
               />
             </div>
 
-            {/* 비밀번호 */}
+     
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-bold text-[#78716C]">
                 비밀번호
@@ -130,7 +130,7 @@ export default function SignupPage() {
               />
             </div>
 
-            {/* 비밀번호 확인 */}
+      
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-bold text-[#78716C]">
                 비밀번호 확인

@@ -31,7 +31,7 @@ client.interceptors.response.use(
       error.response &&
       (error.response.status === 401 || error.response.status === 403)
     ) {
-      console.log("🔒 인증 만료 혹은 권한 없음");
+      console.log("인증 만료 혹은 권한 없음");
 
       try {
         await SecureStore.deleteItemAsync("userToken");
