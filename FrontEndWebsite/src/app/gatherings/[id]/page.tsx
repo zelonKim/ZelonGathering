@@ -2,26 +2,28 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ChevronLeft,
   Trash2,
   LogOut,
-  CheckCircle,
-  Ban,
-  Send,
-  MapPin,
-  Calendar,
-  Clock,
   AlertCircle,
-  UserX,
   Loader2,
-  Thermometer,
 } from "lucide-react";
-import { client } from "@/api/client";
 import { GATHERING_CATEGORY_COLOR } from "@/constants/gatheringCategoryColor";
 import { DAY_MAPS } from "@/constants/dayMaps";
 import { TIME_MAPS } from "@/constants/timeMaps";
+import { getGatheringDetail } from "@/app/api/gathering/getGatheringDetail";
+import { getMyProfile } from "@/app/api/profile/getMyProfile";
+import { GatheringParticipant } from "@/types/GatheringDetail";
+import { getGatheringChats } from "@/app/api/chat/getGatheringChats";
+import { useSendChatMessage } from "@/hooks/useSendChatMessage";
+import { useJoinGathering } from "@/hooks/useJoinGathering";
+import { useLeaveGathering } from "@/hooks/useLeaveGathering";
+import { useDeleteGathering } from "@/hooks/useDeleteGathering";
+import { useKickParticipant } from "@/hooks/useKickParticipant";
+import { GatheringInfoTab } from "@/components/GatheringInfoTab";
+import { GatheringChatTab } from "@/components/GatheringChatTab";
 
 export default function GatheringDetailPage() {
   const router = useRouter();
@@ -34,7 +36,6 @@ export default function GatheringDetailPage() {
   const [activeTab, setActiveTab] = useState<"INFO" | "CHAT">(
     tabParam === "CHAT" ? "CHAT" : "INFO",
   );
-
   const [chatInput, setChatInput] = useState("");
 
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -46,19 +47,20 @@ export default function GatheringDetailPage() {
     };
   }, [id, queryClient]);
 
+  //////////////////////////////////////////////////////////////////////////
+
   const {
     data: gathering,
     isLoading: isGatheringLoading,
     isError: isGatheringError,
   } = useQuery({
     queryKey: ["gatheringDetail", id],
-    queryFn: async () => {
-      const { data } = await client.get(`/gatherings/${id}`);
-      return data;
-    },
+    queryFn: () => getGatheringDetail(id),
     enabled: !!id,
     refetchInterval: 3000,
   });
+
+  //////////////////////////////////////////////////////////////////////////
 
   const {
     data: userProfile,
@@ -66,23 +68,33 @@ export default function GatheringDetailPage() {
     isError: isProfileError,
   } = useQuery({
     queryKey: ["myProfile"],
-    queryFn: async () => {
-      const { data } = await client.get("/users/me");
-      return data;
-    },
+    queryFn: getMyProfile,
   });
 
   const myId = userProfile?.id;
 
   const myParticipation = gathering?.participants?.find(
-    (p: any) => p.user?.id === myId || p.userId === myId,
+    (p: GatheringParticipant) => p.user?.id === myId || p.userId === myId,
   );
 
   const isKicked = myParticipation?.status === "REJECTED";
+
   const isAlreadyParticipant =
     !!myId && !!myParticipation && myParticipation.status !== "REJECTED";
-  const isHost = !!myId && gathering?.hostId === myId;
+
+  const isHost = !!myId && gathering?.host?.id === myId;
+
   const canAccessChat = (isHost || isAlreadyParticipant) && !isKicked;
+
+  //////////////////////////////////////////////////////////////////////////
+
+  const { data: chatMessages = [] } = useQuery({
+    queryKey: ["gatheringChats", id],
+    queryFn: () => getGatheringChats(id),
+    refetchInterval: 3000,
+  });
+
+  //////////////////////////////////////////////////////////////////////////
 
   useEffect(() => {
     if (tabParam === "CHAT" && canAccessChat) {
@@ -92,144 +104,76 @@ export default function GatheringDetailPage() {
     }
   }, [tabParam, canAccessChat]);
 
-  const { data: chatMessages = [] } = useQuery({
-    queryKey: ["gatheringChats", id],
-    queryFn: async () => {
-      const { data } = await client.get(`/chats/public/${id}`);
-      return [...data].reverse();
-    },
-    // enabled: !!id && canAccessChat,
-    refetchInterval: 3000,
-  });
-
-  console.log(chatMessages);
-
   useEffect(() => {
     if (activeTab === "CHAT") {
       chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
   }, [chatMessages, activeTab]);
 
-  const sendChatMessageMutation = useMutation({
-    mutationFn: async (message: string) => {
-      return await client.post(`/chats/public/${id}`, { message });
-    },
-    onSuccess: () => {
-      setChatInput("");
-      queryClient.invalidateQueries({ queryKey: ["gatheringChats", id] });
-      queryClient.invalidateQueries({ queryKey: ["myChats"] });
-    },
-    onError: (error: any) => {
-      alert(error.response?.data?.message || "메시지를 보내지 못했습니다.");
-    },
-  });
+  //////////////////////////////////////////////////////////////////////////
 
-  const joinGatheringMutation = useMutation({
-    mutationFn: async () => {
-      const { data } = await client.post(`/gatherings/${id}/join`);
-      return data;
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["gatheringDetail", id] });
-      queryClient.invalidateQueries({ queryKey: ["myChats"] });
-    },
-    onError: (error: any) => {
-      alert(
-        error.response?.data?.message ||
-          "소모임방 참여 중 문제가 발생했습니다.",
-      );
-    },
-  });
-
-  const leaveGatheringMutation = useMutation({
-    mutationFn: async () => {
-      const { data } = await client.delete(`/gatherings/${id}/leave`);
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["gatherings"] });
-      queryClient.invalidateQueries({ queryKey: ["myChats"] });
-      router.back();
-    },
-    onError: (error: any) => {
-      alert(error.response?.data?.message || "소모임방에서 나가지 못했습니다.");
-      router.back();
-    },
-  });
-
-  const deleteGatheringMutation = useMutation({
-    mutationFn: async () => {
-      const { data } = await client.delete(`/gatherings/${id}`);
-      return data;
-    },
-    onSuccess: (data) => {
-      if (data?.message) alert(data.message);
-      queryClient.invalidateQueries({ queryKey: ["gatherings"] });
-      queryClient.invalidateQueries({ queryKey: ["myChats"] });
-      router.back();
-    },
-    onError: (error: any) => {
-      alert(error.response?.data?.message || "소모임방을 삭제하지 못했습니다.");
-    },
-  });
-
-  const kickParticipantMutation = useMutation({
-    mutationFn: async (targetUserId: string) => {
-      return await client.patch(`/gatherings/${id}/participants`, {
-        userId: targetUserId,
-        status: "REJECTED",
-      });
-    },
-    onSuccess: () => {
-      alert("해당 멤버를 소모임에서 강퇴 처리했습니다.");
-      queryClient.invalidateQueries({ queryKey: ["gatheringDetail", id] });
-    },
-    onError: (error: any) => {
-      alert(error.response?.data?.message || "멤버 강퇴 처리에 실패했습니다.");
-    },
-  });
+  const {
+    mutate: sendChatMessageMutation,
+    isPending: isChatMessageSendPending,
+  } = useSendChatMessage(id);
 
   const handleSendMessage = (e?: React.KeyboardEvent<HTMLInputElement>) => {
     if (e && e.key === "Enter") {
       e.preventDefault();
     }
 
-    if (!chatInput.trim() || sendChatMessageMutation.isPending) return;
+    if (!chatInput.trim() || isChatMessageSendPending) return;
 
-    sendChatMessageMutation.mutate(chatInput.trim());
+    sendChatMessageMutation(chatInput.trim(), {
+      onSuccess: () => {
+        setChatInput("");
+      },
+    });
   };
+
+  //////////////////////////////////////////////////////////////////////////
+
+  const { mutate: joinGatheringMutation, isPending: isJoinGatheringPending } =
+    useJoinGathering(id);
 
   const handleJoinPress = () => {
     if (confirm("정말로 이 소모임에 참여하시겠습니까?")) {
-      joinGatheringMutation.mutate();
+      joinGatheringMutation();
     }
   };
 
-  const handleKickPress = (targetUserId: string, nickname: string) => {
-    if (
-      confirm(
-        `정말로 '${nickname}' 멤버를 강퇴 하시겠습니까?\n\n‼️ 강퇴된 멤버는 다시 가입할 수 없습니다.`,
-      )
-    ) {
-      kickParticipantMutation.mutate(targetUserId);
-    }
-  };
+  //////////////////////////////////////////////////////////////////////////
 
-  const handleHeaderAction = () => {
+  const { mutate: leaveGatheringMutation } = useLeaveGathering(id);
+
+  const { mutate: deleteGatheringMutation } = useDeleteGathering(id);
+
+  const handleOutAction = () => {
     if (isHost) {
       if (
         confirm(
           "정말로 이 소모임을 삭제하시겠습니까?\n\n⚠️ 삭제 후 복구는 불가능합니다.",
         )
       ) {
-        deleteGatheringMutation.mutate();
+        deleteGatheringMutation();
       }
     } else {
       if (confirm("정말로 소모임 참여를 취소하고 나가시겠습니까?")) {
-        leaveGatheringMutation.mutate();
+        leaveGatheringMutation();
       }
     }
   };
+
+  //////////////////////////////////////////////////////////////////////////
+
+  const { mutate: kickParticipantMutation } = useKickParticipant(id);
+
+  const handleKickPress = (targetUserId: string, nickname: string) => {
+    if (confirm(`정말로 '${nickname}' 멤버를 강퇴 하시겠습니까?`)) {
+      kickParticipantMutation(targetUserId);
+    }
+  };
+  //////////////////////////////////////////////////////////////////////////
 
   if (isGatheringLoading || isProfileLoading) {
     return (
@@ -247,7 +191,7 @@ export default function GatheringDetailPage() {
       <div className="flex flex-col h-[80vh] justify-center items-center bg-[#FBFBF9] gap-3 px-6 text-center">
         <AlertCircle className="w-12 h-12 text-[#78716C]" />
         <p className="text-sm font-semibold text-[#78716C]">
-          존재하지 않거나 이미 폐쇄된 소모임방입니다. 👀
+          존재하지 않거나 이미 폐쇄된 소모임방입니다.
         </p>
         <button
           onClick={() => {
@@ -262,16 +206,14 @@ export default function GatheringDetailPage() {
     );
   }
 
-  const catTheme = GATHERING_CATEGORY_COLOR[
-    gathering.category?.toUpperCase() || "TALK"
-  ] || {
-    label: gathering.category,
-    emoji: "📍",
-    bg: "#F2F0EC",
-    text: "#292524",
-  };
+  const cateTheme = GATHERING_CATEGORY_COLOR[gathering.category?.toUpperCase()];
+
   const activeParticipants =
-    gathering.participants?.filter((p: any) => p.status !== "REJECTED") || [];
+    gathering.participants?.filter(
+      (p: GatheringParticipant) => p.status !== "REJECTED",
+    ) || [];
+
+  //////////////////////////////////////////////////////////////////////////////
 
   return (
     <div className="min-h-screen text-[#292524] flex flex-col max-w-5xl mx-auto bg-white border-x border-[#E7E5E4] relative">
@@ -288,7 +230,7 @@ export default function GatheringDetailPage() {
 
         {canAccessChat ? (
           <button
-            onClick={handleHeaderAction}
+            onClick={handleOutAction}
             className="p-1.5 hover:bg-stone-100 rounded-full transition text-[#292524]"
           >
             {isHost ? (
@@ -337,253 +279,32 @@ export default function GatheringDetailPage() {
 
       <div className="flex-1 overflow-y-auto hidden-scrollbar flex flex-col">
         {activeTab === "INFO" && (
-          <div className="p-5 space-y-6 flex-1 pb-16">
-            <div className="bg-white shadow-xs border border-[#E7E5E4] rounded-3xl p-5 space-y-4 shadow-[0_2px_8px_rgba(0,0,0,0.01)]">
-              <div className="flex justify-between items-center">
-                <span
-                  style={{ backgroundColor: catTheme.bg, color: catTheme.text }}
-                  className="text-[12px] font-black px-2.5 py-1 rounded-lg"
-                >
-                  {catTheme.label} {catTheme.emoji}
-                </span>
-
-                {isHost ? (
-                  <span className="text-[12px] font-bold text-[#78716C] bg-stone-100 border border-stone-200 px-3 py-1 rounded-lg">
-                    내가 만든 모임 👑
-                  </span>
-                ) : isKicked ? (
-                  <span className="text-[12px] font-bold text-[#EF4444] bg-red-50 border border-red-200 px-3 py-1 rounded-lg flex items-center gap-1">
-                    <Ban className="w-3 h-3" />
-                    참여 불가
-                  </span>
-                ) : isAlreadyParticipant ? (
-                  <span className="text-[12px] font-extrabold text-[#FF7A59] bg-[#FFEBE5] border border-[#FF7A59]/30 px-3 py-1 rounded-lg flex items-center gap-1">
-                    <CheckCircle className="w-3 h-3" />
-                    참여 완료
-                  </span>
-                ) : (
-                  <button
-                    onClick={handleJoinPress}
-                    disabled={joinGatheringMutation.isPending}
-                    className="bg-[#FF7A59] text-white text-xs font-extrabold px-4 py-1.5 rounded-lg shadow-sm hover:bg-[#e06848] transition"
-                  >
-                    {joinGatheringMutation.isPending ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      "참여하기 🚀"
-                    )}
-                  </button>
-                )}
-              </div>
-
-              <h3 className="text-[22px] font-black text-[#292524] tracking-tight leading-snug">
-                {gathering.title}
-              </h3>
-              <div className="inline-block bg-stone-100 px-2.5 py-1 rounded-md text-xs font-bold text-[#78716C]">
-                모집 현황: {activeParticipants.length} /{" "}
-                {gathering.maxParticipants ?? 4}명
-              </div>
-
-              <div className="space-y-2 pt-1 border-t border-stone-50 text-[13.5px] font-semibold text-[#78716C]">
-                <div className="flex items-center gap-1.5">
-                  <MapPin className="w-3.5 h-3.5 text-[#FF7A59]" />
-                  <span>{gathering.gatheringPlace}</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-[#FF7A59]" />
-                  <span>
-                    {gathering.gatheringDay
-                      ?.map((d: string) => DAY_MAPS[d] || d)
-                      .join(", ")}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Clock className="w-3.5 h-3.5 text-[#FF7A59]" />
-                  <span>
-                    {gathering.gatheringTime
-                      ?.map((t: string) => TIME_MAPS[t] || t)
-                      .join(", ")}
-                  </span>
-                </div>
-              </div>
-
-              <div className="h-px bg-stone-100 my-4" />
-              <p className="text-[15px] font-black text-[#292524] mb-1">
-                모임 소개
-              </p>
-              <p className="text-[14px] font-medium text-stone-600 leading-relaxed whitespace-pre-wrap">
-                {gathering.description || "등록된 소개글이 없습니다."}
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <h4 className="text-[15px] font-black text-[#292524] pl-1">
-                방장
-              </h4>
-              <div className="md:max-w-[486px] shadow-xs bg-white border border-[#E7E5E4] rounded-2xl p-3.5 flex items-center gap-3">
-                <div className="w-11 h-11 bg-stone-100 rounded-xl flex items-center justify-center font-bold overflow-hidden">
-                  {gathering.host?.profileImg ? (
-                    <img
-                      src={gathering.host.profileImg}
-                      alt="Host"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    "🍑"
-                  )}
-                </div>
-                <div>
-                  <p className="text-[15px] font-bold text-[#292524]">
-                    {gathering.host?.nickname || "방장"}
-                  </p>
-                  <p className="text-[12px] font-bold text-[#FF7A59] mt-0.5 flex flex-row">
-                    <Thermometer className="w-3.5 h-3.5 mt-0.5 -ml-1" /> 매너
-                    온도 {gathering.host?.mannerTemperature}°C
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <h4 className="text-[15px] font-black text-[#292524] pl-1 ">
-                참여 중인 멤버 ({activeParticipants.length}명)
-              </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 ">
-                {activeParticipants.map((p: any, idx: number) => {
-                  const participantUserId = p.user?.id || p.userId;
-                  return (
-                    <div
-                      key={participantUserId || idx}
-                      className="bg-white shadow-xs border border-[#E7E5E4] rounded-2xl p-3.5 flex items-center justify-between transition"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-11 h-11 bg-stone-100 rounded-xl flex items-center justify-center font-bold overflow-hidden">
-                          {p.user?.profileImg ? (
-                            <img
-                              src={p.user.profileImg}
-                              alt="Member"
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            "🏃"
-                          )}
-                        </div>
-                        <div>
-                          <p className="text-[15px] font-bold text-[#292524]">
-                            {p.user?.nickname || "참여자"}
-                          </p>
-                          <p className="text-[12px] font-bold text-[#FF7A59] mt-0.5 flex flex-row">
-                            <Thermometer className="w-3.5 h-3.5 mt-0.5 -ml-1" />{" "}
-                            매너 온도 {p.user?.mannerTemperature ?? 36.5}°C
-                          </p>
-                        </div>
-                      </div>
-
-                      {isHost && participantUserId !== myId && (
-                        <button
-                          onClick={() =>
-                            handleKickPress(
-                              participantUserId,
-                              p.user?.nickname || "참여자",
-                            )
-                          }
-                          className="flex items-center gap-1 bg-red-50 hover:bg-red-100 border border-red-200 text-[#E11D48] text-[11px] font-bold px-2.5 py-1.5 rounded-xl transition"
-                        >
-                          <UserX className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
+          <GatheringInfoTab
+            gathering={gathering}
+            activeParticipants={activeParticipants}
+            cateTheme={cateTheme}
+            isHost={isHost}
+            isKicked={isKicked}
+            isAlreadyParticipant={isAlreadyParticipant}
+            isJoinGatheringPending={isJoinGatheringPending}
+            myId={myId}
+            handleJoinPress={handleJoinPress}
+            handleKickPress={handleKickPress}
+            DAY_MAPS={DAY_MAPS}
+            TIME_MAPS={TIME_MAPS}
+          />
         )}
 
         {activeTab === "CHAT" && canAccessChat && (
-          <div className="flex flex-col flex-1 h-full min-h-[60vh] bg-orange-50">
-            <div className="flex-1 p-4 overflow-y-auto space-y-4 max-h-[calc(100vh-12rem)]">
-              {chatMessages.length === 0 ? (
-                <div className="text-center py-48 text-sm font-semibold text-stone-400 whitespace-pre-line leading-relaxed">
-                  실시간 채팅방이 개설되었습니다! {"\n"} 모임원들과 첫 대화를
-                  나눠보세요 💬
-                </div>
-              ) : (
-                chatMessages.map((msg: any) => {
-                  const isMe = msg.senderId === myId;
-                  return (
-                    <div
-                      key={msg.id}
-                      className={`flex gap-2 max-w-[85%] ${isMe ? "ml-auto flex-row-reverse" : "mr-auto"}`}
-                    >
-                      {!isMe && (
-                        <div className="w-8 h-8 rounded-lg bg-stone-200 shrink-0 overflow-hidden flex items-center justify-center text-sm">
-                          {msg.sender?.profileImg ? (
-                            <img
-                              src={msg.sender.profileImg}
-                              alt="Sender"
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            "🏃"
-                          )}
-                        </div>
-                      )}
-                      <div
-                        className={` flex flex-col ${isMe ? "items-end" : "items-start"}`}
-                      >
-                        {!isMe && (
-                          <span className="text-[10px] font-bold text-stone-400 mb-1">
-                            {msg.sender?.nickname || "멤버"}
-                          </span>
-                        )}
-                        <div
-                          className={`p-3 rounded-2xl text-sm font-semibold leading-relaxed ${
-                            isMe
-                              ? "bg-[#FF7A59] text-white rounded-tr-none"
-                              : "bg-white text-[#292524] border border-[#E7E5E4] rounded-tl-none"
-                          }`}
-                        >
-                          {msg.message}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-              <div ref={chatEndRef} />
-            </div>
-
-            <div className="p-5 bg-white border-t border-[#E7E5E4] flex items-center gap-2 shrink-0">
-              <input
-                type="text"
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                onKeyUp={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    handleSendMessage();
-                  }
-                }}
-                placeholder="메시지를 입력해주세요"
-                className="flex-1 bg-[#F5F5F4] px-4 py-2.5 rounded-full text-sm font-semibold focus:outline-none focus:ring-1 focus:ring-[#FF7A59]"
-              />
-              <button
-                type="button"
-                onClick={() => handleSendMessage()}
-                disabled={
-                  !chatInput.trim() || sendChatMessageMutation.isPending
-                }
-                className={`w-9 h-9 rounded-full flex items-center justify-center text-white transition shrink-0 ${
-                  chatInput.trim()
-                    ? "bg-[#FF7A59] hover:bg-[#e06848]"
-                    : "bg-stone-200 cursor-not-allowed"
-                }`}
-              >
-                <Send className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
+          <GatheringChatTab
+            chatMessages={chatMessages}
+            myId={myId}
+            chatInput={chatInput}
+            setChatInput={setChatInput}
+            handleSendMessage={handleSendMessage}
+            isChatMessageSendPending={isChatMessageSendPending}
+            chatEndRef={chatEndRef}
+          />
         )}
       </div>
     </div>

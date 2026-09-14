@@ -11,16 +11,16 @@ import {
   Loader2,
   X,
 } from "lucide-react";
-import { removeAccessToken } from "@/api/token";
+import { removeAccessToken } from "@/app/api/token";
 import { DISTRICT_ITEMS } from "@/constants/districtItems";
 import { TIME_ITEMS } from "@/constants/timeItems";
 import { CATEGORY_ITEMS } from "@/constants/categoryItems";
 import { DAY_ITEMS } from "@/constants/dayItems";
 import { UpdateProfilePayload } from "@/types/UpdateProfilePayload";
-import { getMyProfile } from "@/api/profile/getMyProfile";
+import { getMyProfile } from "@/app/api/profile/getMyProfile";
 import { useUpdateProfile } from "@/hooks/useUpdateProfile";
 import { Mbti } from "@/types/MBTI";
-import { Category} from "@/types/Category";
+import { Category } from "@/types/Category";
 import { District } from "@/types/District";
 import { Day } from "@/types/Day";
 import { Time } from "@/types/Time";
@@ -36,9 +36,9 @@ export default function ProfilePage() {
   const [mbti, setMbti] = useState<Mbti | string>("");
   const [favorite, setFavorite] = useState("");
   const [hate, setHate] = useState("");
-  const [preferCategory, setPreferCategory] = useState<
-    Category[] | string[]
-  >([]);
+  const [preferCategory, setPreferCategory] = useState<Category[] | string[]>(
+    [],
+  );
   const [preferDistrict, setPreferDistrict] = useState<District[] | string[]>(
     [],
   );
@@ -323,7 +323,7 @@ export default function ProfilePage() {
             <textarea
               value={favorite}
               onChange={(e) => setFavorite(e.target.value)}
-              placeholder="좋아하는 활동이나 관심사를 적어주세요!"
+              placeholder="자신이 좋아하는 것을 입력하세요."
               rows={2}
               className="w-full bg-[#F8F6F4] rounded-xl p-3 text-sm font-medium text-[#292524] outline-none resize-none"
             />
@@ -336,7 +336,7 @@ export default function ProfilePage() {
             <textarea
               value={hate}
               onChange={(e) => setHate(e.target.value)}
-              placeholder="모임에서 기피하는 상황을 적어주세요!"
+              placeholder="자신이 싫어하는 것을 입력하세요."
               rows={2}
               className="w-full bg-[#F8F6F4] rounded-xl p-3 text-sm font-medium text-[#292524] outline-none resize-none"
             />
@@ -354,9 +354,7 @@ export default function ProfilePage() {
             </span>
             <div className="flex flex-wrap gap-2">
               {CATEGORY_ITEMS.map((cat) => {
-                const isSelected = preferCategory.includes(
-                  cat.key as Category,
-                );
+                const isSelected = preferCategory.includes(cat.key as Category);
                 return (
                   <button
                     key={cat.key}

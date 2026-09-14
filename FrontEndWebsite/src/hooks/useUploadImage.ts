@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { uploadProfileImage } from "@/api/profile/uploadProfileImage";
+import { uploadProfileImage } from "@/app/api/profile/uploadProfileImage";
 
 export const useUploadProfileImage = () => {
   return useMutation({

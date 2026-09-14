@@ -2,18 +2,9 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  Layers,
-  Plus,
-  X,
-  MapPin,
-  Loader2,
-  CheckCircle,
-  ArrowRight,
-} from "lucide-react";
-import { client } from "@/api/client";
-import { GoogleMap, MarkerF, useJsApiLoader } from "@react-google-maps/api";
+import { useQuery } from "@tanstack/react-query";
+import { Plus, Loader2, CheckCircle, ArrowRight } from "lucide-react";
+import { useJsApiLoader } from "@react-google-maps/api";
 import { DAY_ITEMS } from "@/constants/dayItems";
 import { TIME_ITEMS } from "@/constants/timeItems";
 import { GATHERING_CATEGORY_COLOR } from "@/constants/gatheringCategoryColor";
@@ -21,15 +12,33 @@ import { DISTRICT_ITEMS } from "@/constants/districtItems";
 import { TYPE_FILTERS } from "@/constants/typeFilters";
 import { CATEGORY_FILTERS } from "@/constants/categoryFilters";
 import { GET_KEY_BY_LABEL } from "@/utils/getKeyByLabel";
+import { DEFAULT_COORDS } from "@/constants/defaultCoords";
+import { Coords } from "@/types/Coords";
+import { getGatherings } from "../api/gathering/getGatherings";
+import { getClientDayEnum } from "@/utils/getClientDayEnum";
+import {
+  JoinedGatheringItem,
+  JoinGatheringInfo,
+} from "@/types/JoinedGatheringItem";
+import { useCreateGathering } from "@/hooks/useCreateGathering";
+import { Category } from "@/types/Category";
+import { Day } from "@/types/Day";
+import { Time } from "@/types/Time";
+import { District } from "@/types/District";
+import { getMyProfile } from "../api/profile/getMyProfile";
+import { toggleFilter } from "@/utils/toggleFilter";
+import { toggleArrayItem } from "@/utils/toggleArrayItem";
+import { GatheringWithDistance } from "@/types/Gathering";
+import { CreateGatheringModal } from "@/components/CreateGatheringModal";
+import { MapSelectionModal } from "@/components/MapSelectionModal";
 
 export default function HomePage() {
-  const { isLoaded } = useJsApiLoader({
+  useJsApiLoader({
     id: "google-map-script",
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
   });
 
   const router = useRouter();
-  const queryClient = useQueryClient();
 
   const [selectedTypes, setSelectedTypes] = useState<string[]>(["전체"]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([
@@ -39,32 +48,25 @@ export default function HomePage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const [activeDistrictTab, setActiveDistrictTab] = useState<
-    "SEOUL" | "GYEONGGI" | "ETC"
+    "SEOUL" | "GYEONGGI" | "OTHER"
   >("SEOUL");
   const [activeTimeTab, setActiveTimeTab] = useState<"AM" | "PM">("PM");
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [category, setCategory] = useState("FOOD");
+  const [category, setCategory] = useState<Category | null>(null);
   const [maxParticipants, setMaxParticipants] = useState("");
   const [gatheringPlace, setGatheringPlace] = useState("");
   const [gatheringAddress, setGatheringAddress] = useState("");
-
-  const [district, setDistrict] = useState("SEOUL_GANGNAM");
-  const [gatheringDay, setGatheringDay] = useState<string[]>([]);
-  const [gatheringTime, setGatheringTime] = useState<string[]>([]);
-
-  const [location, setLocation] = useState({
-    latitude: 37.5665,
-    longitude: 126.978,
-  });
+  const [district, setDistrict] = useState<District | null>(null);
+  const [gatheringDay, setGatheringDay] = useState<Day[]>([]);
+  const [gatheringTime, setGatheringTime] = useState<Time[]>([]);
+  const [location, setLocation] = useState(DEFAULT_COORDS);
   const [isLocationLoading, setIsLocationLoading] = useState(true);
-
   const [isMapModalOpen, setIsMapModalOpen] = useState(false);
-  const [selectedPlaceCoords, setSelectedPlaceCoords] = useState<{
-    latitude: number;
-    longitude: number;
-  } | null>(null);
+  const [selectedPlaceCoords, setSelectedPlaceCoords] = useState<Coords | null>(
+    null,
+  );
 
   useEffect(() => {
     if (typeof window !== "undefined" && navigator.geolocation) {
@@ -77,7 +79,7 @@ export default function HomePage() {
           setIsLocationLoading(false);
         },
         (error) => {
-          console.error("위치 추적 예외 발생:", error);
+          console.error("위치 추적 에러 발생:", error);
           setIsLocationLoading(false);
         },
       );
@@ -86,92 +88,70 @@ export default function HomePage() {
     }
   }, []);
 
-  const getClientDayEnum = () => {
-    const days = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
-    return days[new Date().getDay()];
-  };
+  ///////////////////////////////////////////////////////////////////////////////
 
   const { data: gatherings = [], isLoading: isGatheringsLoading } = useQuery({
-    queryKey: ["gatherings", selectedTypes, selectedCategories, location],
-    queryFn: async () => {
-      const response = await client.get("gatherings", {
-        params: {
-          types: selectedTypes,
-          categories: selectedCategories,
-          clientDay: getClientDayEnum(),
-          latitude: location.latitude,
-          longitude: location.longitude,
-        },
-
-        paramsSerializer: (params) => {
-          const searchParams = new URLSearchParams();
-          Object.entries(params).forEach(([key, value]) => {
-            if (Array.isArray(value)) {
-              value.forEach((v) => searchParams.append(key, v));
-            } else if (value !== undefined && value !== null) {
-              searchParams.append(key, String(value));
-            }
-          });
-          return searchParams.toString();
-        },
-      });
-      return response.data;
-    },
+    queryKey: ["gatherings", { selectedTypes, selectedCategories, location }],
+    queryFn: () =>
+      getGatherings({
+        types: selectedTypes,
+        categories: selectedCategories,
+        clientDay: getClientDayEnum(),
+        latitude: location?.latitude,
+        longitude: location?.longitude,
+      }),
     refetchInterval: 5000,
   });
 
+  const isCombinedLoading = isGatheringsLoading || isLocationLoading;
+
+  ///////////////////////////////////////////////////////////////////////////////
+
   const { data: userProfile } = useQuery({
     queryKey: ["myProfile"],
-    queryFn: async () => {
-      const { data } = await client.get("/users/me");
-      return data;
-    },
+    queryFn: getMyProfile,
     refetchInterval: 5000,
   });
 
   const myJoinedGatherings =
-    userProfile?.joinedGatherings?.map((jg: any) => jg.gathering) || [];
+    userProfile?.joinedGatherings?.map(
+      (jg: JoinedGatheringItem) => jg.gathering,
+    ) || [];
 
-  const createGatheringMutation = useMutation({
-    mutationFn: async (newGathering: any) => {
-      const { data } = await client.post("/gatherings", newGathering);
-      return data;
-    },
-    onSuccess: () => {
-      alert("새로운 소모임이 성공적으로 개설되었습니다! 🎉");
-      setIsCreateModalOpen(false);
-      resetForm();
-      queryClient.invalidateQueries({ queryKey: ["gatherings"] });
-    },
-    onError: (err: any) => {
-      const errorMsg =
-        err.response?.data?.message || "소모임 생성에 실패했습니다.";
-      alert(Array.isArray(errorMsg) ? errorMsg[0] : errorMsg);
-    },
-  });
+  ///////////////////////////////////////////////////////////////////////////////
 
   const resetForm = () => {
     setTitle("");
     setDescription("");
-    setCategory("FOOD");
+    setCategory(null);
     setMaxParticipants("");
     setGatheringPlace("");
     setGatheringAddress("");
     setActiveDistrictTab("SEOUL");
-    setDistrict("SEOUL_GANGNAM");
+    setDistrict(null);
     setGatheringDay([]);
     setGatheringTime([]);
     setSelectedPlaceCoords(null);
   };
 
+  const {
+    mutate: createGatheringMutation,
+    isPending: isCreateGatheringPending,
+  } = useCreateGathering({
+    onSuccessCallback: () => {
+      setIsCreateModalOpen(false);
+      resetForm();
+    },
+  });
+
   const handleCreateSubmit = () => {
     const parsedMax = parseInt(maxParticipants, 10);
     if (isNaN(parsedMax) || parsedMax < 2 || parsedMax > 12) {
-      alert("최대 정원은 최소 2명에서 최대 12명까지만 가능합니다! 🍑");
+      alert("최대 정원은 최소 2명에서 최대 12명까지만 가능합니다!");
       return;
     }
     if (!selectedPlaceCoords) {
-      alert("지도에서 모임 장소 위치를 지정해 주세요! 📍");
+      alert("지도에서 모임 장소 위치를 지정해 주세요!");
       return;
     }
 
@@ -186,7 +166,7 @@ export default function HomePage() {
       return;
     }
 
-    const payload = {
+    const gatheringCreatePayload = {
       title,
       description,
       category,
@@ -198,48 +178,19 @@ export default function HomePage() {
       gatheringDay,
       gatheringTime,
     };
-    createGatheringMutation.mutate(payload);
+
+    createGatheringMutation(gatheringCreatePayload);
   };
 
-  const toggleArrayItem = (
-    list: string[],
-    setList: React.Dispatch<React.SetStateAction<string[]>>,
-    item: string,
-  ) => {
-    if (list.includes(item)) setList(list.filter((x) => x !== item));
-    else setList([...list, item]);
-  };
-
-  const toggleFilter = (filter: string, type: "TYPE" | "CAT") => {
-    const isType = type === "TYPE";
-    const currentList = isType ? selectedTypes : selectedCategories;
-    const setList = isType ? setSelectedTypes : setSelectedCategories;
-    if (filter === "전체") {
-      setList(["전체"]);
-      return;
-    }
-    let newList = currentList.filter((item) => item !== "전체");
-    if (newList.includes(filter)) {
-      newList = newList.filter((item) => item !== filter);
-      if (newList.length === 0) newList = ["전체"];
-    } else {
-      if (isType) {
-        if (filter === "오늘 열리는")
-          newList = newList.filter((item) => item !== "내일 열리는");
-        else if (filter === "내일 열리는")
-          newList = newList.filter((item) => item !== "오늘 열리는");
-      }
-      newList.push(filter);
-    }
-    setList(newList);
-  };
-
-  const isCombinedLoading = isGatheringsLoading || isLocationLoading;
+  ///////////////////////////////////////////////////////////////////////////////
 
   const filteredDistricts = DISTRICT_ITEMS.filter(
     (d) => d.city === activeDistrictTab,
   );
+
   const filteredTimes = TIME_ITEMS.filter((t) => t.type === activeTimeTab);
+
+  ///////////////////////////////////////////////////////////////////////////////
 
   return (
     <div className="min-h-screen bg-[#FBFBF9] text-[#292524] relative pb-24">
@@ -279,23 +230,25 @@ export default function HomePage() {
                   </span>
                 </div>
                 <div className="max-h-90 overflow-y-auto space-y-1">
-                  {myJoinedGatherings.map((g: any, idx: number) => (
-                    <div
-                      key={g.id || idx}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        router.push(`/gatherings/${g.id}`);
-                        setIsDropdownOpen(false);
-                      }}
-                      className="flex items-center justify-between p-2 rounded-lg hover:bg-stone-50 cursor-pointer transition text-sm font-semibold"
-                    >
-                      <div className="flex items-center gap-2 max-w-[85%]">
-                        <div className="w-1.5 h-1.5 rounded-full bg-[#FF7A59]" />
-                        <p className="truncate">{g.title}</p>
+                  {myJoinedGatherings.map(
+                    (jg: JoinGatheringInfo, idx: number) => (
+                      <div
+                        key={jg.id || idx}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/gatherings/${jg.id}`);
+                          setIsDropdownOpen(false);
+                        }}
+                        className="flex items-center justify-between p-2 rounded-lg hover:bg-stone-50 cursor-pointer transition text-sm font-semibold"
+                      >
+                        <div className="flex items-center gap-2 max-w-[85%]">
+                          <div className="w-1.5 h-1.5 rounded-full bg-[#FF7A59]" />
+                          <p className="truncate">{jg.title}</p>
+                        </div>
+                        <ArrowRight className="w-4 h-4 text-stone-400" />
                       </div>
-                      <ArrowRight className="w-4 h-4 text-stone-400" />
-                    </div>
-                  ))}
+                    ),
+                  )}
                   {myJoinedGatherings.length === 0 && (
                     <p className="text-xs text-center py-4 text-stone-400 font-medium">
                       참여 중인 모임이 없습니다.
@@ -313,7 +266,16 @@ export default function HomePage() {
           {TYPE_FILTERS.map((filter) => (
             <button
               key={filter}
-              onClick={() => toggleFilter(filter, "TYPE")}
+              onClick={() =>
+                toggleFilter(
+                  filter,
+                  "TYPE",
+                  selectedTypes,
+                  setSelectedTypes,
+                  selectedCategories,
+                  setSelectedCategories,
+                )
+              }
               className={`px-4 py-1.5 rounded-full text-[13px] font-semibold border whitespace-nowrap transition ${
                 selectedTypes.includes(filter)
                   ? "bg-[#FF7A59] border-[#FF7A59] text-white font-bold"
@@ -337,7 +299,16 @@ export default function HomePage() {
             return (
               <button
                 key={filter}
-                onClick={() => toggleFilter(filter, "CAT")}
+                onClick={() =>
+                  toggleFilter(
+                    filter,
+                    "CATE",
+                    selectedTypes,
+                    setSelectedTypes,
+                    selectedCategories,
+                    setSelectedCategories,
+                  )
+                }
                 style={
                   isActive
                     ? {
@@ -368,7 +339,7 @@ export default function HomePage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {gatherings.map((item: any) => {
+            {gatherings.map((item: GatheringWithDistance) => {
               const catTheme = GATHERING_CATEGORY_COLOR[
                 item.category?.toUpperCase() || "TALK"
               ] || {
@@ -426,350 +397,52 @@ export default function HomePage() {
         <Plus className="w-7 h-7" />
       </button>
 
-      {isCreateModalOpen && (
-        <div className="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center z-100 p-0 sm:p-4">
-          <div className="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-2xl h-[90vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-200">
-            <div className="p-5 border-b border-stone-100 flex justify-between items-center shrink-0">
-              <h2 className="text-lg font-black text-[#292524]">
-                새로운 소모임 만들기 🍑
-              </h2>
-              <button
-                onClick={() => setIsCreateModalOpen(false)}
-                className="p-1 hover:bg-stone-100 rounded-full transition"
-              >
-                <X className="w-5 h-5 text-stone-600" />
-              </button>
-            </div>
+      <CreateGatheringModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        formProps={{
+          category,
+          setCategory,
+          title,
+          setTitle,
+          description,
+          setDescription,
+          activeDistrictTab,
+          setActiveDistrictTab,
+          district,
+          setDistrict,
+          filteredDistricts,
+          selectedPlaceCoords,
+          setIsMapModalOpen,
+          gatheringPlace,
+          setGatheringPlace,
+          gatheringDay,
+          setGatheringDay,
+          activeTimeTab,
+          setActiveTimeTab,
+          gatheringTime,
+          setGatheringTime,
+          filteredTimes,
+          maxParticipants,
+          setMaxParticipants,
+          handleCreateSubmit,
+          isPending: isCreateGatheringPending,
+          toggleArrayItem,
+          GATHERING_CATEGORY_COLOR,
+          DAY_ITEMS,
+        }}
+      />
 
-            <div className="flex-1 overflow-y-auto p-5 space-y-5 pb-16">
-              <div>
-                <label className="text-sm font-bold text-[#292524] block mb-2">
-                  카테고리 선택
-                </label>
-                <div className="flex flex-wrap gap-2.5">
-                  {Object.keys(CATEGORY_MAP)
-                    .filter((k) => k !== "ALL")
-                    .map((key) => (
-                      <button
-                        key={key}
-                        onClick={() => setCategory(key)}
-                        style={
-                          category === key
-                            ? {
-                                backgroundColor: CATEGORY_MAP[key].bg,
-                                color: CATEGORY_MAP[key].text,
-                              }
-                            : {}
-                        }
-                        className=" px-3 py-1.5 text-[13px] font-bold rounded-full bg-[#F2F0EC] text-[#78716C] transition"
-                      >
-                        {CATEGORY_MAP[key].emoji} {CATEGORY_MAP[key].label}
-                      </button>
-                    ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="text-sm font-bold text-[#292524] block mb-1">
-                  모임 제목
-                </label>
-                <input
-                  type="text"
-                  placeholder="예) 한강 러닝 모임"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="w-full bg-[#F5F5F4] p-3 rounded-xl text-sm font-semibold focus:outline-none focus:ring-1 focus:ring-[#FF7A59]/95"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-bold text-[#292524] block mb-1">
-                  모임 설명
-                </label>
-                <textarea
-                  placeholder="모임의 상세 소개글을 작성해 주세요."
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={3}
-                  className="w-full bg-[#F5F5F4] p-3 rounded-xl text-sm font-semibold focus:outline-none focus:ring-1 focus:ring-[#FF7A59]/95 resize-none"
-                />
-              </div>
-
-              <div>
-                <label className="mt-8 text-[13.5px] font-bold text-[#292524] block mb-2">
-                  모임 지역 선택
-                </label>
-                <div className="flex bg-[#F2F0EC] p-1 rounded-xl mb-3 ">
-                  {(["SEOUL", "GYEONGGI", "ETC"] as const).map((cityKey) => {
-                    const tabLabel =
-                      cityKey === "SEOUL"
-                        ? "서울"
-                        : cityKey === "GYEONGGI"
-                          ? "경기"
-                          : "기타 광역시/도";
-                    return (
-                      <button
-                        key={cityKey}
-                        type="button"
-                        onClick={() => {
-                          setActiveDistrictTab(cityKey);
-                        }}
-                        className={`flex-1 text-sm py-2 text-center rounded-lg font-bold transition ${
-                          activeDistrictTab === cityKey
-                            ? "bg-white text-[#FF7A59] shadow-sm"
-                            : "text-[#78716C]"
-                        }`}
-                      >
-                        {tabLabel}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <span className="text-[12.5px] font-bold text-[#78716C] block mb-2">
-                  세부 지역 선택
-                </span>
-                <div className="flex flex-wrap gap-2 max-h-44 overflow-y-auto p-2 border border-dashed border-stone-200 rounded-xl bg-stone-50/50">
-                  {filteredDistricts.map((item) => {
-                    const isSelectedDistrict = district === item.key;
-                    return (
-                      <button
-                        key={item.key}
-                        type="button"
-                        onClick={() => setDistrict(item.key)}
-                        className={`text-[12.5px] px-3 py-1.5 rounded-xl font-semibold border transition ${
-                          isSelectedDistrict
-                            ? "bg-[#FFEBE5] border-[#FF7A59] text-[#FF7A59] font-black"
-                            : "bg-white border-stone-200 text-[#78716C] hover:bg-stone-100"
-                        }`}
-                      >
-                        {item.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div>
-                <label className="text-sm font-bold text-[#292524] block mb-1.5 mt-6">
-                  모임 장소 지정
-                </label>
-                <button
-                  onClick={() => setIsMapModalOpen(true)}
-                  className={`w-full flex items-center justify-center gap-1.5 p-3 rounded-xl text-sm font-bold border transition ${
-                    selectedPlaceCoords
-                      ? "bg-[#fa937a] border-[#FF7A59] text-white"
-                      : "bg-[#FFEBE5] border-[#FF7A59] text-[#FF7A59]"
-                  }`}
-                >
-                  <Layers className="w-4 h-4" />
-                  {selectedPlaceCoords
-                    ? "위치 지정 완료 (다시 선택)"
-                    : "지도에서 모임 장소 찍기 📍"}
-                </button>
-                <input
-                  type="text"
-                  placeholder="상세 장소명을 입력해주세요"
-                  value={gatheringPlace}
-                  onChange={(e) => setGatheringPlace(e.target.value)}
-                  className="w-full bg-[#F5F5F4] p-3 rounded-xl text-sm font-semibold focus:outline-none mt-2 focus:ring-1 focus:ring-[#FF7A59]/95"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-bold text-[#292524] block mb-1.5 mt-10">
-                  모임 요일 (중복 가능)
-                </label>
-                <div className="gap-1.5 flex justify-around ">
-                  {DAY_ITEMS.map((day) => {
-                    const isSel = gatheringDay.includes(day.key);
-                    return (
-                      <button
-                        key={day.key}
-                        onClick={() =>
-                          toggleArrayItem(
-                            gatheringDay,
-                            setGatheringDay,
-                            day.key,
-                          )
-                        }
-                        className={`w-10 h-10 rounded-full text-[13.5px] font-bold transition ${isSel ? "bg-[#FF7A59] text-white" : "bg-[#F2F0EC] text-[#78716C]"}`}
-                      >
-                        {day.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div>
-                <label className="text-sm font-bold text-[#292524] block mb-2 mt-4">
-                  모임 시간대 (중복 가능)
-                </label>
-                <div className="flex bg-[#F2F0EC] p-1 rounded-xl mb-3">
-                  {(["AM", "PM"] as const).map((timeType) => (
-                    <button
-                      key={timeType}
-                      type="button"
-                      onClick={() => setActiveTimeTab(timeType)}
-                      className={`flex-1 text-[13.5px] py-1.5 text-center rounded-lg font-bold transition ${
-                        activeTimeTab === timeType
-                          ? "bg-white text-[#FF7A59]"
-                          : "text-[#78716C]"
-                      }`}
-                    >
-                      {timeType === "AM" ? "오전 (AM)" : "오후 (PM)"}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="grid grid-cols-3 gap-2">
-                  {filteredTimes.map((time) => {
-                    const isTimeSel = gatheringTime.includes(time.key);
-                    return (
-                      <button
-                        key={time.key}
-                        type="button"
-                        onClick={() =>
-                          toggleArrayItem(
-                            gatheringTime,
-                            setGatheringTime,
-                            time.key,
-                          )
-                        }
-                        className={`py-2 px-1 rounded-xl text-[13px] font-bold transition border text-center ${
-                          isTimeSel
-                            ? "bg-[#FFEBE5] border-[#FF7A59] text-[#FF7A59] font-black shadow-sm"
-                            : "bg-white border-stone-200 text-[#78716C] hover:bg-stone-50"
-                        }`}
-                      >
-                        {time.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div>
-                <label className="text-sm font-bold text-[#292524] block mb-1 mt-6">
-                  모임 정원 (명)
-                </label>
-                <input
-                  type="number"
-                  placeholder="최소 2명 ~ 최대 12명"
-                  value={maxParticipants}
-                  onChange={(e) => setMaxParticipants(e.target.value)}
-                  className="w-full bg-[#F5F5F4] p-3 rounded-xl text-sm font-semibold outline-none focus:ring-1 focus:ring-[#FF7A59]/95"
-                />
-              </div>
-
-              <button
-                onClick={handleCreateSubmit}
-                disabled={createGatheringMutation.isPending}
-                className="w-full bg-[#FF7A59] hover:bg-[#e06848] text-white py-4 rounded-xl text-[15px] font-extrabold transition shadow-md flex justify-center items-center mt-9"
-              >
-                {createGatheringMutation.isPending ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  "소모임방 개설하기 🚀"
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {isMapModalOpen && (
-        <div className="fixed inset-0 bg-stone-950 z-[120] flex flex-col justify-between p-4 md:p-6 animate-in fade-in duration-200">
-          <div className="flex-1 bg-stone-900 rounded-2xl relative overflow-hidden border border-stone-800 flex flex-col shadow-inner">
-            <div className="absolute top-4 left-4 bg-black/75 text-white px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 z-10 shadow-md backdrop-blur-sm">
-              <MapPin className="w-3.5 h-3.5 text-[#FF7A59]" />
-              <span>원하는 모임 장소를 지도에서 터치해 주세요 📍</span>
-            </div>
-
-            <div className="w-full h-full">
-              <GoogleMap
-                mapContainerStyle={{ width: "100%", height: "100%" }}
-                center={{
-                  lat: Number(
-                    selectedPlaceCoords?.latitude ||
-                      location.latitude ||
-                      37.5665,
-                  ),
-                  lng: Number(
-                    selectedPlaceCoords?.longitude ||
-                      location.longitude ||
-                      126.978,
-                  ),
-                }}
-                zoom={16}
-                onClick={async (e) => {
-                  const lat = e.latLng?.lat();
-                  const lng = e.latLng?.lng();
-                  if (lat === undefined || lng === undefined) return;
-
-                  const nextCoords = { latitude: lat, longitude: lng };
-                  setSelectedPlaceCoords(nextCoords);
-
-                  try {
-                    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-                    const res = await fetch(
-                      `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${apiKey}&language=ko`,
-                    );
-                    const json = await res.json();
-                    if (json.results && json.results.length > 0) {
-                      setGatheringAddress(json.results[0].formatted_address);
-                    }
-                  } catch (error) {
-                    console.error("주소 변환 실패:", error);
-                  }
-                }}
-              >
-                {selectedPlaceCoords && (
-                  <MarkerF
-                    position={{
-                      lat: Number(selectedPlaceCoords.latitude),
-                      lng: Number(selectedPlaceCoords.longitude),
-                    }}
-                  />
-                )}
-              </GoogleMap>
-            </div>
-
-            <button
-              onClick={() => setIsMapModalOpen(false)}
-              className="absolute top-4 right-4 bg-white/90 hover:bg-white text-stone-700 p-2 rounded-xl shadow-md z-10 transition"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-
-          <div className="bg-white w-full max-w-md mx-auto mt-4 p-3 pb-4 rounded-2xl border border-stone-200 shadow-2xl space-y-3 shrink-0">
-            <div className="text-center"></div>
-
-            <div>
-              <MapPin className="w-6 h-6 mx-auto text-[#FF7A59] animate-bounce" />
-              <p className="flex flex-col items-center text-sm text-center text-stone-500 font-medium py-4">
-                지도를 클릭하여 모임 장소에 핀을 꽂아주세요!
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => {
-                if (!selectedPlaceCoords) {
-                  alert("지도에서 모임 장소를 먼저 터치해 주세요! 📍");
-                  return;
-                }
-                setIsMapModalOpen(false);
-              }}
-              className="w-full bg-[#FF7A59] hover:bg-[#e06848] active:scale-[0.99] text-white text-[15px] font-extrabold py-3.5 rounded-xl transition shadow-md block text-center"
-            >
-              이 장소로 지정하기
-            </button>
-          </div>
-        </div>
-      )}
+      <MapSelectionModal
+        isOpen={isMapModalOpen}
+        onClose={() => setIsMapModalOpen(false)}
+        location={location}
+        selectedPlaceCoords={selectedPlaceCoords}
+        setSelectedPlaceCoords={setSelectedPlaceCoords}
+        gatheringAddress={gatheringAddress}
+        setGatheringAddress={setGatheringAddress}
+        setGatheringPlace={setGatheringPlace}
+      />
     </div>
   );
 }

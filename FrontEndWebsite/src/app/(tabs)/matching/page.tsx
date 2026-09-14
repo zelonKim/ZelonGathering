@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
 import { Sparkles, AlertCircle, Loader2 } from "lucide-react";
-import { getMyNotifications } from "@/api/notification/getMyNotifications";
+import { getMyNotifications } from "@/app/api/notification/getMyNotifications";
 import { useDeleteNotification } from "@/hooks/useDeleteNotification";
 import { NotificationItem } from "@/types/NotificationItem";
 

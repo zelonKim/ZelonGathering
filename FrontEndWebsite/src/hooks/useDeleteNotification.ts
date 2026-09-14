@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { deleteNotification } from "@/api/notification/deleteNotification";
+import { deleteNotification } from "@/app/api/notification/deleteNotification";
 
 export const useDeleteNotification = () => {
   const queryClient = useQueryClient();

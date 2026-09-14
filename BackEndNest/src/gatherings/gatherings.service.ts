@@ -9,6 +9,7 @@ import {
   Day,
   GatheringCategory,
   GatheringStatus,
+  ParticipantStatus,
   Prisma,
 } from '@prisma/client';
 import { CreateGatheringDto } from './dto/create-gathering.dto';
@@ -196,7 +197,7 @@ export class GatheringsService {
         return a.distanceMetres - b.distanceMetres;
       });
     }
-    
+
     return gatheringsWithDistance;
   }
 
@@ -216,9 +217,14 @@ export class GatheringsService {
           },
         },
         participants: {
-          include: {
+          select: {
+            id: true,
+            gatheringId: true,
+            userId: true,
+            status: true,
             user: {
               select: {
+                id: true,
                 nickname: true,
                 profileImg: true,
                 mannerTemperature: true,
@@ -411,12 +417,12 @@ export class GatheringsService {
 
   //////////////////////////////////////////////////////////
 
-  // 9. 참여 신청 승인/거절
+  // 9. 참여자 상태 변경
   async reviewParticipant(
     gatheringId: string,
     hostId: string,
     userId: string,
-    status: 'ACCEPTED' | 'REJECTED',
+    status: ParticipantStatus
   ) {
     const gathering = await this.prisma.gathering.findUnique({
       where: { id: gatheringId },

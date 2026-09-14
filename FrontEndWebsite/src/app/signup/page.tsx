@@ -2,9 +2,8 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useMutation } from "@tanstack/react-query";
 import { ArrowLeft, Loader2 } from "lucide-react";
-import { client } from "@/api/client";
+import { useSignup } from "@/hooks/useSignup";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -12,26 +11,7 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
 
-
-  const signupUser = async (signupData: any) => {
-    const { data } = await client.post("/users/signup", signupData);
-    return data;
-  };
-
-
-  const { mutate: signupMutate, isPending } = useMutation({
-    mutationFn: signupUser,
-    onSuccess: (data) => {
-      alert(data.message || "회원가입이 완료되었습니다! 🎉");
-      router.replace("/login");
-    },
-    onError: (error: any) => {
-      const errorMessage =
-        error.response?.data?.message || "회원가입 중 오류가 발생했습니다.";
-      alert(errorMessage);
-    },
-  });
-
+  const { mutate: signupMutation, isPending: signupPending } = useSignup();
 
   const handleSignup = () => {
     if (!email.trim() || !password.trim() || !passwordConfirm.trim()) {
@@ -56,13 +36,12 @@ export default function SignupPage() {
       return;
     }
 
-    signupMutate({
+    signupMutation({
       email,
       password,
       passwordConfirm,
     });
   };
-
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
@@ -70,23 +49,22 @@ export default function SignupPage() {
     }
   };
 
+  ////////////////////////////////////////////////////////////////
+
   return (
     <div className="min-h-screen bg-[#FBFBF9] text-[#292524] flex flex-col items-center justify-start p-4 md:p-6">
       <div className="w-full max-w-md bg-[#FBFBF9] flex flex-col h-full">
-
         <header className="h-14 flex items-center justify-start">
           <button
             onClick={() => router.back()}
-            disabled={isPending}
+            disabled={signupPending}
             className="p-2 hover:bg-stone-200/50 rounded-full transition disabled:opacity-50"
           >
-            <ArrowLeft className="w-6 h-6 text-[#292524]" />
+            <ArrowLeft className="w-6 h-6 text-gray-800" />
           </button>
         </header>
 
-
         <main className="flex-1 flex flex-col justify-center px-4 pt-4 pb-20">
-     
           <section className="my-10">
             <h1 className="text-3xl font-black tracking-tight text-[#292524]">
               하이루 👋
@@ -96,9 +74,7 @@ export default function SignupPage() {
             </p>
           </section>
 
-    
           <div className="flex flex-col gap-[18px]">
-
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-bold text-[#78716C]">
                 이메일 계정
@@ -107,14 +83,13 @@ export default function SignupPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                onKeyDown={handleKeyDown} 
+                onKeyDown={handleKeyDown}
                 placeholder="example@zelon.com"
-                disabled={isPending}
+                disabled={signupPending}
                 className="w-full bg-white border border-[#E7E5E4] rounded-[14px] px-4 py-3.5 text-base font-semibold text-[#292524] placeholder-[#8d8d8d9b] focus:outline-none focus:ring-2 focus:ring-[#FF7A59]/20 focus:border-[#FF7A59] transition disabled:bg-stone-100"
               />
             </div>
 
-     
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-bold text-[#78716C]">
                 비밀번호
@@ -123,14 +98,13 @@ export default function SignupPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                onKeyDown={handleKeyDown} // 엔터키 이벤트 바인딩
+                onKeyDown={handleKeyDown}
                 placeholder="영문, 숫자 포함 8자 이상"
-                disabled={isPending}
+                disabled={signupPending}
                 className="w-full bg-white border border-[#E7E5E4] rounded-[14px] px-4 py-3.5 text-base font-semibold text-[#292524] placeholder-[#8d8d8d9b] focus:outline-none focus:ring-2 focus:ring-[#FF7A59]/20 focus:border-[#FF7A59] transition disabled:bg-stone-100"
               />
             </div>
 
-      
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-bold text-[#78716C]">
                 비밀번호 확인
@@ -139,24 +113,23 @@ export default function SignupPage() {
                 type="password"
                 value={passwordConfirm}
                 onChange={(e) => setPasswordConfirm(e.target.value)}
-                onKeyDown={handleKeyDown} // 엔터키 이벤트 바인딩
+                onKeyDown={handleKeyDown}
                 placeholder="비밀번호를 한번 더 입력해 주세요"
-                disabled={isPending}
+                disabled={signupPending}
                 className="w-full bg-white border border-[#E7E5E4] rounded-[14px] px-4 py-3.5 text-base font-semibold text-[#292524] placeholder-[#8d8d8d9b] focus:outline-none focus:ring-2 focus:ring-[#FF7A59]/20 focus:border-[#FF7A59] transition disabled:bg-stone-100"
               />
             </div>
 
-            {/* 🌟 [변경] 기존 submit 타입 버튼을 순수 onClick 이벤트 기반의 버튼으로 튠업 */}
             <button
               type="button"
               onClick={handleSignup}
-              disabled={isPending}
+              disabled={signupPending}
               className="w-full bg-[#FF7A59] hover:bg-[#e06848] active:scale-[0.99] text-white py-4 rounded-[16px] font-bold text-[15px] flex justify-center items-center mt-3 shadow-[0_4px_8px_rgba(255,122,89,0.15)] transition disabled:opacity-70 disabled:pointer-events-none"
             >
-              {isPending ? (
+              {signupPending ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
-                    <div className="text-base">가입하기</div>
+                <div className="text-base">가입하기</div>
               )}
             </button>
           </div>

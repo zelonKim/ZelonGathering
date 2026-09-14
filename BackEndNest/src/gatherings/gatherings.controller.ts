@@ -14,7 +14,7 @@ import { GatheringsService } from './gatherings.service';
 import { JwtAuthGuard } from '../users/jwt-auth.guard';
 import { CreateGatheringDto } from './dto/create-gathering.dto';
 import { FilterGatheringDto } from './dto/filter-gathering.dto';
-import { GatheringStatus } from '@prisma/client';
+import { GatheringStatus, ParticipantStatus } from '@prisma/client';
 
 @Controller('gatherings')
 @UseGuards(JwtAuthGuard)
@@ -89,13 +89,13 @@ export class GatheringsController {
     return await this.gatheringsService.getParticipants(id);
   }
 
-  // 9. 소모임 참여 승인/거절
+  // 9. 참여자 상태 변경
   @Patch(':id/participants')
   async reviewParticipant(
     @Param('id') id: string,
     @Req() req: { user: { sub: string } },
     @Body('userId') userId: string,
-    @Body('status') status: 'ACCEPTED' | 'REJECTED',
+    @Body('status') status: ParticipantStatus
   ) {
     const hostId = req.user.sub;
     return await this.gatheringsService.reviewParticipant(

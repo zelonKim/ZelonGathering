@@ -3,14 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  Bell,
-  BellRing,
-  Home,
-  MessageCircleMore,
-  Sparkles,
-  User,
-} from "lucide-react";
+import { Bell, Home, MessageCircleMore, User } from "lucide-react";
 
 export default function TabsLayout({
   children,

@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { CHAT_CATEGORY_COLOR } from "@/constants/chatCategoryColor";
 import { ChatRoomListItem } from "../../../types/ChatRoomListItem";
-import { getMyChats } from "@/api/chat/getMyChats";
+import { getMyChats } from "@/app/api/chat/getMyChats";
 
 export default function ChatsPage() {
   const router = useRouter();
