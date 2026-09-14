@@ -50,7 +50,16 @@ export class ChatsController {
     );
   }
 
-  // 4. DM 채팅방 조회
+  // 3. DM 채팅방 상세 정보 조회
+  @Get('private/room/:roomId')
+async getPrivateChatRoom(
+  @Param('roomId') roomId: string,
+  @Req() req: { user: { sub: string } },
+) {
+  return await this.chatsService.getPrivateChatRoomById(roomId, req.user.sub);
+}
+
+  // 4. DM 채팅방 목록 조회
   @Get('private/rooms')
   async getMyChatRooms(@Req() req: { user: { sub: string } }) {
     return await this.chatsService.getMyPrivateChatRooms(req.user.sub);

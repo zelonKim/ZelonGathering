@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import Providers from "./providers"; // 🌟 1단계에서 만든 Providers 임포트
+import Providers from "./providers";
 
 const fontGeist = Geist({
   variable: "--font-geist-sans",
@@ -27,7 +27,7 @@ export default function RootLayout({
     <html lang="ko">
       <body
         className={`${fontGeist.variable} ${fontGeistMono.variable} antialiased`}
-      > 
+      >
         <Providers>{children}</Providers>
       </body>
     </html>

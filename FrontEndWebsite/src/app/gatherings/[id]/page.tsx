@@ -210,7 +210,7 @@ export default function GatheringDetailPage() {
 
   const activeParticipants =
     gathering.participants?.filter(
-      (p: GatheringParticipant) => p.status !== "REJECTED",
+      (p: GatheringParticipant) => p.status === "ACCEPTED",
     ) || [];
 
   //////////////////////////////////////////////////////////////////////////////

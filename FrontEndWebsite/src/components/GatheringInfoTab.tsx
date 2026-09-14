@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   MapPin,
   Calendar,
@@ -8,12 +8,14 @@ import {
   CheckCircle,
   Loader2,
   UserX,
+  MessageCircle,
+  User,
 } from "lucide-react";
 import { GatheringParticipant } from "@/types/GatheringDetail";
 import { Day } from "@/types/Day";
 import { Time } from "@/types/Time";
 import { GatheringInfoTabProps } from "@/types/GatheringInfoTabProps";
-
+import { useOpenPrivateChatRoom } from "@/hooks/useOpenPrivateChatRoom";
 
 export function GatheringInfoTab({
   gathering,
@@ -29,6 +31,24 @@ export function GatheringInfoTab({
   DAY_MAPS,
   TIME_MAPS,
 }: GatheringInfoTabProps) {
+  const [activeMenuParticipantId, setActiveMenuParticipantId] = useState<
+    string | null
+  >(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setActiveMenuParticipantId(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const { mutate: openDmMutation, isPending: isOpenDmPending } =
+    useOpenPrivateChatRoom();
+
   return (
     <div className="p-5 space-y-6 flex-1 pb-16">
       <div className="bg-white shadow-xs border border-[#E7E5E4] rounded-3xl p-5 space-y-4 shadow-[0_2px_8px_rgba(0,0,0,0.01)]">
@@ -42,7 +62,7 @@ export function GatheringInfoTab({
 
           {isHost ? (
             <span className="text-[12px] font-bold text-[#78716C] bg-stone-100 border border-stone-200 px-3 py-1 rounded-lg">
-              내가 만든 모임 👑
+              내가 만든 모임
             </span>
           ) : isKicked ? (
             <span className="text-[12px] font-bold text-[#EF4444] bg-red-50 border border-red-200 px-3 py-1 rounded-lg flex items-center gap-1">
@@ -105,33 +125,6 @@ export function GatheringInfoTab({
         </p>
       </div>
 
-      {/* 방장 정보 */}
-      <div className="space-y-2">
-        <h4 className="text-[15px] font-black text-[#292524] pl-1">방장</h4>
-        <div className="md:max-w-[486px] shadow-xs bg-white border border-[#E7E5E4] rounded-2xl p-3.5 flex items-center gap-3">
-          <div className="w-11 h-11 bg-stone-100 rounded-xl flex items-center justify-center font-bold overflow-hidden">
-            {gathering.host?.profileImg ? (
-              <img
-                src={gathering.host.profileImg}
-                alt="Host"
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              "🍑"
-            )}
-          </div>
-          <div>
-            <p className="text-[15px] font-bold text-[#292524]">
-              {gathering.host?.nickname || "방장"}
-            </p>
-            <p className="text-[12px] font-bold text-[#FF7A59] mt-0.5 flex flex-row">
-              <Thermometer className="w-3.5 h-3.5 mt-0.5 -ml-1" /> 매너 온도{" "}
-              {gathering.host?.mannerTemperature}°C
-            </p>
-          </div>
-        </div>
-      </div>
-
       <div className="space-y-2">
         <h4 className="text-[15px] font-black text-[#292524] pl-1">
           참여 중인 멤버 ({activeParticipants.length}명)
@@ -139,13 +132,28 @@ export function GatheringInfoTab({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {activeParticipants.map((p: GatheringParticipant, idx: number) => {
             const participantUserId = p.user?.id || p.userId;
+            const isMe = participantUserId === myId;
+            const isParticipantHost = participantUserId === gathering.host.id;
+            const isMenuOpen = activeMenuParticipantId === participantUserId;
+
             return (
               <div
                 key={participantUserId || idx}
-                className="bg-white shadow-xs border border-[#E7E5E4] rounded-2xl p-3.5 flex items-center justify-between transition"
+                className="bg-white shadow-xs border border-[#E7E5E4] rounded-2xl p-3.5 flex items-center justify-between transition relative"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 bg-stone-100 rounded-xl flex items-center justify-center font-bold overflow-hidden">
+                  <div
+                    onClick={() => {
+                      if (!isMe) {
+                        setActiveMenuParticipantId(
+                          isMenuOpen ? null : participantUserId,
+                        );
+                      }
+                    }}
+                    className={`w-11 h-11 bg-stone-100 rounded-xl flex items-center justify-center font-bold overflow-hidden relative ${
+                      !isMe ? "cursor-pointer hover:opacity-80 transition" : ""
+                    }`}
+                  >
                     {p.user?.profileImg ? (
                       <img
                         src={p.user.profileImg}
@@ -153,19 +161,58 @@ export function GatheringInfoTab({
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      "🏃"
+                      "🍑"
                     )}
                   </div>
+
                   <div>
-                    <p className="text-[15px] font-bold text-[#292524]">
-                      {p.user?.nickname || "참여자"}
-                    </p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-[15px] font-bold text-[#292524]">
+                        {p.user?.nickname || "참여자"}
+                      </p>
+                      {isParticipantHost && (
+                        <span className="bg-[#FF7A59]/10 text-[#FF7A59] border border-[#FF7A59]/20 text-[10px] font-black px-2 py-0.5 rounded-full">
+                          👑 방장
+                        </span>
+                      )}
+                    </div>
                     <p className="text-[12px] font-bold text-[#FF7A59] mt-0.5 flex flex-row">
                       <Thermometer className="w-3.5 h-3.5 mt-0.5 -ml-1" /> 매너
                       온도 {p.user?.mannerTemperature ?? 36.5}°C
                     </p>
                   </div>
                 </div>
+
+                {/* 💡 플로팅 팝오버 메뉴 (프로필 사진 옆/위쪽에 표시) */}
+                {isMenuOpen && (
+                  <div
+                    ref={menuRef}
+                    className="absolute left-14 top-2 z-20 bg-white border border-stone-200 shadow-xl rounded-2xl p-1.5 flex flex-col gap-1 min-w-[120px] animate-fadeIn"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveMenuParticipantId(null);
+                        // handleOpenProfileModal?.(participantUserId);
+                      }}
+                      className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-stone-700 hover:bg-stone-100 rounded-xl transition w-full text-left"
+                    >
+                      <User size={14} className="text-stone-500" />
+                      프로필 보기
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveMenuParticipantId(null);
+                        openDmMutation(participantUserId);
+                      }}
+                      className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-[#FF7A59] hover:bg-orange-50 rounded-xl transition w-full text-left"
+                    >
+                      <MessageCircle size={14} className="text-[#FF7A59]" />
+                      DM 보내기
+                    </button>
+                  </div>
+                )}
 
                 {isHost && participantUserId !== myId && (
                   <button

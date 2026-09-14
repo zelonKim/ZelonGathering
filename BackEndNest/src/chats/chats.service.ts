@@ -79,7 +79,51 @@ export class ChatsService {
 
   ////////////////////////////////////////////////////////////////////////
 
-  // 4. 내가 참여 중인 DM 채팅방 가져오기
+  
+  // 3. DM 채팅방 상세 정보 조회
+  async getPrivateChatRoomById(roomId: string, myId: string) {
+    const room = await this.prisma.privateChatRoom.findUnique({
+      where: { id: roomId },
+      include: {
+        userA: {
+          select: {
+            id: true,
+            nickname: true,
+            profileImg: true,
+            mannerTemperature: true,
+          },
+        },
+        userB: {
+          select: {
+            id: true,
+            nickname: true,
+            profileImg: true,
+            mannerTemperature: true,
+          },
+        },
+        messages: {
+          orderBy: { createdAt: 'asc' },
+          include: {
+            sender: {
+              select: { id: true, nickname: true, profileImg: true },
+            },
+          },
+        },
+      },
+    });
+
+    if (!room) throw new NotFoundException('존재하지 않는 채팅방입니다.');
+
+    if (room.userAId !== myId && room.userBId !== myId) {
+      throw new ForbiddenException('접근 권한이 없습니다.');
+    }
+
+    return room;
+  }
+
+  ////////////////////////////////////////////////////////////////////////
+
+  // 4. DM 채팅방 목록 조회
   async getMyPrivateChatRooms(myId: string) {
     return await this.prisma.privateChatRoom.findMany({
       where: {
@@ -113,7 +157,7 @@ export class ChatsService {
 
   ////////////////////////////////////////////////////////////////////////
 
-  // 5. DM 전송 및 타임스탬프 업데이트
+  // 5. DM 전송
   async savePrivateMessage(
     roomId: string,
     senderId: string,
@@ -149,10 +193,9 @@ export class ChatsService {
     });
   }
 
-
   ////////////////////////////////////////////////////////////////////////
 
-  // 6. DM 채팅방 대화 내역 조회
+  // 6. DM 대화 내역 조회
   async getPrivateMessages(
     roomId: string,
     userId: string,

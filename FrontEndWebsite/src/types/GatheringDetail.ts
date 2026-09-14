@@ -1,4 +1,5 @@
 import { Day } from "./Day";
+import { ParticipantStatus } from "./ParticipantStatus";
 import { Time } from "./Time";
 
 export interface GatheringParticipantUser {
@@ -12,7 +13,7 @@ export interface GatheringParticipant {
   id: string;
   gatheringId: string;
   userId: string;
-  status?: string;
+  status?: ParticipantStatus;
   user: GatheringParticipantUser;
 }
 
