@@ -15,7 +15,7 @@ const fontGeistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Zelon Gathering",
-  description: "현생 탈출 완료! 지금 내 주변 힙한 소모임 속으로 🚀",
+  description: "현생 탈출 완료! 지금 내 주변 힙한 소모임 속으로 🍑",
 };
 
 export default function RootLayout({

@@ -4,20 +4,19 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  Bell,
+  BellRing,
   Home,
-  MessageCircle,
-  MessageCircleIcon,
   MessageCircleMore,
-  MessageSquare,
   Sparkles,
   User,
 } from "lucide-react";
 
-interface TabsLayoutProps {
+export default function TabsLayout({
+  children,
+}: {
   children: React.ReactNode;
-}
-
-export default function TabsLayout({ children }: TabsLayoutProps) {
+}) {
   const pathname = usePathname();
 
   const tabs = [
@@ -32,9 +31,9 @@ export default function TabsLayout({ children }: TabsLayoutProps) {
       icon: MessageCircleMore,
     },
     {
-      name: "AI 매칭",
+      name: "매칭 알림",
       href: "/matching",
-      icon: Sparkles,
+      icon: Bell,
     },
     {
       name: "프로필",

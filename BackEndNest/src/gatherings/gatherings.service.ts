@@ -157,14 +157,8 @@ export class GatheringsService {
       orderBy: { createdAt: 'desc' },
     });
 
-    if (types.includes('거리순')) {
-      if (!latitude || !longitude) {
-        throw new BadRequestException(
-          '거리순 조회를 위해 위치 좌표가 필요합니다.',
-        );
-      }
-
-      const disFilteredGatherings = dayFilteredGatherings.map((gat) => {
+    const gatheringsWithDistance = dayFilteredGatherings.map((gat) => {
+      if (latitude && longitude && gat.latitude && gat.longitude) {
         const dis = calculateDistance(
           Number(latitude),
           Number(longitude),
@@ -180,14 +174,30 @@ export class GatheringsService {
               ? `${(dis / 1000).toFixed(1)}km`
               : `${Math.round(dis)}m`,
         };
+      }
+
+      return {
+        ...gat,
+        distanceMetres: null,
+        distanceStr: null,
+      };
+    });
+
+    if (types.includes('거리순')) {
+      if (!latitude || !longitude) {
+        throw new BadRequestException(
+          '거리순 조회를 위해 위치 좌표가 필요합니다.',
+        );
+      }
+
+      gatheringsWithDistance.sort((a, b) => {
+        if (a.distanceMetres === null) return 1;
+        if (b.distanceMetres === null) return -1;
+        return a.distanceMetres - b.distanceMetres;
       });
-
-      disFilteredGatherings.sort((a, b) => a.distanceMetres - b.distanceMetres);
-
-      return disFilteredGatherings;
     }
-
-    return dayFilteredGatherings;
+    
+    return gatheringsWithDistance;
   }
 
   ////////////////////////////////////////////////////////////////////////////////////

@@ -4,7 +4,6 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  Grid,
   Layers,
   Plus,
   X,
@@ -12,157 +11,16 @@ import {
   Loader2,
   CheckCircle,
   ArrowRight,
-  Navigation,
 } from "lucide-react";
 import { client } from "@/api/client";
 import { GoogleMap, MarkerF, useJsApiLoader } from "@react-google-maps/api";
-
-const COLORS = {
-  primary: "#FF7A59",
-  primaryLight: "#FFEBE5",
-};
-
-const CATEGORY_MAP: Record<
-  string,
-  { label: string; emoji: string; bg: string; text: string }
-> = {
-  ALL: { label: "전체", emoji: "✨", bg: "#FFEBE5", text: "#FF7A59" },
-  STUDY: { label: "스터디", emoji: "📖", bg: "#E0F2FE", text: "#0369A1" },
-  SPORTS: { label: "스포츠", emoji: "⚽️", bg: "#E6F4EA", text: "#137333" },
-  ART: { label: "아트", emoji: "🎨", bg: "#FAE7F3", text: "#B80066" },
-  FOOD: { label: "푸드", emoji: "🍔", bg: "#FEF0E6", text: "#D94E2B" },
-  BOOK: { label: "독서", emoji: "📚", bg: "#F1ECE4", text: "#614E3D" },
-  GAME: { label: "게임", emoji: "🎯", bg: "#EDE9FE", text: "#5B21B6" },
-  TALK: { label: "토크", emoji: "🎙️", bg: "#F4F4F5", text: "#3F3F46" },
-  TOUR: { label: "투어", emoji: "🚠", bg: "#E0F7FA", text: "#006064" },
-};
-
-const TYPE_FILTERS = ["전체", "거리순", "오늘 열리는", "내일 열리는"];
-const CATEGORY_FILTERS = [
-  "전체",
-  "스터디",
-  "스포츠",
-  "아트",
-  "푸드",
-  "독서",
-  "게임",
-  "토크",
-  "투어",
-];
-
-const DAY_OPTIONS = [
-  { key: "MON", label: "월" },
-  { key: "TUE", label: "화" },
-  { key: "WED", label: "수" },
-  { key: "THU", label: "목" },
-  { key: "FRI", label: "금" },
-  { key: "SAT", label: "토" },
-  { key: "SUN", label: "일" },
-];
-
-const TIME_OPTIONS = [
-  { key: "AM_06", label: "오전 06:00", type: "AM" },
-  { key: "AM_07", label: "오전 07:00", type: "AM" },
-  { key: "AM_08", label: "오전 08:00", type: "AM" },
-  { key: "AM_09", label: "오전 09:00", type: "AM" },
-  { key: "AM_10", label: "오전 10:00", type: "AM" },
-  { key: "AM_11", label: "오전 11:00", type: "AM" },
-  { key: "PM_12", label: "정오 12:00", type: "PM" },
-  { key: "PM_01", label: "오후 01:00", type: "PM" },
-  { key: "PM_02", label: "오후 02:00", type: "PM" },
-  { key: "PM_03", label: "오후 03:00", type: "PM" },
-  { key: "PM_04", label: "오후 04:00", type: "PM" },
-  { key: "PM_05", label: "오후 05:00", type: "PM" },
-  { key: "PM_06", label: "오후 06:00", type: "PM" },
-  { key: "PM_07", label: "오후 07:00", type: "PM" },
-  { key: "PM_08", label: "오후 08:00", type: "PM" },
-  { key: "PM_09", label: "오후 09:00", type: "PM" },
-  { key: "PM_10", label: "오후 10:00", type: "PM" },
-];
-
-const DISTRICT_OPTIONS = [
-  { key: "SEOUL_GANGDONG", label: "강동구", city: "SEOUL" },
-  { key: "SEOUL_GANGSEO", label: "강서구", city: "SEOUL" },
-  { key: "SEOUL_GANGNAM", label: "강남구", city: "SEOUL" },
-  { key: "SEOUL_GANGBUK", label: "강북구", city: "SEOUL" },
-  { key: "SEOUL_GWANAK", label: "관악구", city: "SEOUL" },
-  { key: "SEOUL_GWANGJIN", label: "광진구", city: "SEOUL" },
-  { key: "SEOUL_GURO", label: "구로구", city: "SEOUL" },
-  { key: "SEOUL_GEUMCHEON", label: "금천구", city: "SEOUL" },
-  { key: "SEOUL_NOWON", label: "노원구", city: "SEOUL" },
-  { key: "SEOUL_DOBONG", label: "도봉구", city: "SEOUL" },
-  { key: "SEOUL_DONGDAEMUN", label: "동대문구", city: "SEOUL" },
-  { key: "SEOUL_DONGJAK", label: "동작구", city: "SEOUL" },
-  { key: "SEOUL_MAPO", label: "마포구", city: "SEOUL" },
-  { key: "SEOUL_SEODAEMUN", label: "서대문구", city: "SEOUL" },
-  { key: "SEOUL_SEOCHO", label: "서초구", city: "SEOUL" },
-  { key: "SEOUL_SEONGDONG", label: "성동구", city: "SEOUL" },
-  { key: "SEOUL_SEONGBUK", label: "성북구", city: "SEOUL" },
-  { key: "SEOUL_SONGPA", label: "송파구", city: "SEOUL" },
-  { key: "SEOUL_YANGCHEON", label: "양천구", city: "SEOUL" },
-  { key: "SEOUL_YEONGDEUNGPO", label: "영등포구", city: "SEOUL" },
-  { key: "SEOUL_YONGSAN", label: "용산구", city: "SEOUL" },
-  { key: "SEOUL_EUNPYEONG", label: "은평구", city: "SEOUL" },
-  { key: "SEOUL_JONGNO", label: "종로구", city: "SEOUL" },
-  { key: "SEOUL_JUNGGU", label: "중구", city: "SEOUL" },
-  { key: "SEOUL_JUNGNANG", label: "중랑구", city: "SEOUL" },
-
-  { key: "GYEONGGI_SUWON", label: "수원시", city: "GYEONGGI" },
-  { key: "GYEONGGI_SEONGNAM", label: "성남시 (분당/판교)", city: "GYEONGGI" },
-  { key: "GYEONGGI_GOYANG", label: "고양시 (일산)", city: "GYEONGGI" },
-  { key: "GYEONGGI_YONGIN", label: "용인시 (수지/기흥)", city: "GYEONGGI" },
-  { key: "GYEONGGI_BUCHEON", label: "부천시", city: "GYEONGGI" },
-  { key: "GYEONGGI_ANSAN", label: "안산시", city: "GYEONGGI" },
-  { key: "GYEONGGI_ANYANG", label: "안양시", city: "GYEONGGI" },
-  { key: "GYEONGGI_NAMYANGJU", label: "남양주시", city: "GYEONGGI" },
-  { key: "GYEONGGI_HWASEONG", label: "화성시 (동탄)", city: "GYEONGGI" },
-  { key: "GYEONGGI_PYEONGTAEK", label: "평택시", city: "GYEONGGI" },
-  { key: "GYEONGGI_UIJEONGBU", label: "의정부시", city: "GYEONGGI" },
-  { key: "GYEONGGI_SIHEUNG", label: "시흥시", city: "GYEONGGI" },
-  { key: "GYEONGGI_PAJU", label: "파주시", city: "GYEONGGI" },
-  { key: "GYEONGGI_GWANGMYEONG", label: "광명시", city: "GYEONGGI" },
-  { key: "GYEONGGI_GIMPO", label: "김포시", city: "GYEONGGI" },
-  { key: "GYEONGGI_GUNPO", label: "군포시", city: "GYEONGGI" },
-  { key: "GYEONGGI_GWANGJU", label: "광주시", city: "GYEONGGI" },
-  { key: "GYEONGGI_ICHEON", label: "이천시", city: "GYEONGGI" },
-  { key: "GYEONGGI_YANGJU", label: "양주시", city: "GYEONGGI" },
-  { key: "GYEONGGI_ANSEONG", label: "안성시", city: "GYEONGGI" },
-  { key: "GYEONGGI_GURI", label: "구리시", city: "GYEONGGI" },
-  { key: "GYEONGGI_UIWANG", label: "의왕시", city: "GYEONGGI" },
-  { key: "GYEONGGI_POCHEON", label: "포천시", city: "GYEONGGI" },
-  { key: "GYEONGGI_HANAM", label: "하남시", city: "GYEONGGI" },
-  { key: "GYEONGGI_OSAN", label: "오산시", city: "GYEONGGI" },
-  { key: "GYEONGGI_YEOJU", label: "여주시", city: "GYEONGGI" },
-  { key: "GYEONGGI_DONGDUCHEON", label: "동두천시", city: "GYEONGGI" },
-  { key: "GYEONGGI_GWACHEON", label: "과천시", city: "GYEONGGI" },
-  { key: "GYEONGGI_YANGPYEONG", label: "양평군", city: "GYEONGGI" },
-  { key: "GYEONGGI_GAPYEONG", label: "가평군", city: "GYEONGGI" },
-  { key: "GYEONGGI_YEONCHEON", label: "연천군", city: "GYEONGGI" },
-
-  { key: "INCHEON", label: "인천광역시", city: "ETC" },
-  { key: "DAEJEON", label: "대전광역시", city: "ETC" },
-  { key: "DAEGU", label: "대구광역시", city: "ETC" },
-  { key: "GWANGJU", label: "광주광역시", city: "ETC" },
-  { key: "BUSAN", label: "부산광역시", city: "ETC" },
-  { key: "ULSAN", label: "울산광역시", city: "ETC" },
-  { key: "SEJONG", label: "세종특별자치시", city: "ETC" },
-  { key: "GANGWON", label: "강원특별자치도", city: "ETC" },
-  { key: "CHUNGBUK", label: "충청북도", city: "ETC" },
-  { key: "CHUNGNAM", label: "충청남도", city: "ETC" },
-  { key: "JEONBUK", label: "전북특별자치도", city: "ETC" },
-  { key: "JEONNAM", label: "전라남도", city: "ETC" },
-  { key: "GYEONGBUK", label: "경상북도", city: "ETC" },
-  { key: "GYEONGNAM", label: "경상남도", city: "ETC" },
-  { key: "JEJU", label: "제주특별자치도", city: "ETC" },
-].sort((a, b) => a.label.localeCompare(b.label, "ko-KR")); // 가나다순 오름차순 자동 정렬 공정
-
-const GET_KEY_BY_LABEL = (label: string): string => {
-  if (label === "전체") return "ALL";
-  const match = Object.entries(CATEGORY_MAP).find(
-    ([_, v]) => v.label === label,
-  );
-  return match ? match[0] : "TALK";
-};
+import { DAY_ITEMS } from "@/constants/dayItems";
+import { TIME_ITEMS } from "@/constants/timeItems";
+import { GATHERING_CATEGORY_COLOR } from "@/constants/gatheringCategoryColor";
+import { DISTRICT_ITEMS } from "@/constants/districtItems";
+import { TYPE_FILTERS } from "@/constants/typeFilters";
+import { CATEGORY_FILTERS } from "@/constants/categoryFilters";
+import { GET_KEY_BY_LABEL } from "@/utils/getKeyByLabel";
 
 export default function HomePage() {
   const { isLoaded } = useJsApiLoader({
@@ -262,7 +120,6 @@ export default function HomePage() {
     refetchInterval: 5000,
   });
 
- 
   const { data: userProfile } = useQuery({
     queryKey: ["myProfile"],
     queryFn: async () => {
@@ -275,7 +132,6 @@ export default function HomePage() {
   const myJoinedGatherings =
     userProfile?.joinedGatherings?.map((jg: any) => jg.gathering) || [];
 
-  
   const createGatheringMutation = useMutation({
     mutationFn: async (newGathering: any) => {
       const { data } = await client.post("/gatherings", newGathering);
@@ -319,7 +175,6 @@ export default function HomePage() {
       return;
     }
 
-   
     if (
       !title ||
       !description ||
@@ -381,15 +236,13 @@ export default function HomePage() {
 
   const isCombinedLoading = isGatheringsLoading || isLocationLoading;
 
-
-  const filteredDistricts = DISTRICT_OPTIONS.filter(
+  const filteredDistricts = DISTRICT_ITEMS.filter(
     (d) => d.city === activeDistrictTab,
   );
-  const filteredTimes = TIME_OPTIONS.filter((t) => t.type === activeTimeTab);
+  const filteredTimes = TIME_ITEMS.filter((t) => t.type === activeTimeTab);
 
   return (
     <div className="min-h-screen bg-[#FBFBF9] text-[#292524] relative pb-24">
-
       <header className="max-w-6xl mx-auto px-5 py-5 flex justify-between items-center border-b border-[#E7E5E4]">
         <div>
           <h1 className="text-3xl font-black text-[#FF7A59] tracking-tight">
@@ -410,7 +263,6 @@ export default function HomePage() {
             }`}
           >
             <div className="text-[19px]">🍑</div>
-  
           </button>
 
           {isDropdownOpen && (
@@ -456,7 +308,6 @@ export default function HomePage() {
         </div>
       </header>
 
-
       <section className="max-w-6xl mx-auto px-4 mt-4 space-y-3">
         <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
           {TYPE_FILTERS.map((filter) => (
@@ -477,7 +328,9 @@ export default function HomePage() {
         <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
           {CATEGORY_FILTERS.map((filter) => {
             const isActive = selectedCategories.includes(filter);
-            const catTheme = CATEGORY_MAP[GET_KEY_BY_LABEL(filter)] || {
+            const catTheme = GATHERING_CATEGORY_COLOR[
+              GET_KEY_BY_LABEL(filter)
+            ] || {
               bg: "#FFEBE5",
               text: "#FF7A59",
             };
@@ -508,7 +361,6 @@ export default function HomePage() {
         </div>
       </section>
 
-
       <main className="max-w-6xl mx-auto px-4 mt-4">
         {isCombinedLoading ? (
           <div className="flex h-64 justify-center items-center">
@@ -517,7 +369,7 @@ export default function HomePage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {gatherings.map((item: any) => {
-              const catTheme = CATEGORY_MAP[
+              const catTheme = GATHERING_CATEGORY_COLOR[
                 item.category?.toUpperCase() || "TALK"
               ] || {
                 label: item.category,
@@ -567,14 +419,12 @@ export default function HomePage() {
         )}
       </main>
 
-
       <button
         onClick={() => setIsCreateModalOpen(true)}
         className="fixed bottom-21 right-6 w-14 h-14 bg-[#FF7A59] text-white rounded-full flex items-center justify-center shadow-lg hover:bg-[#e06848] transition z-90 transform active:scale-95"
       >
         <Plus className="w-7 h-7" />
       </button>
-
 
       {isCreateModalOpen && (
         <div className="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center z-100 p-0 sm:p-4">
@@ -592,7 +442,6 @@ export default function HomePage() {
             </div>
 
             <div className="flex-1 overflow-y-auto p-5 space-y-5 pb-16">
-    
               <div>
                 <label className="text-sm font-bold text-[#292524] block mb-2">
                   카테고리 선택
@@ -646,7 +495,6 @@ export default function HomePage() {
                 />
               </div>
 
-       
               <div>
                 <label className="mt-8 text-[13.5px] font-bold text-[#292524] block mb-2">
                   모임 지역 선택
@@ -702,7 +550,6 @@ export default function HomePage() {
                 </div>
               </div>
 
-    
               <div>
                 <label className="text-sm font-bold text-[#292524] block mb-1.5 mt-6">
                   모임 장소 지정
@@ -729,13 +576,12 @@ export default function HomePage() {
                 />
               </div>
 
-    
               <div>
                 <label className="text-sm font-bold text-[#292524] block mb-1.5 mt-10">
                   모임 요일 (중복 가능)
                 </label>
                 <div className="gap-1.5 flex justify-around ">
-                  {DAY_OPTIONS.map((day) => {
+                  {DAY_ITEMS.map((day) => {
                     const isSel = gatheringDay.includes(day.key);
                     return (
                       <button
@@ -756,7 +602,6 @@ export default function HomePage() {
                 </div>
               </div>
 
-           
               <div>
                 <label className="text-sm font-bold text-[#292524] block mb-2 mt-4">
                   모임 시간대 (중복 가능)
@@ -805,7 +650,6 @@ export default function HomePage() {
                 </div>
               </div>
 
-     
               <div>
                 <label className="text-sm font-bold text-[#292524] block mb-1 mt-6">
                   모임 정원 (명)
@@ -834,7 +678,6 @@ export default function HomePage() {
           </div>
         </div>
       )}
-
 
       {isMapModalOpen && (
         <div className="fixed inset-0 bg-stone-950 z-[120] flex flex-col justify-between p-4 md:p-6 animate-in fade-in duration-200">

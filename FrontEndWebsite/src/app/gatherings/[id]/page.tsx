@@ -19,50 +19,9 @@ import {
   Thermometer,
 } from "lucide-react";
 import { client } from "@/api/client";
-
-const CATEGORY_MAP: Record<
-  string,
-  { label: string; emoji: string; bg: string; text: string }
-> = {
-  STUDY: { label: "스터디", emoji: "📖", bg: "#E0F2FE", text: "#0369A1" },
-  SPORTS: { label: "스포츠", emoji: "⚽️", bg: "#E6F4EA", text: "#137333" },
-  ART: { label: "아트", emoji: "🎨", bg: "#FAE7F3", text: "#B80066" },
-  FOOD: { label: "푸드", emoji: "🍔", bg: "#FEF0E6", text: "#D94E2B" },
-  BOOK: { label: "독서", emoji: "📚", bg: "#F1ECE4", text: "#614E3D" },
-  GAME: { label: "게임", emoji: "🎯", bg: "#EDE9FE", text: "#5B21B6" },
-  TALK: { label: "토크", emoji: "🎙️", bg: "#F4F4F5", text: "#3F3F46" },
-  TOUR: { label: "투어", emoji: "🚠", bg: "#E0F7FA", text: "#006064" },
-};
-
-const DAY_MAP: Record<string, string> = {
-  MON: "월요일",
-  TUE: "화요일",
-  WED: "수요일",
-  THU: "목요일",
-  FRI: "금요일",
-  SAT: "토요일",
-  SUN: "일요일",
-};
-
-const TIME_MAP: Record<string, string> = {
-  AM_06: "오전 6시",
-  AM_07: "오전 7시",
-  AM_08: "오전 8시",
-  AM_09: "오전 9시",
-  AM_10: "오전 10시",
-  AM_11: "오전 11시",
-  PM_12: "정오 12시",
-  PM_01: "오후 1시",
-  PM_02: "오후 2시",
-  PM_03: "오후 3시",
-  PM_04: "오후 4시",
-  PM_05: "오후 5시",
-  PM_06: "오후 6시",
-  PM_07: "오후 7시",
-  PM_08: "오후 8시",
-  PM_09: "오후 9시",
-  PM_10: "오후 10시",
-};
+import { GATHERING_CATEGORY_COLOR } from "@/constants/gatheringCategoryColor";
+import { DAY_MAPS } from "@/constants/dayMaps";
+import { TIME_MAPS } from "@/constants/timeMaps";
 
 export default function GatheringDetailPage() {
   const router = useRouter();
@@ -303,7 +262,7 @@ export default function GatheringDetailPage() {
     );
   }
 
-  const catTheme = CATEGORY_MAP[
+  const catTheme = GATHERING_CATEGORY_COLOR[
     gathering.category?.toUpperCase() || "TALK"
   ] || {
     label: gathering.category,
@@ -352,7 +311,7 @@ export default function GatheringDetailPage() {
               : "border-transparent text-[#78716C]"
           }`}
         >
-          모임 소개 정보
+          모임 정보
         </button>
         <button
           onClick={() => {
@@ -434,7 +393,7 @@ export default function GatheringDetailPage() {
                   <Calendar className="w-3.5 h-3.5 text-[#FF7A59]" />
                   <span>
                     {gathering.gatheringDay
-                      ?.map((d: string) => DAY_MAP[d] || d)
+                      ?.map((d: string) => DAY_MAPS[d] || d)
                       .join(", ")}
                   </span>
                 </div>
@@ -442,7 +401,7 @@ export default function GatheringDetailPage() {
                   <Clock className="w-3.5 h-3.5 text-[#FF7A59]" />
                   <span>
                     {gathering.gatheringTime
-                      ?.map((t: string) => TIME_MAP[t] || t)
+                      ?.map((t: string) => TIME_MAPS[t] || t)
                       .join(", ")}
                   </span>
                 </div>
@@ -457,7 +416,6 @@ export default function GatheringDetailPage() {
               </p>
             </div>
 
-            {/* 방장 컴포넌트 */}
             <div className="space-y-2">
               <h4 className="text-[15px] font-black text-[#292524] pl-1">
                 방장

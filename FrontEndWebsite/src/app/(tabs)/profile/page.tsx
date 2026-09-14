@@ -2,249 +2,90 @@
 
 import React, { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   LogOut,
   Camera,
   Thermometer,
   AlertCircle,
   Loader2,
+  X,
 } from "lucide-react";
-import { client } from "@/api/client";
 import { removeAccessToken } from "@/api/token";
-
-const CATEGORY_ITEMS = [
-  { key: "STUDY", label: "📑 스터디" },
-  { key: "SPORTS", label: "⚽️ 스포츠" },
-  { key: "ART", label: "🎨 아트" },
-  { key: "FOOD", label: "🍔 음식" },
-  { key: "GAME", label: "🎯 게임" },
-  { key: "BOOK", label: "📚 독서" },
-  { key: "TALK", label: "🎙️ 토크" },
-  { key: "TOUR", label: "🚡 투어" },
-];
-
-const DAY_ITEMS = [
-  { key: "MON", label: "월" },
-  { key: "TUE", label: "화" },
-  { key: "WED", label: "수" },
-  { key: "THU", label: "목" },
-  { key: "FRI", label: "금" },
-  { key: "SAT", label: "토" },
-  { key: "SUN", label: "일" },
-];
-
-const TIME_ITEMS = [
-  { key: "AM_06", label: "오전 06:00", type: "AM" },
-  { key: "AM_07", label: "오전 07:00", type: "AM" },
-  { key: "AM_08", label: "오전 08:00", type: "AM" },
-  { key: "AM_09", label: "오전 09:00", type: "AM" },
-  { key: "AM_10", label: "오전 10:00", type: "AM" },
-  { key: "AM_11", label: "오전 11:00", type: "AM" },
-  { key: "PM_12", label: "정오 12:00", type: "PM" },
-  { key: "PM_01", label: "오후 01:00", type: "PM" },
-  { key: "PM_02", label: "오후 02:00", type: "PM" },
-  { key: "PM_03", label: "오후 03:00", type: "PM" },
-  { key: "PM_04", label: "오후 04:00", type: "PM" },
-  { key: "PM_05", label: "오후 05:00", type: "PM" },
-  { key: "PM_06", label: "오후 06:00", type: "PM" },
-  { key: "PM_07", label: "오후 07:00", type: "PM" },
-  { key: "PM_08", label: "오후 08:00", type: "PM" },
-  { key: "PM_09", label: "오후 09:00", type: "PM" },
-  { key: "PM_10", label: "오후 10:00", type: "PM" },
-];
-
-export const DISTRICT_ITEMS = [
-  { key: "SEOUL_GANGDONG", label: "강동구", city: "SEOUL" },
-  { key: "SEOUL_GANGSEO", label: "강서구", city: "SEOUL" },
-  { key: "SEOUL_GANGNAM", label: "강남구", city: "SEOUL" },
-  { key: "SEOUL_GANGBUK", label: "강북구", city: "SEOUL" },
-  { key: "SEOUL_GWANAK", label: "관악구", city: "SEOUL" },
-  { key: "SEOUL_GWANGJIN", label: "광진구", city: "SEOUL" },
-  { key: "SEOUL_GURO", label: "구로구", city: "SEOUL" },
-  { key: "SEOUL_GEUMCHEON", label: "금천구", city: "SEOUL" },
-  { key: "SEOUL_NOWON", label: "노원구", city: "SEOUL" },
-  { key: "SEOUL_DOBONG", label: "도봉구", city: "SEOUL" },
-  { key: "SEOUL_DONGDAEMUN", label: "동대문구", city: "SEOUL" },
-  { key: "SEOUL_DONGJAK", label: "동작구", city: "SEOUL" },
-  { key: "SEOUL_MAPO", label: "마포구", city: "SEOUL" },
-  { key: "SEOUL_SEODAEMUN", label: "서대문구", city: "SEOUL" },
-  { key: "SEOUL_SEOCHO", label: "서초구", city: "SEOUL" },
-  { key: "SEOUL_SEONGDONG", label: "성동구", city: "SEOUL" },
-  { key: "SEOUL_SEONGBUK", label: "성북구", city: "SEOUL" },
-  { key: "SEOUL_SONGPA", label: "송파구", city: "SEOUL" },
-  { key: "SEOUL_YANGCHEON", label: "양천구", city: "SEOUL" },
-  { key: "SEOUL_YEONGDEUNGPO", label: "영등포구", city: "SEOUL" },
-  { key: "SEOUL_YONGSAN", label: "용산구", city: "SEOUL" },
-  { key: "SEOUL_EUNPYEONG", label: "은평구", city: "SEOUL" },
-  { key: "SEOUL_JONGNO", label: "종로구", city: "SEOUL" },
-  { key: "SEOUL_JUNGGU", label: "중구", city: "SEOUL" },
-  { key: "SEOUL_JUNGNANG", label: "중랑구", city: "SEOUL" },
-
-  { key: "GYEONGGI_SUWON", label: "수원시", city: "GYEONGGI" },
-  { key: "GYEONGGI_SEONGNAM", label: "성남시", city: "GYEONGGI" },
-  { key: "GYEONGGI_GOYANG", label: "고양시", city: "GYEONGGI" },
-  { key: "GYEONGGI_YONGIN", label: "용인시", city: "GYEONGGI" },
-  { key: "GYEONGGI_BUCHEON", label: "부천시", city: "GYEONGGI" },
-  { key: "GYEONGGI_ANSAN", label: "안산시", city: "GYEONGGI" },
-  { key: "GYEONGGI_ANYANG", label: "안양시", city: "GYEONGGI" },
-  { key: "GYEONGGI_NAMYANGJU", label: "남양주시", city: "GYEONGGI" },
-  { key: "GYEONGGI_HWASEONG", label: "화성시 (동탄)", city: "GYEONGGI" },
-  { key: "GYEONGGI_PYEONGTAEK", label: "평택시", city: "GYEONGGI" },
-  { key: "GYEONGGI_UIJEONGBU", label: "의정부시", city: "GYEONGGI" },
-  { key: "GYEONGGI_SIHEUNG", label: "시흥시", city: "GYEONGGI" },
-  { key: "GYEONGGI_PAJU", label: "파주시", city: "GYEONGGI" },
-  { key: "GYEONGGI_GWANGMYEONG", label: "광명시", city: "GYEONGGI" },
-  { key: "GYEONGGI_GIMPO", label: "김포시", city: "GYEONGGI" },
-  { key: "GYEONGGI_GUNPO", label: "군포시", city: "GYEONGGI" },
-  { key: "GYEONGGI_GWANGJU", label: "광주시", city: "GYEONGGI" },
-  { key: "GYEONGGI_ICHEON", label: "이천시", city: "GYEONGGI" },
-  { key: "GYEONGGI_YANGJU", label: "양주시", city: "GYEONGGI" },
-  { key: "GYEONGGI_ANSEONG", label: "안성시", city: "GYEONGGI" },
-  { key: "GYEONGGI_GURI", label: "구리시", city: "GYEONGGI" },
-  { key: "GYEONGGI_UIWANG", label: "의왕시", city: "GYEONGGI" },
-  { key: "GYEONGGI_POCHEON", label: "포천시", city: "GYEONGGI" },
-  { key: "GYEONGGI_HANAM", label: "하남시", city: "GYEONGGI" },
-  { key: "GYEONGGI_OSAN", label: "오산시", city: "GYEONGGI" },
-  { key: "GYEONGGI_YEOJU", label: "여주시", city: "GYEONGGI" },
-  { key: "GYEONGGI_DONGDUCHEON", label: "동두천시", city: "GYEONGGI" },
-  { key: "GYEONGGI_GWACHEON", label: "과천시", city: "GYEONGGI" },
-  { key: "GYEONGGI_YANGPYEONG", label: "양평군", city: "GYEONGGI" },
-  { key: "GYEONGGI_GAPYEONG", label: "가평군", city: "GYEONGGI" },
-  { key: "GYEONGGI_YEONCHEON", label: "연천군", city: "GYEONGGI" },
-
-  { key: "INCHEON", label: "인천광역시", city: "OTHER" },
-  { key: "DAEJEON", label: "대전광역시", city: "OTHER" },
-  { key: "DAEGU", label: "대구광역시", city: "OTHER" },
-  { key: "GWANGJU", label: "광주광역시", city: "OTHER" },
-  { key: "BUSAN", label: "부산광역시", city: "OTHER" },
-  { key: "ULSAN", label: "울산광역시", city: "OTHER" },
-  { key: "SEJONG", label: "세종특별자치시", city: "OTHER" },
-  { key: "GANGWON", label: "강원특별자치도", city: "OTHER" },
-  { key: "CHUNGBUK", label: "충청북도", city: "OTHER" },
-  { key: "CHUNGNAM", label: "충청남도", city: "OTHER" },
-  { key: "JEONBUK", label: "전북특별자치도", city: "OTHER" },
-  { key: "JEONNAM", label: "전라남도", city: "OTHER" },
-  { key: "GYEONGBUK", label: "경상북도", city: "OTHER" },
-  { key: "GYEONGNAM", label: "경상남도", city: "OTHER" },
-  { key: "JEJU", label: "제주특별자치도", city: "OTHER" },
-].sort((a, b) => a.label.localeCompare(b.label, "ko-KR"));
-
-interface UpdateProfilePayload {
-  nickname?: string;
-  favorite?: string;
-  hate?: string;
-  age?: number;
-  mbti?: string;
-  preferCategory?: string[];
-  preferDistrict?: string[];
-  preferDay?: string[];
-  preferTime?: string[];
-  profileImg?: string;
-}
+import { DISTRICT_ITEMS } from "@/constants/districtItems";
+import { TIME_ITEMS } from "@/constants/timeItems";
+import { CATEGORY_ITEMS } from "@/constants/categoryItems";
+import { DAY_ITEMS } from "@/constants/dayItems";
+import { UpdateProfilePayload } from "@/types/UpdateProfilePayload";
+import { getMyProfile } from "@/api/profile/getMyProfile";
+import { useUpdateProfile } from "@/hooks/useUpdateProfile";
+import { Mbti } from "@/types/MBTI";
+import { Category} from "@/types/Category";
+import { District } from "@/types/District";
+import { Day } from "@/types/Day";
+import { Time } from "@/types/Time";
+import { useUploadProfileImage } from "@/hooks/useUploadImage";
 
 export default function ProfilePage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const {
-    data: userProfile,
-    isLoading,
-    isError,
-  } = useQuery({
-    queryKey: ["myProfile"],
-    queryFn: async () => {
-      const { data } = await client.get("/users/me");
-      return data;
-    },
-  });
-
-  const updateProfileMutation = useMutation({
-    mutationFn: async (payload: UpdateProfilePayload) => {
-      const { data } = await client.patch("/users/profile", payload);
-      return data;
-    },
-    onSuccess: () => {
-      alert("소모임 취향 프로필이 저장되었습니다! 🍑");
-      queryClient.invalidateQueries({ queryKey: ["myProfile"] });
-    },
-    onError: (error: any) => {
-      console.error("프로필 수정 오류:", error);
-      alert("프로필 저장 중 서버 오류가 발생했습니다.");
-    },
-  });
-
   const [nickname, setNickname] = useState("");
   const [age, setAge] = useState("");
-  const [mbti, setMbti] = useState("");
+  const [mbti, setMbti] = useState<Mbti | string>("");
   const [favorite, setFavorite] = useState("");
   const [hate, setHate] = useState("");
-  const [preferCategory, setPreferCategory] = useState<string[]>([]);
-  const [preferDistrict, setPreferDistrict] = useState<string[]>([]);
-  const [preferDays, setPreferDays] = useState<string[]>([]);
-  const [preferTimes, setPreferTimes] = useState<string[]>([]);
+  const [preferCategory, setPreferCategory] = useState<
+    Category[] | string[]
+  >([]);
+  const [preferDistrict, setPreferDistrict] = useState<District[] | string[]>(
+    [],
+  );
+  const [preferDay, setPreferDay] = useState<Day[] | string[]>([]);
+  const [preferTime, setPreferTime] = useState<Time[] | string[]>([]);
   const [profileImg, setProfileImg] = useState<string>("");
-  const [isImageUploading, setIsImageUploading] = useState(false);
-
   const [activeCity, setActiveCity] = useState<"SEOUL" | "GYEONGGI" | "OTHER">(
     "SEOUL",
   );
   const [activeTimeType, setActiveTimeType] = useState<"AM" | "PM">("PM");
 
+  const {
+    data: profileData,
+    isLoading: isGetProfileLoading,
+    isError: isGetProfileError,
+  } = useQuery({
+    queryKey: ["myProfile"],
+    queryFn: getMyProfile,
+  });
+
   useEffect(() => {
-    if (userProfile) {
-      setNickname(userProfile.nickname || "");
-      setAge(userProfile.age ? String(userProfile.age) : "");
-      setMbti(userProfile.mbti || "");
-      setFavorite(userProfile.favorite || "");
-      setHate(userProfile.hate || "");
-      setPreferCategory(userProfile.preferCategory || []);
-      setPreferDistrict(userProfile.preferDistrict || []);
-      setPreferDays(userProfile.preferDay || []);
-      setPreferTimes(userProfile.preferTime || []);
-      if (userProfile.profileImg) {
-        setProfileImg(`${userProfile.profileImg}?t=${new Date().getTime()}`);
+    if (profileData) {
+      setNickname(profileData.nickname || "");
+      setAge(profileData.age ? String(profileData.age) : "");
+      setMbti(profileData.mbti || "");
+      setFavorite(profileData.favorite || "");
+      setHate(profileData.hate || "");
+      setPreferCategory(profileData.preferCategory || []);
+      setPreferDistrict(profileData.preferDistrict || []);
+      setPreferDay(profileData.preferDay || []);
+      setPreferTime(profileData.preferTime || []);
+      if (profileData.profileImg) {
+        setProfileImg(`${profileData.profileImg}?t=${new Date().getTime()}`);
       } else {
         setProfileImg("");
       }
     }
-  }, [userProfile]);
+  }, [profileData]);
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  ////////////////////////////////////////////////////////////////////////
 
-    if (file.size > 5 * 1024 * 1024) {
-      alert("파일 크기는 5MB 이하여야 합니다.");
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append("file", file);
-
-    try {
-      setIsImageUploading(true);
-      const response = await client.post("/users/image", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-
-      if (response.data && response.data.imageUrl) {
-        setProfileImg(`${response.data.imageUrl}?t=${new Date().getTime()}`);
-      } else if (typeof response.data === "string") {
-        setProfileImg(`${response.data}?t=${new Date().getTime()}`);
-      }
-    } catch (error) {
-      console.error("클라우드 이미지 업로드 실패:", error);
-      alert("이미지를 서버에 업로드하지 못했습니다.");
-    } finally {
-      setIsImageUploading(false);
-    }
-  };
+  const { mutate: updateProfileMutation, isPending: isUpdateProfilePending } =
+    useUpdateProfile();
 
   const handleSaveProfile = () => {
     if (!nickname.trim()) {
-      alert("닉네임은 필수 항목입니다.");
+      alert("닉네임을 입력해주세요.");
       return;
     }
 
@@ -252,21 +93,52 @@ export default function ProfilePage() {
 
     const payload: UpdateProfilePayload = {
       nickname: nickname.trim(),
-      favorite: favorite.trim(),
-      hate: hate.trim(),
-      age: age ? Number(age) : undefined,
-      mbti: mbti.trim() ? mbti.trim().toUpperCase() : undefined,
-      preferCategory,
-      preferDistrict,
-      preferDay: preferDays,
-      preferTime: preferTimes,
-      profileImg: cleanProfileImg,
+      favorite: favorite.trim() || null,
+      hate: hate.trim() || null,
+      age: age ? Number(age) : null,
+      mbti: mbti.trim() ? (mbti.trim().toUpperCase() as Mbti) : null,
+      preferCategory: preferCategory.length > 0 ? preferCategory : [],
+      preferDistrict: preferDistrict.length > 0 ? preferDistrict : [],
+      preferDay: preferDay.length > 0 ? preferDay : [],
+      preferTime: preferTime.length > 0 ? preferTime : [],
+      profileImg: cleanProfileImg || null,
     };
-
-    updateProfileMutation.mutate(payload);
-
-    router.replace("/");
+    updateProfileMutation(payload);
   };
+
+  ////////////////////////////////////////////////////////////////////////
+
+  const { mutate: uploadImageMutation, isPending: isUploadImagePending } =
+    useUploadProfileImage();
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert("파일 크기는 5MB 이하이어야 합니다.");
+      return;
+    }
+
+    uploadImageMutation(file, {
+      onSuccess: (imageUrl) => {
+        const imageUrlWithCacheBust = `${imageUrl}?t=${Date.now()}`;
+        setProfileImg(imageUrlWithCacheBust);
+      },
+    });
+  };
+
+  ////////////////////////////////////////////////////////////////////////
+
+  const handleRemoveImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setProfileImg("");
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  ////////////////////////////////////////////////////////////////////////
 
   const handleLogoutClick = async () => {
     if (confirm("정말 로그아웃 하시겠습니까?")) {
@@ -281,7 +153,9 @@ export default function ProfilePage() {
     }
   };
 
-  if (isLoading) {
+  ///////////////////////////////////////////////////////////////////////
+
+  if (isGetProfileLoading) {
     return (
       <div className="flex flex-col flex-1 h-[70vh] justify-center items-center bg-[#FBFBF9] gap-3">
         <Loader2 className="w-8 h-8 animate-spin text-[#FF7A59]" />
@@ -289,7 +163,7 @@ export default function ProfilePage() {
     );
   }
 
-  if (isError) {
+  if (isGetProfileError) {
     return (
       <div className="flex flex-col flex-1 h-[70vh] justify-center items-center bg-[#FBFBF9] gap-2 p-6 text-center">
         <AlertCircle className="w-10 h-10 text-stone-400" />
@@ -309,9 +183,12 @@ export default function ProfilePage() {
   const filteredDistricts = DISTRICT_ITEMS.filter(
     (item) => item.city === activeCity,
   );
+
   const filteredTimes = TIME_ITEMS.filter(
     (item) => item.type === activeTimeType,
   );
+
+  ////////////////////////////////////////////////////////////////////////
 
   return (
     <div className=" min-h-screen px-4 pb-12 max-w-4xl mx-auto ">
@@ -343,14 +220,13 @@ export default function ProfilePage() {
 
       <div className="space-y-4">
         <div className="bg-white rounded-3xl p-6 border border-[#E7E5E4] flex flex-col items-center justify-center">
-          <div className="relative mb-3">
+          <div className="relative w-24 h-24">
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              disabled={isImageUploading}
-              className="w-24 h-24 rounded-[28px] bg-[#FFEBE5] overflow-hidden flex items-center justify-center border border-stone-100 transition group relative"
+              className="relative w-24 h-24 rounded-[28px] bg-[#FFEBE5] overflow-hidden flex items-center justify-center group"
             >
-              {isImageUploading ? (
+              {isUploadImagePending ? (
                 <Loader2 className="w-6 h-6 animate-spin text-[#FF7A59]" />
               ) : profileImg ? (
                 <img
@@ -361,21 +237,36 @@ export default function ProfilePage() {
               ) : (
                 <span className="text-4xl">🍑</span>
               )}
-              <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+
+              <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                 <Camera className="w-5 h-5 text-white" />
               </div>
             </button>
-            <div
-              onClick={() => fileInputRef.current?.click()}
-              className="absolute -bottom-1 -right-1 bg-[#292524] hover:bg-black w-7 h-7 rounded-xl flex items-center justify-center border-2 border-white cursor-pointer shadow-sm text-white"
-            >
-              <Camera className="w-3 h-3" />
-            </div>
+
+            {!profileImg && (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className=" absolute -bottom-1 -right-1 bg-[#292524] hover:bg-black text-white w-6 h-6 rounded-xl flex items-center justify-center shadow-md transition-colors"
+              >
+                <Camera className="w-3 h-3" />
+              </button>
+            )}
+
+            {profileImg && (
+              <button
+                type="button"
+                onClick={handleRemoveImage}
+                className="absolute -top-1 -right-1 bg-gray-500 hover:bg-gray-700 text-white w-6 h-6 rounded-full flex items-center justify-center shadow-md transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
 
-          <div className="flex items-center bg-orange-50 text-orange-500 px-3 py-1 rounded-full gap-1 text-xs font-bold">
+          <div className="mt-3 flex items-center bg-orange-50 text-orange-500 px-3 py-1 rounded-full gap-1 text-xs font-bold">
             <Thermometer className="w-3.5 h-3.5" />
-            <span>매너 온도 {userProfile?.mannerTemperature ?? 36.5}°C</span>
+            <span>매너 온도 {profileData?.mannerTemperature ?? 36.5}°C</span>
           </div>
         </div>
 
@@ -463,7 +354,9 @@ export default function ProfilePage() {
             </span>
             <div className="flex flex-wrap gap-2">
               {CATEGORY_ITEMS.map((cat) => {
-                const isSelected = preferCategory.includes(cat.key);
+                const isSelected = preferCategory.includes(
+                  cat.key as Category,
+                );
                 return (
                   <button
                     key={cat.key}
@@ -520,7 +413,9 @@ export default function ProfilePage() {
 
             <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto p-1 border border-dashed border-stone-100 rounded-xl">
               {filteredDistricts.map((item) => {
-                const isDistSelected = preferDistrict.includes(item.key);
+                const isDistSelected = preferDistrict.includes(
+                  item.key as District,
+                );
                 return (
                   <button
                     key={item.key}
@@ -557,16 +452,16 @@ export default function ProfilePage() {
             </span>
             <div className="flex justify-between mx-2 gap-1">
               {DAY_ITEMS.map((day) => {
-                const isSelected = preferDays.includes(day.key);
+                const isSelected = preferDay.includes(day.key as Day);
                 return (
                   <button
                     key={day.key}
                     type="button"
                     onClick={() =>
-                      setPreferDays(
+                      setPreferDay(
                         isSelected
-                          ? preferDays.filter((d) => d !== day.key)
-                          : [...preferDays, day.key],
+                          ? preferDay.filter((d) => d !== day.key)
+                          : [...preferDay, day.key],
                       )
                     }
                     className={` w-9 h-9 rounded-full text-[14px] font-bold transition flex items-center justify-center ${
@@ -605,16 +500,16 @@ export default function ProfilePage() {
 
             <div className="flex flex-wrap gap-2">
               {filteredTimes.map((time) => {
-                const isSelected = preferTimes.includes(time.key);
+                const isSelected = preferTime.includes(time.key as Time);
                 return (
                   <button
                     key={time.key}
                     type="button"
                     onClick={() =>
-                      setPreferTimes(
+                      setPreferTime(
                         isSelected
-                          ? preferTimes.filter((t) => t !== time.key)
-                          : [...preferTimes, time.key],
+                          ? preferTime.filter((t) => t !== time.key)
+                          : [...preferTime, time.key],
                       )
                     }
                     className={`text-[13px] px-3 py-1.5 rounded-xl font-semibold transition ${
@@ -634,10 +529,10 @@ export default function ProfilePage() {
         <button
           type="button"
           onClick={handleSaveProfile}
-          disabled={updateProfileMutation.isPending || isImageUploading}
+          disabled={isUpdateProfilePending || isUploadImagePending}
           className="mt-9 w-full bg-[#292524] hover:bg-black active:scale-[0.99] text-white py-4 rounded-xl text-sm font-bold flex justify-center items-center transition disabled:opacity-70 shadow-md"
         >
-          {updateProfileMutation.isPending ? (
+          {isUpdateProfilePending ? (
             <Loader2 className="w-5 h-5 animate-spin" />
           ) : (
             "프로필 저장하기"

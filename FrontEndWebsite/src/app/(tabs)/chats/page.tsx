@@ -3,19 +3,10 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { MessageSquare, AlertCircle, Loader2 } from "lucide-react"; // Ionicons 대체
-import { client } from "@/api/client";
-
-const CATEGORY_MAP: Record<string, { bg: string; icon: string }> = {
-  STUDY: { bg: "#E0F2FE", icon: "📖" },
-  SPORTS: { bg: "#E6F4EA", icon: "⚽️" },
-  ART: { bg: "#FAE7F3", icon: "🎨" },
-  FOOD: { bg: "#FEF0E6", icon: "🍔" },
-  BOOK: { bg: "#F1ECE4", icon: "📚" },
-  GAME: { bg: "#EDE9FE", icon: "🎯" },
-  TALK: { bg: "#F4F4F5", icon: "🎙️" },
-  TOUR: { bg: "#E0F7FA", icon: "🚠" },
-};
+import { AlertCircle, Loader2 } from "lucide-react";
+import { CHAT_CATEGORY_COLOR } from "@/constants/chatCategoryColor";
+import { ChatRoomListItem } from "../../../types/ChatRoomListItem";
+import { getMyChats } from "@/api/chat/getMyChats";
 
 export default function ChatsPage() {
   const router = useRouter();
@@ -24,17 +15,12 @@ export default function ChatsPage() {
     data: chatRooms = [],
     isLoading,
     isError,
-  } = useQuery({
+  } = useQuery<ChatRoomListItem[]>({
     queryKey: ["myChats"],
-    queryFn: async () => {
-      const { data } = await client.get("/users/chats");
-      return data;
-    },
+    queryFn: getMyChats,
     refetchInterval: 5000,
   });
 
-
-  
   if (isLoading) {
     return (
       <div className="flex flex-col flex-1 h-96 justify-center items-center bg-[#FBFBF9] gap-3">
@@ -54,6 +40,8 @@ export default function ChatsPage() {
     );
   }
 
+  ///////////////////////////////////////////////////////////////////////////////
+
   return (
     <div className="w-full bg-[#FBFBF9] min-h-screen max-w-5xl mx-auto ">
       <header className="px-5 py-[15px]">
@@ -66,15 +54,15 @@ export default function ChatsPage() {
       </header>
 
       <main className="px-6 pt-1.5  grid grid-cols-1 md:grid-cols-2 gap-3">
-        {chatRooms.map((item: any) => {
-          const categoryKey = item.category?.toUpperCase() || "TALK";
-          const theme = CATEGORY_MAP[categoryKey] || CATEGORY_MAP.TALK;
+        {chatRooms.map((item: ChatRoomListItem) => {
+          const categoryKey = item.category?.toUpperCase();
+          const theme = CHAT_CATEGORY_COLOR[categoryKey];
 
           return (
             <div
               key={item.id}
               onClick={() => router.push(`/gatherings/${item.id}?tab=CHAT`)}
-              className="flex items-center bg-white p-3 rounded-[20px] border border-[#E7E5E4] cursor-pointer shadow-xs  hover:shadow-sm hover:shadow-orange-50 hover:border-orange-400 active:scale-[0.99] transition "
+              className="flex items-center bg-white p-3 rounded-[20px] border border-[#E7E5E4] cursor-pointer shadow-xs  hover:shadow-sm hover:shadow-orange-50 hover:border-orange-400 active:scale-[0.99] transition"
             >
               <div
                 style={{ backgroundColor: theme.bg }}

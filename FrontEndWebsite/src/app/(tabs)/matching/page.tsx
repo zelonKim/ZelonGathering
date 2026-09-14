@@ -2,47 +2,37 @@
 
 import React from "react";
 import { useRouter } from "next/navigation";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
-import { Sparkles, AlertCircle, Loader2 } from "lucide-react"; // Ionicons 대체
-import { client } from "@/api/client";
+import { Sparkles, AlertCircle, Loader2 } from "lucide-react";
+import { getMyNotifications } from "@/api/notification/getMyNotifications";
+import { useDeleteNotification } from "@/hooks/useDeleteNotification";
+import { NotificationItem } from "@/types/NotificationItem";
 
 export default function MatchingPage() {
   const router = useRouter();
-  const queryClient = useQueryClient();
+
+  const {
+    mutate: deleteNotiMutation,
+    isPending: isDeleteNotiPending,
+    variables: deleteNotiId,
+  } = useDeleteNotification();
+
+  const deletingId = isDeleteNotiPending ? deleteNotiId : null;
+
+  /////////////////////////////////////////////////////
 
   const {
     data: notifications = [],
     isLoading,
     isError,
-  } = useQuery({
-    queryKey: ["aiMatchingNotifications"],
-    queryFn: async () => {
-      const { data } = await client.get("/users/notifications");
-
-      return data.filter((item: any) => item.type === "AI_MATCHING");
-    },
+  } = useQuery<NotificationItem[]>({
+    queryKey: ["myNotifications"],
+    queryFn: getMyNotifications,
     refetchInterval: 3000,
     refetchOnWindowFocus: true,
   });
-
-  const deleteNotificationMutation = useMutation({
-    mutationFn: async (notificationId: string) => {
-      return await client.delete(`/users/notifications/${notificationId}`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["aiMatchingNotifications"] });
-    },
-    onError: (error) => {
-      console.error("알림 삭제 실패:", error);
-      alert("알림을 넘기지 못했습니다. 다시 시도해주세요.");
-    },
-  });
-
-  const deletingId = deleteNotificationMutation.isPending
-    ? deleteNotificationMutation.variables
-    : null;
 
   if (isLoading) {
     return (
@@ -63,6 +53,8 @@ export default function MatchingPage() {
     );
   }
 
+  //////////////////////////////////////////////////////////////////
+
   return (
     <div className="bg-[#FBFBF9] min-h-screen max-w-5xl mx-auto">
       <header className="px-5 pt-4 pb-4 bg-[#FBFBF9]">
@@ -77,7 +69,7 @@ export default function MatchingPage() {
       </header>
 
       <div className="px-5 pb-10 grid grid-cols-1 md:grid-cols-2 gap-4 ">
-        {notifications.map((item: any) => {
+        {notifications.map((item: NotificationItem) => {
           const isCurrentItemDeleting = deletingId === item.id;
 
           return (
@@ -114,8 +106,8 @@ export default function MatchingPage() {
               <div className="flex gap-2.5">
                 <button
                   type="button"
-                  onClick={() => deleteNotificationMutation.mutate(item.id)}
-                  disabled={deleteNotificationMutation.isPending}
+                  onClick={() => deleteNotiMutation(item.id)}
+                  disabled={isDeleteNotiPending}
                   className="flex-1 bg-[#F2F0EC] hover:bg-[#e6e4e0] active:scale-[0.99] text-[#78716C] py-3 rounded-[14px] text-sm font-bold flex justify-center items-center transition disabled:opacity-60"
                 >
                   {isCurrentItemDeleting ? (
@@ -128,7 +120,7 @@ export default function MatchingPage() {
                 <button
                   type="button"
                   onClick={() => router.push(`/gatherings/${item.linkId}`)}
-                  disabled={deleteNotificationMutation.isPending}
+                  disabled={isDeleteNotiPending}
                   className="flex-[2] bg-[#FF7A59] hover:bg-[#e06848] active:scale-[0.99] text-white py-3 rounded-[14px] text-sm font-extrabold flex justify-center items-center transition shadow-[0_2px_6px_rgba(255,122,89,0.1)]"
                 >
                   참여하러 가기

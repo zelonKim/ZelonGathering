@@ -31,7 +31,7 @@ model User {
   hostedGatherings Gathering[]            @relation("HostedGatherings")
   joinedGatherings GatheringParticipant[]
   publicChats      PublicChat[]
-  matchingQueues   MatchingQueue[] 
+  matchingQueues   MatchingQueue[]
 
   privateChatRoomsA PrivateChatRoom[] @relation("UserAChats")
   privateChatRoomsB PrivateChatRoom[] @relation("UserBChats")
@@ -147,13 +147,13 @@ model MatchingQueue {
 
 // 매칭 알림
 model Notification {
-  id        String           @id @default(uuid()) @db.Uuid
-  userId    String           @map("user_id") @db.Uuid 
-  title     String 
-  message   String           @db.Text 
-  linkId    String?          @map("link_id") @db.Uuid 
-  createdAt DateTime         @default(now()) @map("created_at")
-  matchRate Int              @default(80)
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  title     String
+  message   String   @db.Text
+  linkId    String?  @map("link_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+  matchRate Int      @default(80)
 
   user User @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
 
@@ -162,25 +162,23 @@ model Notification {
 
 /////////////////////////////////////////
 
-
-
 enum GatheringStatus {
-  RECRUITING 
-  FULL 
-  ONGOING 
-  FINISHED 
-  CANCELED 
+  RECRUITING
+  FULL
+  ONGOING
+  FINISHED
+  CANCELED
 }
 
 enum ParticipantRole {
-  HOST 
-  MEMBER 
+  HOST
+  MEMBER
 }
 
 enum ParticipantStatus {
-  PENDING 
-  ACCEPTED 
-  REJECTED 
+  PENDING
+  ACCEPTED
+  REJECTED
   EXITED
 }
 
@@ -188,6 +186,16 @@ enum QueueStatus {
   WAITING
   MATCHED
   TIMEOUT
+}
+
+enum Day {
+  MON
+  TUE
+  WED
+  THU
+  FRI
+  SAT
+  SUN
 }
 
 enum GatheringCategory {
@@ -201,34 +209,24 @@ enum GatheringCategory {
   TOUR
 }
 
-enum Day {
-  MON 
-  TUE
-  WED
-  THU
-  FRI 
-  SAT
-  SUN
-}
-
 enum Time {
   AM_06
-  AM_07 
-  AM_08 
-  AM_09 
-  AM_10 
-  AM_11 
-  PM_12 
-  PM_01 
+  AM_07
+  AM_08
+  AM_09
+  AM_10
+  AM_11
+  PM_12
+  PM_01
   PM_02
   PM_03
-  PM_04 
-  PM_05 
-  PM_06 
+  PM_04
+  PM_05
+  PM_06
   PM_07
-  PM_08 
-  PM_09 
-  PM_10 
+  PM_08
+  PM_09
+  PM_10
 }
 
 enum District {
