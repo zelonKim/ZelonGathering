@@ -37,12 +37,6 @@ export class UsersController {
     return await this.usersService.login(loginDto);
   }
 
-  // 프로필 보기
-  @Get(':id')
-  async getUserProfile(@Param('id') id: string) {
-    return await this.usersService.getUserProfileById(id);
-  }
-
   // 3. 나의 프로필 조회
   @UseGuards(JwtAuthGuard)
   @Get('me')
@@ -95,5 +89,11 @@ export class UsersController {
   async getMyChats(@Req() req: { user: { sub: string } }) {
     const userId = req.user.sub;
     return await this.usersService.getMyChats(userId);
+  }
+
+  // 9. 프로필 보기
+  @Get(':id')
+  async getUserProfile(@Param('id') id: string) {
+    return await this.usersService.getUserProfileById(id);
   }
 }

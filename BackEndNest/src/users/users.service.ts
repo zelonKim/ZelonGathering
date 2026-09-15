@@ -92,35 +92,6 @@ export class UsersService {
 
   ////////////////////////////////////////////////////////////////////////////
 
-  // 프로필 보기
-  async getUserProfileById(userId: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        id: true,
-        nickname: true,
-        profileImg: true,
-        mannerTemperature: true,
-        favorite: true,
-        hate: true,
-        age: true,
-        mbti: true,
-        preferCategory: true,
-        preferDistrict: true,
-        preferDay: true,
-        preferTime: true,
-      },
-    });
-
-    if (!user) {
-      throw new NotFoundException('유저를 찾을 수 없습니다.');
-    }
-
-    return user;
-  }
-
-  ////////////////////////////////////////////////////////////////////////////
-
   // 3. 나의 프로필 조회
   async getProfile(userId: string) {
     const user = await this.prisma.user.findUnique({
@@ -291,5 +262,34 @@ export class UsersService {
         unreadCount: 0,
       };
     });
+  }
+
+  ////////////////////////////////////////////////////////////////////////////
+
+  // 9. 프로필 보기
+  async getUserProfileById(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        nickname: true,
+        profileImg: true,
+        mannerTemperature: true,
+        favorite: true,
+        hate: true,
+        age: true,
+        mbti: true,
+        preferCategory: true,
+        preferDistrict: true,
+        preferDay: true,
+        preferTime: true,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('유저를 찾을 수 없습니다.');
+    }
+
+    return user;
   }
 }
