@@ -14,9 +14,10 @@ NestJS 메인 서버로부터 전달받은 소모임 정보, 방장 프로필, �
 ---
 
 ## 📂 Directory Structure
-
+```text
 BackEndFastAPI/
 ├── main.py          # FastAPI 엔드포인트 및 OpenAI 비동기 분석 로직
 ├── schemas.py       # Pydantic 기반 입출력 DTO 및 Structured Outputs 스키마
 ├── requirements.txt # Python 패키지 의존성 목록
 └── .env             # 환경 변수 (OpenAI API Key 등)
+```
