@@ -79,7 +79,6 @@ export class ChatsService {
 
   ////////////////////////////////////////////////////////////////////////
 
-  
   // 3. DM 채팅방 상세 정보 조회
   async getPrivateChatRoomById(roomId: string, myId: string) {
     const room = await this.prisma.privateChatRoom.findUnique({
@@ -212,7 +211,7 @@ export class ChatsService {
 
     return await this.prisma.privateChat.findMany({
       where: { roomId },
-      take: dto.limit,
+      take: dto.limit ? Number(dto.limit) : 500,
       orderBy: { createdAt: 'desc' },
       include: {
         sender: { select: { id: true, nickname: true, profileImg: true } },

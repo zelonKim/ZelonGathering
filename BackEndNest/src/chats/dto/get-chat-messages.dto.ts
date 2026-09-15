@@ -5,6 +5,6 @@ export class GetChatMessagesDto {
   @IsOptional()
   @Type(() => Number)
   @IsInt()
-  @Min(1)
-  limit: number = 500;
+  @Min(10)
+  limit?: number = 500;
 }

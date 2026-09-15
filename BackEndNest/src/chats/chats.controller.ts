@@ -38,7 +38,7 @@ export class ChatsController {
     return await this.chatsService.getPublicMessages(gatheringId);
   }
 
-  // 3. DM 채팅방 개설 
+  // 3. DM 채팅방 개설
   @Post('private/room/:partnerUserId')
   async openPrivateChatRoom(
     @Param('partnerUserId') partnerUserId: string,
@@ -52,31 +52,17 @@ export class ChatsController {
 
   // 3. DM 채팅방 상세 정보 조회
   @Get('private/room/:roomId')
-async getPrivateChatRoom(
-  @Param('roomId') roomId: string,
-  @Req() req: { user: { sub: string } },
-) {
-  return await this.chatsService.getPrivateChatRoomById(roomId, req.user.sub);
-}
+  async getPrivateChatRoom(
+    @Param('roomId') roomId: string,
+    @Req() req: { user: { sub: string } },
+  ) {
+    return await this.chatsService.getPrivateChatRoomById(roomId, req.user.sub);
+  }
 
   // 4. DM 채팅방 목록 조회
   @Get('private/rooms')
   async getMyChatRooms(@Req() req: { user: { sub: string } }) {
     return await this.chatsService.getMyPrivateChatRooms(req.user.sub);
-  }
-
-  // 5. DM 전송
-  @Post('private/message/:roomId')
-  async sendPrivateMessage(
-    @Param('roomId') roomId: string,
-    @Req() req: { user: { sub: string } },
-    @Body() dto: SendChatMessagesDto,
-  ) {
-    return await this.chatsService.savePrivateMessage(
-      roomId,
-      req.user.sub,
-      dto,
-    );
   }
 
   // 6. DM 채팅방 메시지 조회
@@ -87,6 +73,20 @@ async getPrivateChatRoom(
     @Query() dto: GetChatMessagesDto,
   ) {
     return await this.chatsService.getPrivateMessages(
+      roomId,
+      req.user.sub,
+      dto,
+    );
+  }
+
+  // 5. DM 전송
+  @Post('private/message/:roomId')
+  async sendPrivateMessage(
+    @Param('roomId') roomId: string,
+    @Req() req: { user: { sub: string } },
+    @Body() dto: SendChatMessagesDto,
+  ) {
+    return await this.chatsService.savePrivateMessage(
       roomId,
       req.user.sub,
       dto,
