@@ -16,7 +16,6 @@ import { SendChatMessagesDto } from './dto/send-chat-messages.dto';
     origin: ['http://localhost:3000', 'https://zelon-gathering.vercel.app'],
     credentials: true,
   },
-  namespace: '/chat',
 })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()

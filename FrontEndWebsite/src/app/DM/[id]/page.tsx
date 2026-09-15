@@ -34,7 +34,7 @@ export default function PrivateChatPage() {
   useEffect(() => {
     if (!roomId || !myId) return;
 
-    const socket = io(`${process.env.NEXT_PUBLIC_API_URL}/chat`, {
+    const socket = io(`${process.env.NEXT_PUBLIC_API_URL}`, {
       transports: ["websocket"],
       withCredentials: true,
     });
