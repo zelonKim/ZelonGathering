@@ -16,6 +16,7 @@ import { Day } from "@/types/Day";
 import { Time } from "@/types/Time";
 import { GatheringInfoTabProps } from "@/types/GatheringInfoTabProps";
 import { useOpenPrivateChatRoom } from "@/hooks/useOpenPrivateChatRoom";
+import { useRouter } from "next/navigation";
 
 export function GatheringInfoTab({
   gathering,
@@ -31,6 +32,8 @@ export function GatheringInfoTab({
   DAY_MAPS,
   TIME_MAPS,
 }: GatheringInfoTabProps) {
+  const router = useRouter();
+
   const [activeMenuParticipantId, setActiveMenuParticipantId] = useState<
     string | null
   >(null);
@@ -183,7 +186,7 @@ export function GatheringInfoTab({
                   </div>
                 </div>
 
-                {/* 💡 플로팅 팝오버 메뉴 (프로필 사진 옆/위쪽에 표시) */}
+
                 {isMenuOpen && (
                   <div
                     ref={menuRef}
@@ -193,7 +196,7 @@ export function GatheringInfoTab({
                       type="button"
                       onClick={() => {
                         setActiveMenuParticipantId(null);
-                        // handleOpenProfileModal?.(participantUserId);
+                        router.push(`/profileInfo/${participantUserId}`);
                       }}
                       className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-stone-700 hover:bg-stone-100 rounded-xl transition w-full text-left"
                     >

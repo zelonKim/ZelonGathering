@@ -34,13 +34,10 @@ export default function PrivateChatPage() {
   useEffect(() => {
     if (!roomId || !myId) return;
 
-    const socket = io(
-      process.env.NEXT_PUBLIC_API_URL ,
-      {
-        transports: ["polling", "websocket"],
-        withCredentials: true,
-      },
-    );
+    const socket = io(`${process.env.NEXT_PUBLIC_API_URL}/chat`, {
+      transports: ["websocket"],
+      withCredentials: true,
+    });
     socketRef.current = socket;
 
     socket.on("connect", () => {
@@ -69,7 +66,7 @@ export default function PrivateChatPage() {
     };
   }, [roomId, myId, queryClient]);
 
-  /////////////////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////
 
   const {
     data: roomData,
@@ -107,18 +104,6 @@ export default function PrivateChatPage() {
   /////////////////////////////////////////////////////////////////////////
 
   const handleSendMessage = () => {
-    console.log(
-      "전송 시도 - socketRef:",
-      socketRef.current?.connected,
-      "myId:",
-      myId,
-    );
-
-    if (!chatInput.trim() || !socketRef.current || !myId) {
-      console.warn("전송 불가: 필수 값이 누락되었거나 소켓이 연결되지 않음");
-      return;
-    }
-
     if (!chatInput.trim() || !socketRef.current || !myId) return;
 
     socketRef.current.emit("send_private_message", {
@@ -163,7 +148,7 @@ export default function PrivateChatPage() {
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={() => router.back()}
+            onClick={() => router.push("/chats?tab=DM")}
             className="p-1.5 hover:bg-stone-100 rounded-full transition"
           >
             <ArrowLeft className="w-5 h-5 text-stone-700" />

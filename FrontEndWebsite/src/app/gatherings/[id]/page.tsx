@@ -253,7 +253,7 @@ export default function GatheringDetailPage() {
               : "border-transparent text-[#78716C]"
           }`}
         >
-          모임 정보
+          소모임 정보
         </button>
         <button
           onClick={() => {
@@ -273,7 +273,7 @@ export default function GatheringDetailPage() {
               : "border-transparent text-[#78716C]"
           }`}
         >
-          실시간 채팅방
+          소모임 채팅방
         </button>
       </div>
 
