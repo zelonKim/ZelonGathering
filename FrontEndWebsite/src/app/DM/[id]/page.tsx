@@ -3,63 +3,14 @@
 import React, { useState, useEffect, useRef } from "react";
 import { ArrowLeft, Send } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { client } from "@/app/api/client";
 import { getMyProfile } from "@/app/api/profile/getMyProfile";
+import { ChatMessage } from "@/types/ChatMessage";
+import { PrivateChatRoomDetail } from "@/types/PrivateChatRoomDetail";
+import { getPrivateMessages } from "@/app/api/chat/getPrivateMessages";
 
-interface UserProfile {
-  id: string;
-  nickname: string;
-  profileImg?: string;
-  mannerTemperature?: number;
-}
-
-export interface Message {
-  id: string;
-  roomId: string;
-  senderId: string;
-  message: string;
-  createdAt: string;
-  sender?: {
-    id: string;
-    nickname: string;
-    profileImg?: string;
-  };
-}
-
-interface PrivateChatRoomDetail {
-  id: string;
-  userAId: string;
-  userBId: string;
-  userA: UserProfile;
-  userB: UserProfile;
-  messages: Message[];
-}
-
-// 1) 대화 내역 가져오기 API
-const getPrivateMessages = async (
-  roomId: string,
-  limit: number,
-): Promise<Message[]> => {
-  const { data } = await client.get<Message[]>(
-    `/chats/private/messages/${roomId}`,
-    { params: { limit } },
-  );
-  // DB에서 desc(최신순)로 가져온 경우, 채팅창 출력을 위해 시간순(asc)으로 정렬
-  return data.reverse();
-};
-
-// 2) 메시지 전송 (DB 저장) API
-const sendPrivateMessage = async (
-  roomId: string,
-  message: string,
-): Promise<Message> => {
-  const { data } = await client.post<Message>(
-    `/chats/private/message/${roomId}`,
-    { message },
-  );
-  return data;
-};
+import { io, Socket } from "socket.io-client";
 
 export default function PrivateChatPage() {
   const params = useParams();
@@ -69,15 +20,57 @@ export default function PrivateChatPage() {
 
   const [chatInput, setChatInput] = useState("");
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const socketRef = useRef<Socket | null>(null);
 
-  // 내 프로필 정보 가져오기
   const { data: myProfile } = useQuery({
     queryKey: ["myProfile"],
     queryFn: getMyProfile,
   });
+
   const myId = myProfile?.id;
 
-  // 채팅방 상세 정보 가져오기 (상대방 프로필 정보용)
+  /////////////////////////////////////////////////////////
+
+  useEffect(() => {
+    if (!roomId || !myId) return;
+
+    const socket = io(
+      process.env.NEXT_PUBLIC_API_URL ,
+      {
+        transports: ["polling", "websocket"],
+        withCredentials: true,
+      },
+    );
+    socketRef.current = socket;
+
+    socket.on("connect", () => {
+      console.log("✅ 웹소켓 연결 성공! Socket ID:", socket.id);
+      socket.emit("join_room", { roomId });
+    });
+
+    socket.on("connect_error", (err) => {
+      console.error("❌ 웹소켓 연결 실패:", err.message);
+    });
+
+    socket.on("new_private_message", (newMessage: ChatMessage) => {
+      console.log("📩 새 메시지 수신:", newMessage);
+      queryClient.setQueryData<ChatMessage[]>(
+        ["privateMessages", roomId],
+        (old = []) => {
+          if (old.some((msg) => msg.id === newMessage.id)) return old;
+          return [...old, newMessage];
+        },
+      );
+    });
+
+    return () => {
+      socket.emit("leave_room", { roomId });
+      socket.disconnect();
+    };
+  }, [roomId, myId, queryClient]);
+
+  /////////////////////////////////////////////////////////////////////////
+
   const {
     data: roomData,
     isLoading: isRoomLoading,
@@ -91,46 +84,50 @@ export default function PrivateChatPage() {
     enabled: !!roomId,
   });
 
-  // 내 ID 기준으로 상대방 유저 자동 판별
   const partnerUser = roomData
     ? roomData.userAId === myId
       ? roomData.userB
       : roomData.userA
     : null;
 
-  // DB에서 대화 내역 가져오기
+  /////////////////////////////////////////////////////////////////////////
+
   const { data: chatMessages = [], isLoading: isMessagesLoading } = useQuery<
-    Message[]
+    ChatMessage[]
   >({
     queryKey: ["privateMessages", roomId],
     queryFn: () => getPrivateMessages(roomId, 500),
     enabled: !!roomId,
   });
 
-  // 메시지 전송 Mutation
-  const sendMessageMutation = useMutation({
-    mutationFn: (messageText: string) =>
-      sendPrivateMessage(roomId, messageText),
-    onSuccess: (newMessage) => {
-      queryClient.setQueryData<Message[]>(
-        ["privateMessages", roomId],
-        (old = []) => [...old, newMessage],
-      );
-      setChatInput("");
-    },
-    onError: () => {
-      alert("메시지 전송에 실패했습니다.");
-    },
-  });
-
-  // 메시지 목록이 추가될 때마다 자동으로 최하단 스크롤
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatMessages]);
 
+  /////////////////////////////////////////////////////////////////////////
+
   const handleSendMessage = () => {
-    if (!chatInput.trim() || sendMessageMutation.isPending) return;
-    sendMessageMutation.mutate(chatInput);
+    console.log(
+      "전송 시도 - socketRef:",
+      socketRef.current?.connected,
+      "myId:",
+      myId,
+    );
+
+    if (!chatInput.trim() || !socketRef.current || !myId) {
+      console.warn("전송 불가: 필수 값이 누락되었거나 소켓이 연결되지 않음");
+      return;
+    }
+
+    if (!chatInput.trim() || !socketRef.current || !myId) return;
+
+    socketRef.current.emit("send_private_message", {
+      roomId,
+      senderId: myId,
+      dto: { message: chatInput },
+    });
+
+    setChatInput("");
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -139,6 +136,8 @@ export default function PrivateChatPage() {
       handleSendMessage();
     }
   };
+
+  /////////////////////////////////////////////////////////////////////////
 
   if (isRoomLoading) {
     return (
@@ -156,9 +155,10 @@ export default function PrivateChatPage() {
     );
   }
 
+  /////////////////////////////////////////////////////////////////////////
+
   return (
     <div className="flex flex-col h-screen bg-[#F5F5F4]">
-      {/* 헤더 */}
       <header className="sticky top-0 z-10 bg-white border-b border-[#E7E5E4] px-4 py-3 flex items-center justify-between shadow-xs">
         <div className="flex items-center gap-3">
           <button
@@ -192,7 +192,6 @@ export default function PrivateChatPage() {
         </div>
       </header>
 
-      {/* 메시지 영역 */}
       <div className="flex-1 p-4 overflow-y-auto space-y-4 max-h-[calc(100vh-8rem)]">
         {isMessagesLoading ? (
           <div className="text-center py-12 text-[15px] text-stone-400">
@@ -254,7 +253,6 @@ export default function PrivateChatPage() {
         <div ref={chatEndRef} />
       </div>
 
-      {/* 입력 폼 */}
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -272,9 +270,9 @@ export default function PrivateChatPage() {
         />
         <button
           type="submit"
-          disabled={!chatInput.trim() || sendMessageMutation.isPending}
+          disabled={!chatInput.trim()}
           className={`w-9 h-9 rounded-full flex items-center justify-center text-white transition shrink-0 ${
-            chatInput.trim() && !sendMessageMutation.isPending
+            chatInput.trim()
               ? "bg-[#FF7A59] hover:bg-[#E0684B]"
               : "bg-stone-200 cursor-not-allowed"
           }`}
