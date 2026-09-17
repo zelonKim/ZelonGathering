@@ -55,7 +55,6 @@ export default function TabsLayout() {
         },
       }}
     >
-      {/* 1. 홈 탭 */}
       <Tabs.Screen
         name="index"
         options={{
@@ -63,14 +62,13 @@ export default function TabsLayout() {
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? "home" : "home-outline"}
-              size={22} 
+              size={22}
               color={color}
             />
           ),
         }}
       />
 
-      {/* 2. 채팅 탭 */}
       <Tabs.Screen
         name="chats"
         options={{
@@ -86,7 +84,6 @@ export default function TabsLayout() {
         }}
       />
 
-      {/* 3. AI 매칭 탭 */}
       <Tabs.Screen
         name="matching"
         options={{
@@ -101,7 +98,6 @@ export default function TabsLayout() {
         }}
       />
 
-      {/* 4. 프로필 탭 */}
       <Tabs.Screen
         name="profile"
         options={{

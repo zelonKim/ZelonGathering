@@ -1,7 +1,6 @@
-import { client } from "@/api/client";
-import { Ionicons } from "@expo/vector-icons";
-import { useMutation } from "@tanstack/react-query";
-import { useRouter } from "expo-router";
+import { useSignup } from "@/hooks/useSignup";
+import { Feather } from "@expo/vector-icons";
+import { router } from "expo-router";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -15,225 +14,230 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-
-const COLORS = {
-  primary: "#FF7A59",
-  primaryLight: "#FFEBE5",
-  background: "#FBFBF9",
-  surface: "#FFFFFF",
-  textMain: "#292524",
-  textSub: "#78716C",
-  border: "#E7E5E4",
-  textOpac: "#8d8d8d9b",
-};
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function SignupScreen() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
 
-  const signupUser = async (signupData: any) => {
-    const { data } = await client.post("/users/signup", signupData);
-    return data;
-  };
-
-  const { mutate: signupMutate, isPending } = useMutation({
-    mutationFn: signupUser,
-    onSuccess: (data) => {
-      alert(data.message || "회원가입이 완료되었습니다! 🎉");
-      router.replace("/login");
-    },
-    onError: (error: any) => {
-      const errorMessage =
-        error.response?.data?.message || "회원가입 중 오류가 발생했습니다.";
-      alert(errorMessage);
-    },
-  });
+  const { mutate: signupMutation, isPending: signupPending } = useSignup();
 
   const handleSignup = () => {
     if (!email.trim() || !password.trim() || !passwordConfirm.trim()) {
-      Alert.alert("안내", "이메일과 비밀번호를 모두 입력해 주세요.");
+      Alert.alert("알림", "이메일과 비밀번호를 모두 입력해 주세요.");
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      Alert.alert("안내", "올바른 이메일 형식이 아닙니다.");
+      Alert.alert("알림", "올바른 이메일 형식이 아닙니다.");
       return;
     }
 
     const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
     if (!passwordRegex.test(password)) {
       Alert.alert(
-        "안내",
-        "비밀번호는 영문 and 숫자를 포함하여 8자리 이상이어야 합니다.",
+        "알림",
+        "비밀번호는 영문과 숫자를 포함하여 8자리 이상이어야 합니다.",
       );
       return;
     }
 
     if (password !== passwordConfirm) {
-      Alert.alert("안내", "비밀번호가 서로 일치하지 않습니다");
+      Alert.alert("알림", "비밀번호가 서로 일치하지 않습니다.");
       return;
     }
 
-    signupMutate({
+    signupMutation({
       email,
       password,
       passwordConfirm,
     });
   };
 
-  return (
-    <View style={styles.container}>
-      <View style={styles.navHeader}>
-        <TouchableOpacity onPress={() => router.back()} disabled={isPending}>
-          <Ionicons name="arrow-back" size={24} color={COLORS.textMain} />
-        </TouchableOpacity>
-      </View>
+/////////////////////////////////////////////////////////////////////
 
+  return (
+    <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
-        keyboardVerticalOffset={Platform.select({
-          ios: 20,
-          android: 32,
-        })}
       >
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => {
+              router.back();
+            }}
+            disabled={signupPending}
+            style={styles.backButton}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Feather name="arrow-left" size={24} color="#292524" />
+          </TouchableOpacity>
+        </View>
+
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContainer}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={styles.innerContainer}>
-            <View style={styles.titleSection}>
-              <Text style={styles.mainTitle}>하이루 👋</Text>
-              <Text style={styles.subTitle}>
-                가입하고, 새로운 사람들과 인사해봐요.
-              </Text>
+          <View style={styles.greetingSection}>
+            <Text style={styles.title}>하이루 👋</Text>
+            <Text style={styles.subtitle}>
+              가입하고, 새로운 사람들과 인사해봐요.
+            </Text>
+          </View>
+
+          <View style={styles.form}>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>이메일 계정</Text>
+              <TextInput
+                value={email}
+                onChangeText={setEmail}
+                placeholder="example@zelon.com"
+                placeholderTextColor="#A8A29E"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                editable={!signupPending}
+                style={styles.input}
+              />
             </View>
 
-            <View style={styles.formSection}>
-              <View style={styles.inputWrapper}>
-                <Text style={styles.inputLabel}>이메일 계정</Text>
-                <TextInput
-                  style={styles.textInput}
-                  value={email}
-                  onChangeText={setEmail}
-                  placeholder="example@gmail.com"
-                  placeholderTextColor={COLORS.textOpac}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  disabled={isPending}
-                />
-              </View>
-
-              <View style={styles.inputWrapper}>
-                <Text style={styles.inputLabel}>비밀번호</Text>
-                <TextInput
-                  style={styles.textInput}
-                  value={password}
-                  onChangeText={setPassword}
-                  placeholder="영문, 숫자 포함 8자 이상"
-                  placeholderTextColor={COLORS.textOpac}
-                  secureTextEntry
-                  autoCapitalize="none"
-                  disabled={isPending}
-                />
-              </View>
-
-              <View style={styles.inputWrapper}>
-                <Text style={styles.inputLabel}>비밀번호 확인</Text>
-                <TextInput
-                  style={styles.textInput}
-                  value={passwordConfirm}
-                  onChangeText={setPasswordConfirm}
-                  placeholder="비밀번호를 한번 더 입력해 주세요"
-                  placeholderTextColor={COLORS.textOpac}
-                  secureTextEntry
-                  autoCapitalize="none"
-                  disabled={isPending}
-                />
-              </View>
-
-              <TouchableOpacity
-                style={[styles.signupButton, isPending && { opacity: 0.7 }]}
-                activeOpacity={0.8}
-                onPress={handleSignup}
-                disabled={isPending}
-              >
-                {isPending ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <Text style={styles.signupButtonText}>가입하기</Text>
-                )}
-              </TouchableOpacity>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>비밀번호</Text>
+              <TextInput
+                value={password}
+                onChangeText={setPassword}
+                placeholder="영문, 숫자 포함 8자 이상"
+                placeholderTextColor="#A8A29E"
+                secureTextEntry
+                autoCapitalize="none"
+                editable={!signupPending}
+                style={styles.input}
+              />
             </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>비밀번호 확인</Text>
+              <TextInput
+                value={passwordConfirm}
+                onChangeText={setPasswordConfirm}
+                placeholder="비밀번호를 한번 더 입력해 주세요"
+                placeholderTextColor="#A8A29E"
+                secureTextEntry
+                autoCapitalize="none"
+                editable={!signupPending}
+                onSubmitEditing={handleSignup}
+                style={styles.input}
+              />
+            </View>
+
+            <TouchableOpacity
+              onPress={handleSignup}
+              disabled={signupPending}
+              activeOpacity={0.8}
+              style={[
+                styles.submitButton,
+                signupPending && styles.disabledButton,
+              ]}
+            >
+              {signupPending ? (
+                <ActivityIndicator color="#FFFFFF" size="small" />
+              ) : (
+                <Text style={styles.submitButtonText}>가입하기</Text>
+              )}
+            </TouchableOpacity>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </View>
+    </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  navHeader: {
-    paddingHorizontal: 20,
-    paddingTop: Platform.OS === "ios" ? 15 : 10,
-    height: 50,
-    justifyContent: "center",
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingHorizontal: 28,
-    paddingBottom: 120,
-  },
+/////////////////////////////////////////////////////////////////////
 
-  innerContainer: {
+
+const styles = StyleSheet.create({
+  container: {
     flex: 1,
-    justifyContent: "center", 
-    paddingTop: 20,
+    backgroundColor: "#FBFBF9",
   },
-  titleSection: { marginBottom: 24 },
-  mainTitle: {
-    fontSize: 28,
-    fontWeight: "900",
-    color: COLORS.textMain,
-    letterSpacing: -0.5,
-  },
-  subTitle: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: COLORS.textSub,
-    marginTop: 6,
-  },
-  formSection: { gap: 18, marginTop: 30 },
-  inputWrapper: { gap: 6 },
-  inputLabel: { fontSize: 13, fontWeight: "700", color: COLORS.textSub },
-  textInput: {
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 14,
+  header: {
+    height: 56,
+    justifyContent: "center",
     paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 14,
-    color: COLORS.textMain,
-    fontWeight: "600",
   },
-  signupButton: {
-    backgroundColor: COLORS.primary,
-    paddingVertical: 16,
-    borderRadius: 16,
+  backButton: {
+    width: 40,
+    height: 40,
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 14,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 2,
+    borderRadius: 20,
   },
-  signupButtonText: { fontSize: 15, color: "#FFFFFF", fontWeight: "700" },
+  scrollContainer: {
+    flexGrow: 1,
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 40,
+  },
+  greetingSection: {
+    marginTop: 16,
+    marginBottom: 32,
+  },
+  title: {
+    fontSize: 30,
+    fontWeight: "900",
+    color: "#292524",
+    letterSpacing: -0.5,
+  },
+  subtitle: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#78716C",
+    marginTop: 8,
+  },
+  form: {
+    gap: 18,
+  },
+  inputGroup: {
+    gap: 6,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#78716C",
+  },
+  input: {
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E7E5E4",
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    height: 52,
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#292524",
+  },
+  submitButton: {
+    backgroundColor: "#FF7A59",
+    borderRadius: 16,
+    height: 54,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 12,
+    shadowColor: "#FF7A59",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  disabledButton: {
+    opacity: 0.7,
+  },
+  submitButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "700",
+  },
 });

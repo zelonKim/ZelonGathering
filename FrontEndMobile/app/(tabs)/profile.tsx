@@ -1,9 +1,21 @@
-import { client } from "@/api/client";
-import { removeAccessToken } from "@/api/token";
-import { Ionicons } from "@expo/vector-icons";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { getMyProfile } from "@/app/api/profile/getMyProfile";
+import { removeAccessToken } from "@/app/api/token";
+import { CATEGORY_ITEMS } from "@/constants/categoryItems";
+import { DAY_ITEMS } from "@/constants/dayItems";
+import { DISTRICT_ITEMS } from "@/constants/districtItems";
+import { TIME_ITEMS } from "@/constants/timeItems";
+import { useUpdateProfile } from "@/hooks/useUpdateProfile";
+import { useUploadProfileImage } from "@/hooks/useUploadImage";
+import { Category } from "@/types/Category";
+import { Day } from "@/types/Day";
+import { District } from "@/types/District";
+import { Mbti } from "@/types/MBTI";
+import { Time } from "@/types/Time";
+import { UpdateProfilePayload } from "@/types/UpdateProfilePayload";
+import { Feather, FontAwesome5 } from "@expo/vector-icons";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as ImagePicker from "expo-image-picker";
-import { Redirect, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -16,922 +28,864 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-const COLORS = {
-  primary: "#FF7A59",
-  primaryLight: "#FFEBE5",
-  background: "#FBFBF9",
-  surface: "#FFFFFF",
-  textMain: "#292524",
-  textSub: "#78716C",
-  textOpac: "#8d8d8d9b",
-  border: "#E7E5E4",
-  mannerHot: "#EF4444",
-};
-
-const CATEGORY_ITEMS = [
-  { key: "STUDY", label: "📑 스터디" },
-  { key: "SPORTS", label: "⚽️ 스포츠" },
-  { key: "ART", label: "🎨 아트" },
-  { key: "FOOD", label: "🍔 음식" },
-  { key: "GAME", label: "🎯 게임" },
-  { key: "BOOK", label: "📚 독서" },
-  { key: "TALK", label: "🎙️ 토크" },
-  { key: "TOUR", label: "🚡 투어" },
-];
-
-const DAY_ITEMS = [
-  { key: "MON", label: "월" },
-  { key: "TUE", label: "화" },
-  { key: "WED", label: "수" },
-  { key: "THU", label: "목" },
-  { key: "FRI", label: "금" },
-  { key: "SAT", label: "토" },
-  { key: "SUN", label: "일" },
-];
-
-const TIME_ITEMS = [
-  { key: "AM_06", label: "오전 06:00", type: "AM" },
-  { key: "AM_07", label: "오전 07:00", type: "AM" },
-  { key: "AM_08", label: "오전 08:00", type: "AM" },
-  { key: "AM_09", label: "오전 09:00", type: "AM" },
-  { key: "AM_10", label: "오전 10:00", type: "AM" },
-  { key: "AM_11", label: "오전 11:00", type: "AM" },
-  { key: "PM_12", label: "정오 12:00", type: "PM" },
-  { key: "PM_01", label: "오후 01:00", type: "PM" },
-  { key: "PM_02", label: "오후 02:00", type: "PM" },
-  { key: "PM_03", label: "오후 03:00", type: "PM" },
-  { key: "PM_04", label: "오후 04:00", type: "PM" },
-  { key: "PM_05", label: "오후 05:00", type: "PM" },
-  { key: "PM_06", label: "오후 06:00", type: "PM" },
-  { key: "PM_07", label: "오후 07:00", type: "PM" },
-  { key: "PM_08", label: "오후 08:00", type: "PM" },
-  { key: "PM_09", label: "오후 09:00", type: "PM" },
-  { key: "PM_10", label: "오후 10:00", type: "PM" },
-];
-
-const DISTRICT_ITEMS = [
-  { key: "SEOUL_GANGNAM", label: "강남구", city: "SEOUL" },
-  { key: "SEOUL_GANGBUK", label: "강북구", city: "SEOUL" },
-  { key: "SEOUL_GANGDONG", label: "강동구", city: "SEOUL" },
-  { key: "SEOUL_GANGSEO", label: "강서구", city: "SEOUL" },
-  { key: "SEOUL_GWANAK", label: "관악구", city: "SEOUL" },
-  { key: "SEOUL_GWANGJIN", label: "광진구", city: "SEOUL" },
-  { key: "SEOUL_GURO", label: "구로구", city: "SEOUL" },
-  { key: "SEOUL_GEUMCHEON", label: "금천구", city: "SEOUL" },
-  { key: "SEOUL_NOWON", label: "노원구", city: "SEOUL" },
-  { key: "SEOUL_DOBONG", label: "도봉구", city: "DOBONG" },
-  { key: "SEOUL_DONGDAEMUN", label: "동대문구", city: "SEOUL" },
-  { key: "SEOUL_DONGJAK", label: "동작구", city: "SEOUL" },
-  { key: "SEOUL_MAPO", label: "마포구", city: "SEOUL" },
-  { key: "SEOUL_SEODAEMUN", label: "서대문구", city: "SEOUL" },
-  { key: "SEOUL_SEOCHO", label: "서초구", city: "SEOUL" },
-  { key: "SEOUL_SEONGDONG", label: "성동구", city: "SEOUL" },
-  { key: "SEOUL_SEONGBUK", label: "성북구", city: "SEOUL" },
-  { key: "SEOUL_SONGPA", label: "송파구", city: "SEOUL" },
-  { key: "SEOUL_YANGCHEON", label: "양천구", city: "SEOUL" },
-  { key: "SEOUL_YEONGDEUNGPO", label: "영등포구", city: "SEOUL" },
-  { key: "SEOUL_YONGSAN", label: "용산구", city: "SEOUL" },
-  { key: "SEOUL_EUNPYEONG", label: "은평구", city: "SEOUL" },
-  { key: "SEOUL_JONGNO", label: "종로구", city: "SEOUL" },
-  { key: "SEOUL_JUNGGU", label: "중구", city: "SEOUL" },
-  { key: "SEOUL_JUNGNANG", label: "중랑구", city: "SEOUL" },
-  { key: "GYEONGGI_GOYANG", label: "고양시", city: "GYEONGGI" },
-  { key: "GYEONGGI_GWACHEON", label: "과천시", city: "GYEONGGI" },
-  { key: "GYEONGGI_GWANGMYEONG", label: "광명시", city: "GYEONGGI" },
-  { key: "GYEONGGI_GWANGJU", label: "광주시", city: "GYEONGGI" },
-  { key: "GYEONGGI_GURI", label: "구리시", city: "GYEONGGI" },
-  { key: "GYEONGGI_GUNPO", label: "군포시", city: "GYEONGGI" },
-  { key: "GYEONGGI_GIMPO", label: "김포시", city: "GYEONGGI" },
-  { key: "GYEONGGI_NAMYANGJU", label: "남양주시", city: "GYEONGGI" },
-  { key: "GYEONGGI_DONGDUCHEON", label: "동두천시", city: "GYEONGGI" },
-  { key: "GYEONGGI_BUCHEON", label: "부천시", city: "GYEONGGI" },
-  { key: "GYEONGGI_SEONGNAM", label: "성남시", city: "GYEONGGI" },
-  { key: "GYEONGGI_SUWON", label: "수원시", city: "GYEONGGI" },
-  { key: "GYEONGGI_SIHEUNG", label: "시흥시", city: "GYEONGGI" },
-  { key: "GYEONGGI_ANSAN", label: "안산시", city: "GYEONGGI" },
-  { key: "GYEONGGI_ANSEONG", label: "안성시", city: "GYEONGGI" },
-  { key: "GYEONGGI_ANYANG", label: "안양시", city: "GYEONGGI" },
-  { key: "GYEONGGI_YANGJU", label: "양주시", city: "GYEONGGI" },
-  { key: "GYEONGGI_YANGPYEONG", label: "양평군", city: "GYEONGGI" },
-  { key: "GYEONGGI_YEOJU", label: "여주시", city: "GYEONGGI" },
-  { key: "GYEONGGI_YEONCHEON", label: "연천군", city: "GYEONGGI" },
-  { key: "GYEONGGI_OSAN", label: "오산시", city: "GYEONGGI" },
-  { key: "GYEONGGI_YONGIN", label: "용인시", city: "GYEONGGI" },
-  { key: "GYEONGGI_UIWANG", label: "의왕시", city: "GYEONGGI" },
-  { key: "GYEONGGI_UIJEONGBU", label: "의정부시", city: "GYEONGGI" },
-  { key: "GYEONGGI_ICHEON", label: "이천시", city: "GYEONGGI" },
-  { key: "GYEONGGI_PAJU", label: "파주시", city: "GYEONGGI" },
-  { key: "GYEONGGI_PYEONGTAEK", label: "평택시", city: "GYEONGGI" },
-  { key: "GYEONGGI_POCHEON", label: "포천시", city: "GYEONGGI" },
-  { key: "GYEONGGI_HANAM", label: "하남시", city: "GYEONGGI" },
-  { key: "GYEONGGI_HWASEONG", label: "화성시", city: "GYEONGGI" },
-  { key: "GWANGJU", label: "광주광역시", city: "OTHER" },
-  { key: "DAEGU", label: "대구광역시", city: "OTHER" },
-  { key: "DAEJEON", label: "대전광역시", city: "OTHER" },
-  { key: "BUSAN", label: "부산광역시", city: "OTHER" },
-  { key: "ULSAN", label: "울산광역시", city: "OTHER" },
-  { key: "INCHEON", label: "인천광역시", city: "OTHER" },
-  { key: "SEJONG", label: "세종특별자치시", city: "OTHER" },
-  { key: "GANGWON", label: "강원특별자치도", city: "OTHER" },
-  { key: "JEJU", label: "제주특별자치도", city: "OTHER" },
-  { key: "JEONBUK", label: "전북특별자치도", city: "OTHER" },
-  { key: "GYEONGBUK", label: "경상북도", city: "OTHER" },
-  { key: "GYEONGNAM", label: "경상남도", city: "OTHER" },
-  { key: "JEONNAM", label: "전라남도", city: "OTHER" },
-  { key: "CHUNGBUK", label: "충청북도", city: "OTHER" },
-  { key: "CHUNGNAM", label: "충청남도", city: "OTHER" },
-].sort((a, b) => a.label.localeCompare(b.label, "ko-KR"));
-
-interface UpdateProfilePayload {
-  nickname?: string;
-  favorite?: string;
-  hate?: string;
-  age?: number;
-  mbti?: string;
-  preferCategory?: string[];
-  preferDistrict?: string[];
-  preferDay?: string[];
-  preferTime?: string[];
-  profileImg?: string;
-}
-
-export default function ProfileScreen() {
+export default function ProfilePage() {
   const router = useRouter();
   const queryClient = useQueryClient();
 
-  const {
-    data: userProfile,
-    isLoading,
-    isError,
-  } = useQuery({
-    queryKey: ["myProfile"],
-    queryFn: async () => {
-      const { data } = await client.get("/users/me");
-      return data;
-    },
-  });
-
-  const updateProfileMutation = useMutation({
-    mutationFn: async (payload: UpdateProfilePayload) => {
-      const { data } = await client.patch("/users/profile", payload);
-      return data;
-    },
-    onSuccess: () => {
-      Alert.alert("성공", "소모임 취향 프로필이 저장되었습니다!");
-      queryClient.invalidateQueries({ queryKey: ["myProfile"] });
-    },
-    onError: (error: any) => {
-      console.error("프로필 수정 오류:", error);
-      Alert.alert("실패", "프로필 저장 중 서버 오류가 발생했습니다.");
-    },
-  });
-
   const [nickname, setNickname] = useState("");
   const [age, setAge] = useState("");
-  const [mbti, setMbti] = useState("");
+  const [mbti, setMbti] = useState<Mbti | string>("");
   const [favorite, setFavorite] = useState("");
   const [hate, setHate] = useState("");
-  const [preferCategory, setPreferCategory] = useState<string[]>([]);
-  const [preferDistrict, setPreferDistrict] = useState<string[]>([]);
-  const [preferDays, setPreferDays] = useState<string[]>([]);
-  const [preferTimes, setPreferTimes] = useState<string[]>([]);
-
+  const [preferCategory, setPreferCategory] = useState<Category[] | string[]>(
+    [],
+  );
+  const [preferDistrict, setPreferDistrict] = useState<District[] | string[]>(
+    [],
+  );
+  const [preferDay, setPreferDay] = useState<Day[] | string[]>([]);
+  const [preferTime, setPreferTime] = useState<Time[] | string[]>([]);
   const [profileImg, setProfileImg] = useState<string>("");
-  const [isImageUploading, setIsImageUploading] = useState(false);
-
   const [activeCity, setActiveCity] = useState<"SEOUL" | "GYEONGGI" | "OTHER">(
     "SEOUL",
   );
   const [activeTimeType, setActiveTimeType] = useState<"AM" | "PM">("PM");
 
-  useEffect(() => {
-    if (userProfile) {
-      setNickname(userProfile.nickname || "");
-      setAge(userProfile.age ? String(userProfile.age) : "");
-      setMbti(userProfile.mbti || "");
-      setFavorite(userProfile.favorite || "");
-      setHate(userProfile.hate || "");
-      setPreferCategory(userProfile.preferCategory || []);
-      setPreferDistrict(userProfile.preferDistrict || []);
-      setPreferDays(userProfile.preferDay || []);
-      setPreferTimes(userProfile.preferTime || []);
+  const {
+    data: profileData,
+    isLoading: isGetProfileLoading,
+    isError: isGetProfileError,
+  } = useQuery({
+    queryKey: ["myProfile"],
+    queryFn: getMyProfile,
+  });
 
-      if (userProfile.profileImg) {
-        setProfileImg(`${userProfile.profileImg}?t=${new Date().getTime()}`);
+  useEffect(() => {
+    if (profileData) {
+      setNickname(profileData.nickname || "");
+      setAge(profileData.age ? String(profileData.age) : "");
+      setMbti(profileData.mbti || "");
+      setFavorite(profileData.favorite || "");
+      setHate(profileData.hate || "");
+      setPreferCategory(profileData.preferCategory || []);
+      setPreferDistrict(profileData.preferDistrict || []);
+      setPreferDay(profileData.preferDay || []);
+      setPreferTime(profileData.preferTime || []);
+      if (profileData.profileImg) {
+        setProfileImg(`${profileData.profileImg}?t=${new Date().getTime()}`);
       } else {
         setProfileImg("");
       }
     }
-  }, [userProfile]);
+  }, [profileData]);
+
+  if (isGetProfileLoading) {
+    return (
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color="#FF7A59" />
+      </View>
+    );
+  }
+
+  if (isGetProfileError) {
+    return (
+      <View style={styles.centerContainer}>
+        <Feather name="alert-circle" size={40} color="#A8A29E" />
+        <Text style={styles.errorText}>
+          프로필을 불러오지 못했습니다. 다시 시도해 주세요.
+        </Text>
+        <TouchableOpacity onPress={() => router.push("/login")}>
+          <Text style={styles.loginLinkText}>로그인 화면으로 이동</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  ///////////////////////////////////////////////////////////////////////////////////
+
+  const { mutate: updateProfileMutation, isPending: isUpdateProfilePending } =
+    useUpdateProfile();
+
+  const handleSaveProfile = () => {
+    if (!nickname.trim()) {
+      Alert.alert("알림", "닉네임을 입력해주세요.");
+      return;
+    }
+    const cleanProfileImg = profileImg ? profileImg.split("?")[0] : undefined;
+
+    const payload: UpdateProfilePayload = {
+      nickname: nickname.trim(),
+      favorite: favorite.trim() || null,
+      hate: hate.trim() || null,
+      age: age ? Number(age) : null,
+      mbti: mbti.trim() ? (mbti.trim().toUpperCase() as Mbti) : null,
+      preferCategory: preferCategory.length > 0 ? preferCategory : [],
+      preferDistrict: preferDistrict.length > 0 ? preferDistrict : [],
+      preferDay: preferDay.length > 0 ? preferDay : [],
+      preferTime: preferTime.length > 0 ? preferTime : [],
+      profileImg: cleanProfileImg || null,
+    };
+    updateProfileMutation(payload);
+  };
+
+  ///////////////////////////////////////////////////////////////////////////////////
+
+  const { mutate: uploadImageMutation, isPending: isUploadImagePending } =
+    useUploadProfileImage();
 
   const handlePickImage = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    const permissionResult =
+      await ImagePicker.requestMediaLibraryPermissionsAsync();
 
-    if (status !== "granted") {
+    if (!permissionResult.granted) {
       Alert.alert(
-        "권한 거부",
-        "PROFILE 사진 등록을 위해 갤러리 접근 권한이 필요합니다.",
+        "권한 필요",
+        "사진을 선택하려면 앨범 접근 권한이 필요합니다.",
       );
       return;
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: "images",
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
-      quality: 0.7,
+      aspect: [1, 1],
+      quality: 0.8,
     });
 
-    if (result.canceled || !result.assets || result.assets.length === 0) {
-      return;
-    }
+    if (!result.canceled && result.assets[0]) {
+      const asset = result.assets[0];
 
-    const localUri = result.assets[0].uri;
-    const filename = localUri.split("/").pop() || "profile.jpg";
+      const fileData = {
+        uri: asset.uri,
+        name: asset.fileName || "profile.jpg",
+        type: asset.mimeType || "image/jpeg",
+      } as unknown as File;
 
-    const match = /\.(\w+)$/.exec(filename);
-    const type = match ? `image/${match[1]}` : `image/jpeg`;
-
-    const formData = new FormData();
-    formData.append("file", {
-      uri: localUri,
-      name: filename,
-      type,
-    } as any);
-
-    try {
-      setIsImageUploading(true);
-
-      const response = await client.post("/users/image", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
+      uploadImageMutation(fileData, {
+        onSuccess: (imageUrl) => {
+          const imageUrlWithCacheBust = `${imageUrl}?t=${Date.now()}`;
+          setProfileImg(imageUrlWithCacheBust);
         },
       });
-
-      if (response.data && response.data.imageUrl) {
-        setProfileImg(`${response.data.imageUrl}?t=${new Date().getTime()}`);
-      } else if (typeof response.data === "string") {
-        setProfileImg(`${response.data}?t=${new Date().getTime()}`);
-      }
-    } catch (error) {
-      console.error("클라우드 이미지 업로드 실패:", error);
-      Alert.alert("업로드 실패", "이미지를 서버에 업로드하지 못했습니다.");
-    } finally {
-      setIsImageUploading(false);
     }
   };
 
-  const handleSaveProfile = () => {
-    if (!nickname.trim()) {
-      Alert.alert("알림", "닉네임은 필수 항목입니다.");
-      return;
-    }
-
-    const cleanProfileImg = profileImg ? profileImg.split("?")[0] : undefined;
-
-    const payload: UpdateProfilePayload = {
-      nickname: nickname.trim(),
-      favorite: favorite.trim(),
-      hate: hate.trim(),
-      age: age ? Number(age) : undefined,
-      mbti: mbti.trim() ? mbti.trim().toUpperCase() : undefined,
-      preferCategory,
-      preferDistrict,
-      preferDay: preferDays,
-      preferTime: preferTimes,
-      profileImg: cleanProfileImg,
-    };
-
-    updateProfileMutation.mutate(payload);
+  const handleRemoveImage = () => {
+    setProfileImg("");
   };
 
-  const handleLogout = () => {
+  ///////////////////////////////////////////////////////////////////////////////////
+
+  const handleLogoutClick = () => {
     Alert.alert("로그아웃", "정말 로그아웃 하시겠습니까?", [
       { text: "취소", style: "cancel" },
       {
-        text: "확인",
+        text: "로그아웃",
         style: "destructive",
         onPress: async () => {
           try {
             await removeAccessToken();
             queryClient.clear();
             router.replace("/login");
-          } catch (error) {
-            Alert.alert("에러", "로그아웃 처리 중 오류가 발생했습니다.");
+          } catch (err) {
+            console.log(err);
+            Alert.alert("오류", "로그아웃 처리 중 오류가 발생했습니다.");
           }
         },
       },
     ]);
   };
 
-  if (isLoading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={styles.loadingText}>나의 프로필을 불러오고 있어요 </Text>
-      </View>
-    );
-  }
-
-  if (isError) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Ionicons
-          name="alert-circle-outline"
-          size={48}
-          color={COLORS.textSub}
-        />
-        <Text style={styles.errorText}>
-          프로필을 불러오지 못했습니다. 다시 시도해 주세요.
-          <Redirect href="/(auth)/login" />
-        </Text>
-      </View>
-    );
-  }
+  ///////////////////////////////////////////////////////////////////////////////////
 
   const filteredDistricts = DISTRICT_ITEMS.filter(
     (item) => item.city === activeCity,
   );
+
   const filteredTimes = TIME_ITEMS.filter(
     (item) => item.type === activeTimeType,
   );
 
-  return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.headerTopRow}>
-          <Text style={styles.headerTitle}>My Profile</Text>
-          <TouchableOpacity
-            style={styles.logoutButton}
-            onPress={handleLogout}
-            activeOpacity={0.6}
-          >
-            <Ionicons name="log-out-outline" size={18} color={COLORS.textSub} />
-            <Text style={styles.logoutText}>로그아웃</Text>
-          </TouchableOpacity>
-        </View>
-        <Text style={styles.headerSubtitle}>✏️ 나의 소모임 취향 프로필</Text>
-      </View>
+  ///////////////////////////////////////////////////////////////////////////////////
 
+  return (
+    <SafeAreaView style={styles.container}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-
-        <View style={styles.profileCard}>
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.headerTitle}>My Profile</Text>
+            <Text style={styles.headerSubtitle}>
+              ✏️ 나의 소모임 취향 프로필
+            </Text>
+          </View>
           <TouchableOpacity
-            style={styles.avatarWrapper}
-            onPress={handlePickImage}
-            disabled={isImageUploading}
-            activeOpacity={0.6}
+            activeOpacity={0.8}
+            onPress={handleLogoutClick}
+            style={styles.logoutButton}
           >
-            <View style={styles.avatar}>
-              {isImageUploading ? (
-                <ActivityIndicator size="small" color={COLORS.primary} />
+            <Feather name="log-out" size={14} color="#78716C" />
+            <Text style={styles.logoutText}>로그아웃</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.cardCenter}>
+          <View style={styles.avatarWrapper}>
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={handlePickImage}
+              style={styles.avatarButton}
+            >
+              {isUploadImagePending ? (
+                <ActivityIndicator size="small" color="#FF7A59" />
               ) : profileImg ? (
                 <Image
                   source={{ uri: profileImg }}
                   style={styles.avatarImage}
                 />
               ) : (
-                <Text style={styles.avatarText}>🍑</Text>
+                <Text style={{ fontSize: 36 }}>🍑</Text>
               )}
-            </View>
-            <View style={styles.cameraButton}>
-              <Ionicons name="camera" size={14} color="#FFFFFF" />
-            </View>
-          </TouchableOpacity>
+            </TouchableOpacity>
+
+            {!profileImg ? (
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={handlePickImage}
+                style={styles.cameraBadge}
+              >
+                <Feather name="camera" size={12} color="#FFFFFF" />
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={handleRemoveImage}
+                style={styles.removeBadge}
+              >
+                <Feather name="x" size={14} color="#FFFFFF" />
+              </TouchableOpacity>
+            )}
+          </View>
 
           <View style={styles.mannerBadge}>
-            <Ionicons
-              name="thermometer-outline"
-              size={14}
-              color={COLORS.mannerHot}
-            />
+            <FontAwesome5 name="thermometer-half" size={14} color="#F97316" />
             <Text style={styles.mannerText}>
-              매너 온도 {userProfile?.mannerTemperature ?? 36.5}°C
+              매너 온도 {profileData?.mannerTemperature ?? 36.5}°C
             </Text>
           </View>
         </View>
 
-
-        <View style={styles.sectionCard}>
+        <View style={styles.card}>
           <Text style={styles.sectionTitle}>기본 정보</Text>
+
           <View style={styles.inputRow}>
             <Text style={styles.inputLabel}>닉네임</Text>
             <TextInput
-              style={styles.textInput}
               value={nickname}
               onChangeText={setNickname}
               placeholder="닉네임을 입력하세요"
-              placeholderTextColor={COLORS.textOpac}
+              placeholderTextColor="#D6D3D1"
+              style={styles.textInput}
             />
           </View>
+
           <View style={styles.inputRow}>
             <Text style={styles.inputLabel}>나이</Text>
             <TextInput
-              style={styles.textInput}
               value={age}
-              onChangeText={setAge}
+              onChangeText={(text) => setAge(text.replace(/[^0-9]/g, ""))}
               placeholder="나이를 입력하세요"
-              placeholderTextColor={COLORS.textOpac}
+              placeholderTextColor="#D6D3D1"
               keyboardType="number-pad"
               maxLength={2}
+              style={styles.textInput}
             />
           </View>
+
           <View style={styles.inputRow}>
             <Text style={styles.inputLabel}>MBTI</Text>
             <TextInput
-              style={[styles.textInput]}
               value={mbti}
               onChangeText={setMbti}
-              placeholder="mbti를 입력해주세요"
-              placeholderTextColor={COLORS.textOpac}
-              maxLength={4}
+              placeholder="MBTI를 입력하세요"
+              placeholderTextColor="#D6D3D1"
               autoCapitalize="characters"
+              maxLength={4}
+              style={styles.textInput}
             />
           </View>
         </View>
 
-
-        <View style={styles.sectionCard}>
+        <View style={styles.card}>
           <Text style={styles.sectionTitle}>나의 취향 키워드</Text>
-          <View style={styles.textareaBlock}>
-            <Text style={styles.wideInputLabel}>내가 좋아하는 것</Text>
+
+          <View style={styles.textAreaGroup}>
+            <Text style={styles.subLabel}>내가 좋아하는 것</Text>
             <TextInput
-              style={styles.textareaInput}
               value={favorite}
               onChangeText={setFavorite}
-              placeholder="좋아하는 활동이나 관심사를 적어주세요!"
-              placeholderTextColor={COLORS.textOpac}
+              placeholder="자신이 좋아하는 것을 입력하세요."
+              placeholderTextColor="#A8A29E"
               multiline
+              numberOfLines={2}
+              style={styles.textArea}
             />
           </View>
-          <View style={[styles.textareaBlock, { marginTop: 8 }]}>
-            <Text style={styles.wideInputLabel}>내가 싫어하는 것</Text>
+
+          <View style={styles.textAreaGroup}>
+            <Text style={styles.subLabel}>내가 싫어하는 것</Text>
             <TextInput
-              style={styles.textareaInput}
               value={hate}
               onChangeText={setHate}
-              placeholder="모임에서 기피하는 상황을 적어주세요!"
-              placeholderTextColor={COLORS.textOpac}
+              placeholder="자신이 싫어하는 것을 입력하세요."
+              placeholderTextColor="#A8A29E"
               multiline
+              numberOfLines={2}
+              style={styles.textArea}
             />
           </View>
         </View>
 
- 
-        <View style={styles.sectionCard}>
+        <View style={styles.card}>
           <Text style={styles.sectionTitle}>나의 선호 모임 및 지역</Text>
-          <Text style={styles.subLabel}>관심 카테고리</Text>
-          <View style={styles.tagContainer}>
-            {CATEGORY_ITEMS.map((cat) => {
-              const isSelected = preferCategory.includes(cat.key);
-              return (
-                <TouchableOpacity
-                  key={cat.key}
-                  style={[styles.tag, isSelected && styles.tagSelected]}
-                  onPress={() => {
-                    if (isSelected) {
+
+          <View>
+            <Text style={styles.subLabel}>관심 카테고리</Text>
+            <View style={styles.chipContainer}>
+              {CATEGORY_ITEMS.map((cat) => {
+                const isSelected = preferCategory.includes(cat.key as Category);
+                return (
+                  <TouchableOpacity
+                    key={cat.key}
+                    activeOpacity={0.8}
+                    onPress={() =>
                       setPreferCategory(
-                        preferCategory.filter((c) => c !== cat.key),
-                      );
-                    } else {
-                      setPreferCategory([...preferCategory, cat.key]);
+                        isSelected
+                          ? preferCategory.filter((c) => c !== cat.key)
+                          : [...preferCategory, cat.key],
+                      )
                     }
-                  }}
-                >
-                  <Text
                     style={[
-                      styles.tagText,
-                      isSelected && styles.tagTextSelected,
+                      styles.chip,
+                      isSelected ? styles.chipSelected : styles.chipUnselected,
                     ]}
                   >
-                    {cat.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
+                    <Text
+                      style={[
+                        styles.chipText,
+                        isSelected
+                          ? styles.chipTextSelected
+                          : styles.chipTextUnselected,
+                      ]}
+                    >
+                      {cat.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </View>
 
-          <Text style={[styles.subLabel, { marginTop: 24 }]}>
-            활동 선호 지역
-          </Text>
-          <View style={styles.cityTabContainer}>
-            {(["SEOUL", "GYEONGGI", "OTHER"] as const).map((city) => {
-              const tabLabel =
-                city === "SEOUL"
-                  ? "서울"
-                  : city === "GYEONGGI"
-                    ? "경기"
-                    : "기타 지역";
-              const isTabActive = activeCity === city;
-              return (
-                <TouchableOpacity
-                  key={city}
-                  style={[styles.cityTab, isTabActive && styles.cityTabActive]}
-                  onPress={() => setActiveCity(city)}
-                >
-                  <Text
+          <View style={{ marginTop: 12 }}>
+            <Text style={styles.subLabel}>활동 선호 지역</Text>
+
+            <View style={styles.toggleContainer}>
+              {(["SEOUL", "GYEONGGI", "OTHER"] as const).map((city) => {
+                const label =
+                  city === "SEOUL"
+                    ? "서울"
+                    : city === "GYEONGGI"
+                      ? "경기"
+                      : "기타 지역";
+                const isActive = activeCity === city;
+                return (
+                  <TouchableOpacity
+                    key={city}
+                    activeOpacity={0.8}
+                    onPress={() => setActiveCity(city)}
                     style={[
-                      styles.cityTabText,
-                      isTabActive && styles.cityTabTextActive,
+                      styles.toggleButton,
+                      isActive && styles.toggleButtonActive,
                     ]}
                   >
-                    📍 {tabLabel}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+                    <Text
+                      style={[
+                        styles.toggleText,
+                        isActive && styles.toggleTextActive,
+                      ]}
+                    >
+                      📍 {label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
 
-          <View style={styles.tagContainer}>
-            {filteredDistricts.map((item) => {
-              const isDistSelected = preferDistrict.includes(item.key);
-              return (
-                <TouchableOpacity
-                  key={item.key}
-                  style={[
-                    styles.districtTagBase,
-                    isDistSelected && styles.districtTagSelected,
-                  ]}
-                  onPress={() => {
-                    if (isDistSelected) {
+            <ScrollView
+              style={styles.districtScroll}
+              contentContainerStyle={styles.chipContainer}
+              nestedScrollEnabled
+            >
+              {filteredDistricts.map((item) => {
+                const isDistSelected = preferDistrict.includes(
+                  item.key as District,
+                );
+                return (
+                  <TouchableOpacity
+                    key={item.key}
+                    activeOpacity={0.8}
+                    onPress={() =>
                       setPreferDistrict(
-                        preferDistrict.filter((d) => d !== item.key),
-                      );
-                    } else {
-                      setPreferDistrict([...preferDistrict, item.key]);
+                        isDistSelected
+                          ? preferDistrict.filter((d) => d !== item.key)
+                          : [...preferDistrict, item.key],
+                      )
                     }
-                  }}
-                >
-                  <Text
                     style={[
-                      styles.districtTagTextBase,
-                      isDistSelected && styles.districtTagTextSelected,
+                      styles.chip,
+                      isDistSelected
+                        ? styles.districtChipSelected
+                        : styles.chipUnselected,
                     ]}
                   >
-                    {item.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
+                    <Text
+                      style={[
+                        styles.chipText,
+                        isDistSelected
+                          ? styles.districtChipTextSelected
+                          : styles.chipTextUnselected,
+                      ]}
+                    >
+                      {item.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
           </View>
         </View>
 
-
-        <View style={styles.sectionCard}>
+        <View style={styles.card}>
           <Text style={styles.sectionTitle}>나의 선호 일정</Text>
-          <Text style={styles.subLabel}>선호 요일</Text>
-          <View style={[styles.dayTagContainer, { marginBottom: 30 }]}>
-            {DAY_ITEMS.map((day) => {
-              const isSelected = preferDays.includes(day.key);
-              return (
-                <TouchableOpacity
-                  key={day.key}
-                  style={[styles.dayTag, isSelected && styles.dayTagSelected]}
-                  onPress={() => {
-                    if (isSelected) {
-                      setPreferDays(preferDays.filter((d) => d !== day.key));
-                    } else {
-                      setPreferDays([...preferDays, day.key]);
+
+          <View>
+            <Text style={styles.subLabel}>선호 요일</Text>
+            <View style={styles.dayContainer}>
+              {DAY_ITEMS.map((day) => {
+                const isSelected = preferDay.includes(day.key as Day);
+                return (
+                  <TouchableOpacity
+                    key={day.key}
+                    activeOpacity={0.8}
+                    onPress={() =>
+                      setPreferDay(
+                        isSelected
+                          ? preferDay.filter((d) => d !== day.key)
+                          : [...preferDay, day.key],
+                      )
                     }
-                  }}
-                >
-                  <Text
                     style={[
-                      styles.dayTagText,
-                      isSelected && styles.dayTagTextSelected,
+                      styles.dayCircle,
+                      isSelected
+                        ? styles.dayCircleSelected
+                        : styles.dayCircleUnselected,
                     ]}
                   >
-                    {day.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
+                    <Text
+                      style={[
+                        styles.dayText,
+                        isSelected
+                          ? styles.chipTextSelected
+                          : styles.chipTextUnselected,
+                      ]}
+                    >
+                      {day.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </View>
 
-          <Text style={styles.subLabel}>선호 시간대</Text>
-          <View style={styles.timeTabContainer}>
-            {(["AM", "PM"] as const).map((type) => {
-              const isTabActive = activeTimeType === type;
-              return (
-                <TouchableOpacity
-                  key={type}
-                  style={[styles.timeTab, isTabActive && styles.timeTabActive]}
-                  onPress={() => setActiveTimeType(type)}
-                >
-                  <Text
+          <View style={{ marginTop: 8 }}>
+            <Text style={styles.subLabel}>선호 시간대</Text>
+            <View style={styles.toggleContainer}>
+              {(["AM", "PM"] as const).map((type) => {
+                const isActive = activeTimeType === type;
+                return (
+                  <TouchableOpacity
+                    key={type}
+                    activeOpacity={0.8}
+                    onPress={() => setActiveTimeType(type)}
                     style={[
-                      styles.timeTabText,
-                      isTabActive && styles.timeTabTextActive,
+                      styles.toggleButton,
+                      isActive && styles.toggleButtonActive,
                     ]}
                   >
-                    {type === "AM" ? "오전 (AM)" : "오후 (PM)"}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+                    <Text
+                      style={[
+                        styles.toggleText,
+                        isActive && styles.toggleTextActive,
+                      ]}
+                    >
+                      {type === "AM" ? "오전 (AM)" : "오후 (PM)"}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
 
-          <View style={styles.tagContainer}>
-            {filteredTimes.map((time) => {
-              const isSelected = preferTimes.includes(time.key);
-              return (
-                <TouchableOpacity
-                  key={time.key}
-                  style={[styles.tag, isSelected && styles.tagSelected]}
-                  onPress={() => {
-                    if (isSelected) {
-                      setPreferTimes(preferTimes.filter((t) => t !== time.key));
-                    } else {
-                      setPreferTimes([...preferTimes, time.key]);
+            <View style={styles.chipContainer}>
+              {filteredTimes.map((time) => {
+                const isSelected = preferTime.includes(time.key as Time);
+                return (
+                  <TouchableOpacity
+                    key={time.key}
+                    activeOpacity={0.8}
+                    onPress={() =>
+                      setPreferTime(
+                        isSelected
+                          ? preferTime.filter((t) => t !== time.key)
+                          : [...preferTime, time.key],
+                      )
                     }
-                  }}
-                >
-                  <Text
                     style={[
-                      styles.tagText,
-                      isSelected && styles.tagTextSelected,
+                      styles.chip,
+                      isSelected ? styles.chipSelected : styles.chipUnselected,
                     ]}
                   >
-                    {time.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
+                    <Text
+                      style={[
+                        styles.chipText,
+                        isSelected
+                          ? styles.chipTextSelected
+                          : styles.chipTextUnselected,
+                      ]}
+                    >
+                      {time.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </View>
         </View>
-
 
         <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={handleSaveProfile}
+          disabled={isUpdateProfilePending || isUploadImagePending}
           style={[
             styles.saveButton,
-            updateProfileMutation.isPending && { opacity: 0.7 },
+            (isUpdateProfilePending || isUploadImagePending) && styles.disabled,
           ]}
-          onPress={handleSaveProfile}
-          disabled={updateProfileMutation.isPending || isImageUploading}
-          activeOpacity={0.8}
         >
-          {updateProfileMutation.isPending ? (
+          {isUpdateProfilePending ? (
             <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
             <Text style={styles.saveButtonText}>프로필 저장하기</Text>
           )}
         </TouchableOpacity>
-
-        <View style={{ height: 40 }} />
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
+///////////////////////////////////////////////////////////////////////////////////
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  loadingContainer: {
+  container: {
+    flex: 1,
+    backgroundColor: "#FBFBF9",
+  },
+  centerContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: COLORS.background,
+    backgroundColor: "#FBFBF9",
+    padding: 24,
     gap: 12,
   },
-  loadingText: { fontSize: 14, fontWeight: "600", color: COLORS.textSub },
   errorText: {
     fontSize: 14,
     fontWeight: "600",
-    color: COLORS.textSub,
+    color: "#78716C",
+    textAlign: "center",
+  },
+  loginLinkText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#FF7A59",
+    textDecorationLine: "underline",
     marginTop: 8,
   },
-  header: { paddingHorizontal: 20, paddingTop: 15, paddingBottom: 15 },
-  headerTopRow: {
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 48,
+    gap: 16,
+  },
+  header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    paddingVertical: 16,
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 30,
     fontWeight: "900",
-    color: COLORS.primary,
+    color: "#FF7A59",
     letterSpacing: -0.5,
   },
   headerSubtitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "700",
-    color: COLORS.textMain,
-    marginTop: 3,
+    color: "#292524",
+    marginTop: 2,
   },
   logoutButton: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 10,
     backgroundColor: "#F2F0EC",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
   },
-  logoutText: { fontSize: 12, fontWeight: "700", color: COLORS.textSub },
-  scrollContent: { paddingHorizontal: 20, paddingBottom: 20 },
-  profileCard: {
-    backgroundColor: COLORS.surface,
+  logoutText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#78716C",
+  },
+  cardCenter: {
+    backgroundColor: "#FFFFFF",
     borderRadius: 24,
     padding: 24,
-    alignItems: "center",
-    marginBottom: 16,
     borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  avatarWrapper: { position: "relative", marginBottom: 12 },
-  avatar: {
-    width: 88,
-    height: 88,
-    borderRadius: 28,
-    backgroundColor: COLORS.primaryLight,
-    justifyContent: "center",
+    borderColor: "#E7E5E4",
     alignItems: "center",
-    overflow: "hidden",
+    justifyContent: "center",
   },
-  avatarText: { fontSize: 36 },
-  avatarImage: { width: "100%", height: "100%", resizeMode: "cover" },
-  cameraButton: {
+  card: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 24,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: "#E7E5E4",
+    gap: 14,
+  },
+  avatarWrapper: {
+    position: "relative",
+    width: 96,
+    height: 96,
+  },
+  avatarButton: {
+    width: 96,
+    height: 96,
+    borderRadius: 28,
+    backgroundColor: "#FFEBE5",
+    overflow: "hidden",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarImage: {
+    width: "100%",
+    height: "100%",
+  },
+  cameraBadge: {
     position: "absolute",
     bottom: -4,
     right: -4,
-    backgroundColor: COLORS.textMain,
-    width: 26,
-    height: 26,
-    borderRadius: 10,
-    justifyContent: "center",
+    backgroundColor: "#292524",
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     alignItems: "center",
-    borderWidth: 2,
-    borderColor: COLORS.surface,
+    justifyContent: "center",
+    elevation: 3,
+  },
+  removeBadge: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    backgroundColor: "#6B7280",
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    elevation: 3,
   },
   mannerBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FEF2F2",
+    gap: 6,
+    backgroundColor: "#FFF7ED",
     paddingHorizontal: 12,
-    paddingVertical: 5,
+    paddingVertical: 4,
     borderRadius: 20,
-    gap: 4,
+    marginTop: 12,
   },
-  mannerText: { fontSize: 12, fontWeight: "700", color: COLORS.mannerHot },
-  sectionCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 24,
-    padding: 20,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+  mannerText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#F97316",
   },
   sectionTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: "800",
-    color: COLORS.textMain,
-    marginBottom: 16,
+    color: "#292524",
   },
   inputRow: {
     flexDirection: "row",
     alignItems: "center",
     borderBottomWidth: 1,
     borderBottomColor: "#F5F5F4",
-    paddingVertical: 10,
+    paddingBottom: 10,
+    marginLeft: 4,
   },
   inputLabel: {
-    width: 110,
-    fontSize: 13,
+    width: 96,
+    fontSize: 14,
     fontWeight: "700",
-    color: COLORS.textSub,
-  },
-  wideInputLabel: {
-    width: 150,
-    fontSize: 13,
-    fontWeight: "700",
-    color: COLORS.textSub,
+    color: "#78716C",
   },
   textInput: {
     flex: 1,
     fontSize: 14,
-    color: COLORS.textMain,
     fontWeight: "600",
+    color: "#292524",
     padding: 0,
   },
-  textareaBlock: { marginBottom: 14 },
-  textareaInput: {
+  textAreaGroup: {
+    gap: 6,
+  },
+  subLabel: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#78716C",
+    marginLeft: 4,
+    marginBottom: 6,
+  },
+  textArea: {
     backgroundColor: "#F8F6F4",
     borderRadius: 12,
     padding: 12,
-    fontSize: 13,
-    color: COLORS.textMain,
+    fontSize: 14,
     fontWeight: "500",
-    marginTop: 6,
-    minHeight: 48,
+    color: "#292524",
     textAlignVertical: "top",
+    minHeight: 60,
   },
-  subLabel: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: COLORS.textSub,
-    marginBottom: 8,
-  },
-  tagContainer: {
+  chipContainer: {
     flexDirection: "row",
-
     flexWrap: "wrap",
-    width: "100%",
-    gap: 11,
+    gap: 8,
   },
-  dayTagContainer: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
-  tag: {
-    backgroundColor: "#F2F0EC",
-    paddingVertical: 6,
+  chip: {
     paddingHorizontal: 12,
-    justifyContent: "space-around",
+    paddingVertical: 6,
     borderRadius: 12,
   },
-  tagSelected: { backgroundColor: COLORS.primary },
-  tagText: { fontSize: 12, color: COLORS.textSub, fontWeight: "600" },
-  tagTextSelected: { color: "#FFFFFF" },
-  dayTag: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: "#F2F0EC",
-    justifyContent: "center",
-    alignItems: "center",
+  chipSelected: {
+    backgroundColor: "#FF7A59",
   },
-  dayTagSelected: { backgroundColor: COLORS.primary },
-  dayTagText: { fontSize: 13, color: COLORS.textSub, fontWeight: "700" },
-  dayTagTextSelected: { color: "#FFFFFF" },
-  cityTabContainer: {
+  chipUnselected: {
+    backgroundColor: "#F2F0EC",
+  },
+  chipText: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  chipTextSelected: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+  },
+  chipTextUnselected: {
+    color: "#78716C",
+  },
+  districtChipSelected: {
+    backgroundColor: "#FFEBE5",
+    borderWidth: 1,
+    borderColor: "#FF7A59",
+  },
+  districtChipTextSelected: {
+    color: "#FF7A59",
+    fontWeight: "700",
+  },
+  toggleContainer: {
     flexDirection: "row",
     backgroundColor: "#F2F0EC",
-    borderRadius: 12,
     padding: 4,
-    marginBottom: 16,
+    borderRadius: 12,
+    marginBottom: 12,
   },
-  cityTab: {
+  toggleButton: {
     flex: 1,
     paddingVertical: 8,
     alignItems: "center",
-    borderRadius: 10,
+    borderRadius: 8,
   },
-  cityTabActive: {
-    backgroundColor: COLORS.surface,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
+  toggleButtonActive: {
+    backgroundColor: "#FFFFFF",
     elevation: 1,
   },
-  cityTabText: { fontSize: 13, color: COLORS.textSub, fontWeight: "600" },
-  cityTabTextActive: { color: COLORS.primary, fontWeight: "800" },
-  timeTabContainer: {
+  toggleText: {
+    fontSize: 13.5,
+    fontWeight: "700",
+    color: "#78716C",
+  },
+  toggleTextActive: {
+    color: "#FF7A59",
+  },
+  districtScroll: {
+    maxHeight: 160,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderColor: "#F5F5F4",
+    borderRadius: 12,
+    padding: 8,
+  },
+  dayContainer: {
     flexDirection: "row",
-    backgroundColor: "#F2F0EC",
-    borderRadius: 12,
-    padding: 4,
-    marginBottom: 12,
+    justifyContent: "space-between",
+    marginHorizontal: 8,
   },
-  timeTab: {
-    flex: 1,
-    paddingVertical: 6,
+  dayCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: "center",
-    borderRadius: 10,
-  },
-  timeTabActive: { backgroundColor: COLORS.surface },
-  timeTabText: { fontSize: 12, color: COLORS.textSub, fontWeight: "600" },
-  timeTabTextActive: { color: COLORS.primary, fontWeight: "800" },
-  districtTagBase: {
-    backgroundColor: "#F2F0EC",
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "transparent",
-  },
-  districtTagSelected: {
-    backgroundColor: COLORS.primaryLight,
-    borderColor: COLORS.primary,
-    borderWidth: 1,
-  },
-  districtTagTextBase: {
-    fontSize: 12,
-    color: COLORS.textSub,
-    fontWeight: "600",
-  },
-  districtTagTextSelected: { color: COLORS.primary, fontWeight: "700" },
-  saveButton: {
-    backgroundColor: COLORS.textMain,
-    paddingVertical: 16,
-    borderRadius: 16,
     justifyContent: "center",
+  },
+  dayCircleSelected: {
+    backgroundColor: "#FF7A59",
+  },
+  dayCircleUnselected: {
+    backgroundColor: "#F2F0EC",
+  },
+  dayText: {
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  saveButton: {
+    marginTop: 20,
+    backgroundColor: "#292524",
+    paddingVertical: 16,
+    borderRadius: 12,
     alignItems: "center",
-    marginTop: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
+    justifyContent: "center",
     elevation: 2,
   },
-  saveButtonText: { fontSize: 15, color: "#FFFFFF", fontWeight: "700" },
+  saveButtonText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  disabled: {
+    opacity: 0.7,
+  },
 });

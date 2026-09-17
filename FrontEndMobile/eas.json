@@ -14,14 +14,16 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://zelongathering-production.up.railway.app/"
+        "EXPO_PUBLIC_API_URL": "https://zelongathering-production.up.railway.app/",
+        "EXPO_PUBLIC_KAKAO_REST_API_KEY": "277efd1c18337be37a4a8e250821089f"
       }
     },
     "production": {
       "autoIncrement": true,
       "distribution": "store",
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://zelongathering-production.up.railway.app/"
+        "EXPO_PUBLIC_API_URL": "https://zelongathering-production.up.railway.app/",
+        "EXPO_PUBLIC_KAKAO_REST_API_KEY": "277efd1c18337be37a4a8e250821089f"
       }
     }
   },

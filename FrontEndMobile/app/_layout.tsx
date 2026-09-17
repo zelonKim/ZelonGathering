@@ -1,4 +1,4 @@
-import { APIProvider } from "@/api/api-provider";
+import { APIProvider } from "@/app/api/api-provider";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";

@@ -1,200 +1,213 @@
-import { client } from "@/api/client";
-import { Ionicons } from "@expo/vector-icons";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { getMyNotifications } from "@/app/api/notification/getMyNotifications";
+import { useDeleteNotification } from "@/hooks/useDeleteNotification";
+import { NotificationItem } from "@/types/NotificationItem";
+import { Feather, FontAwesome5 } from "@expo/vector-icons";
+import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
-import { useRouter } from "expo-router";
+import { router } from "expo-router";
 import React from "react";
 import {
   ActivityIndicator,
-  ScrollView,
+  FlatList,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-const COLORS = {
-  primary: "#FF7A59",
-  primaryLight: "#FFEBE5",
-  background: "#FBFBF9",
-  surface: "#FFFFFF",
-  textMain: "#292524",
-  textSub: "#78716C",
-  border: "#E7E5E4",
-  aiPurple: "#F43F5E",
-  aiPurpleLight: "#FFEBEB",
-};
+export default function MatchingPage() {
+  const {
+    mutate: deleteNotiMutation,
+    isPending: isDeleteNotiPending,
+    variables: deleteNotiId,
+  } = useDeleteNotification();
 
-export default function MatchingScreen() {
-  const router = useRouter();
-  const queryClient = useQueryClient();
+  const deletingId = isDeleteNotiPending ? deleteNotiId : null;
+
+  ///////////////////////////////////////////////////////////////////////////////////
 
   const {
     data: notifications = [],
     isLoading,
     isError,
-  } = useQuery({
-    queryKey: ["aiMatchingNotifications"],
-    queryFn: async () => {
-      const { data } = await client.get("/users/notifications");
-      return data.filter((item: any) => item.type === "AI_MATCHING");
-    },
+  } = useQuery<NotificationItem[]>({
+    queryKey: ["myNotifications"],
+    queryFn: getMyNotifications,
     refetchInterval: 3000,
     refetchOnWindowFocus: true,
   });
 
-  const deleteNotificationMutation = useMutation({
-    mutationFn: async (notificationId: string) => {
-      return await client.delete(`/users/notifications/${notificationId}`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["aiMatchingNotifications"] });
-    },
-    onError: (error) => {
-      console.error("알림 삭제 실패:", error);
-      alert("알림을 넘기지 못했습니다. 다시 시도해주세요.");
-    },
-  });
-
-  const deletingId = deleteNotificationMutation.isPending
-    ? deleteNotificationMutation.variables
-    : null;
-
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={styles.loadingText}>
-          AI 매칭 알림을 가져오고 있습니다.
-        </Text>
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color="#FF7A59" />
       </View>
     );
   }
 
   if (isError) {
     return (
-      <View style={styles.loadingContainer}>
-        <Ionicons
-          name="alert-circle-outline"
-          size={48}
-          color={COLORS.textSub}
-        />
+      <View style={styles.centerContainer}>
+        <Feather name="alert-circle" size={40} color="#78716C" />
         <Text style={styles.errorText}>매칭 데이터를 불러오지 못했습니다.</Text>
       </View>
     );
   }
 
-  return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.headerTitleRow}>
-          <Text style={styles.headerTitle}>AI Matching</Text>
-        </View>
-        <Text style={styles.headerSubtitle}>
-          🤖 AI가 발견한 취향 저격 소모임
-        </Text>
-      </View>
+  ///////////////////////////////////////////////////////////////////////////////////
 
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {notifications.map((item: any) => {
-          const isCurrentItemDeleting = deletingId === item.id;
-
-          return (
-            <View key={item.id} style={styles.matchCard}>
-              <View style={styles.cardHeader}>
-                <View style={styles.aiBadge}>
-                  <Ionicons name="sparkles" size={12} color={COLORS.aiPurple} />
-                  <Text style={styles.aiBadgeText}>
-                    매칭률 {item.matchRate}%
-                  </Text>
-                </View>
-                <Text style={styles.timeText}>
-                  {formatDistanceToNow(new Date(item.createdAt), {
-                    addSuffix: true,
-                    locale: ko,
-                  })}
-                </Text>
-              </View>
-
-              <Text style={styles.cardTitle} numberOfLines={2}>
-                {item.title}
-              </Text>
-
-              <View style={styles.aiReasonBox}>
-                <Text style={styles.aiReasonText}>
-                  <Text style={styles.aiReasonHighlight}>AI의 한마디: </Text>
-                  {item.message}
-                </Text>
-              </View>
-
-              <View style={styles.actionRow}>
-                <TouchableOpacity
-                  style={[
-                    styles.passButton,
-                    isCurrentItemDeleting && { opacity: 0.6 },
-                  ]}
-                  activeOpacity={0.7}
-                  onPress={() => deleteNotificationMutation.mutate(item.id)}
-                  disabled={deleteNotificationMutation.isPending}
-                >
-                  {isCurrentItemDeleting ? (
-                    <ActivityIndicator size="small" color={COLORS.textSub} />
-                  ) : (
-                    <Text style={styles.passButtonText}>넘기기</Text>
-                  )}
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.joinButton}
-                  activeOpacity={0.8}
-                  onPress={() => router.push(`/gatherings/${item.linkId}`)}
-                  disabled={deleteNotificationMutation.isPending}
-                >
-                  <Text style={styles.joinButtonText}>참여하러 가기</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          );
-        })}
-        {notifications.length === 0 && (
-          <Text style={styles.emptyText}>
-            아직 들어온 매칭 알림이 없습니다.
-          </Text>
-        )}
-        <View style={{ height: 40 }} />
-      </ScrollView>
+  const renderHeader = () => (
+    <View style={styles.header}>
+      <Text style={styles.brandTitle}>AI Matching</Text>
+      <Text style={styles.headerSubtitle}>🤖 AI가 찾아낸 취향 저격 소모임</Text>
     </View>
+  );
+
+  const renderEmpty = () => (
+    <View style={styles.emptyContainer}>
+      <Text style={styles.emptyText}>아직 들어온 매칭 알림이 없습니다!</Text>
+      <Text style={[styles.emptyText, { marginTop: 8 }]}>
+        매칭 알림을 받고 싶다면, 소모임 취향 프로필을 작성해주세요 ✏️
+      </Text>
+    </View>
+  );
+
+  const renderItem = ({ item }: { item: NotificationItem }) => {
+    const isCurrentItemDeleting = deletingId === item.id;
+
+    return (
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <View style={styles.matchBadge}>
+            <FontAwesome5 name="sparkles" size={12} color="#F43F5E" />
+            <Text style={styles.matchBadgeText}>매칭률 {item.matchRate}%</Text>
+          </View>
+          <Text style={styles.timeText}>
+            {formatDistanceToNow(new Date(item.createdAt), {
+              addSuffix: true,
+              locale: ko,
+            })}
+          </Text>
+        </View>
+
+        <Text style={styles.cardTitle} numberOfLines={2}>
+          {item.title}
+        </Text>
+
+        <View style={styles.aiMessageBox}>
+          <Text style={styles.aiMessageText}>
+            <Text style={styles.aiMessageLabel}>AI의 한마디: </Text>
+            {item.message}
+          </Text>
+        </View>
+
+        <View style={styles.buttonGroup}>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => deleteNotiMutation(item.id)}
+            disabled={isDeleteNotiPending}
+            style={[styles.button, styles.skipButton]}
+          >
+            {isCurrentItemDeleting ? (
+              <ActivityIndicator size="small" color="#78716C" />
+            ) : (
+              <Text style={styles.skipButtonText}>넘기기</Text>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => router.push(`/gatherings/${item.linkId}`)}
+            disabled={isDeleteNotiPending}
+            style={[styles.button, styles.joinButton]}
+          >
+            <Text style={styles.joinButtonText}>참여하러 가기</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
+
+  ///////////////////////////////////////////////////////////////////////////////////
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <FlatList
+        data={notifications}
+        keyExtractor={(item) => String(item.id)}
+        renderItem={renderItem}
+        ListHeaderComponent={renderHeader}
+        ListEmptyComponent={renderEmpty}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+      />
+    </SafeAreaView>
   );
 }
 
+///////////////////////////////////////////////////////////////////////////////////
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  header: { paddingHorizontal: 20, paddingTop: 15, paddingBottom: 15 },
-  headerTitleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  headerTitle: {
-    fontSize: 24,
+  container: {
+    flex: 1,
+    backgroundColor: "#FBFBF9",
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#FBFBF9",
+    gap: 12,
+  },
+  errorText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#78716C",
+  },
+  listContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+    gap: 16,
+  },
+  header: {
+    paddingVertical: 16,
+  },
+  brandTitle: {
+    fontSize: 30,
     fontWeight: "900",
-    color: COLORS.primary,
+    color: "#FF7A59",
     letterSpacing: -0.5,
   },
   headerSubtitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "700",
-    color: COLORS.textMain,
-    marginTop: 3,
+    color: "#292524",
+    marginTop: 4,
   },
-  scrollContent: { paddingHorizontal: 20, paddingBottom: 20 },
-  matchCard: {
-    backgroundColor: COLORS.surface,
+  emptyContainer: {
+    paddingVertical: 120,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emptyText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#78716C",
+    textAlign: "center",
+  },
+  card: {
+    backgroundColor: "#FFFFFF",
     borderRadius: 24,
     padding: 20,
-    marginBottom: 16,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: "#E7E5E4",
+    elevation: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 8,
   },
   cardHeader: {
     flexDirection: "row",
@@ -202,71 +215,78 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 12,
   },
-  aiBadge: {
+  matchBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: COLORS.aiPurpleLight,
+    gap: 4,
+    backgroundColor: "#FFEBEB",
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 8,
-    gap: 4,
   },
-  aiBadgeText: { fontSize: 11, color: COLORS.aiPurple, fontWeight: "700" },
-  timeText: { fontSize: 12, color: COLORS.textSub, fontWeight: "500" },
+  matchBadgeText: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#F43F5E",
+  },
+  timeText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#78716C",
+  },
   cardTitle: {
     fontSize: 17,
     fontWeight: "700",
-    color: COLORS.textMain,
+    color: "#292524",
     lineHeight: 24,
-    marginBottom: 6,
+    marginBottom: 8,
   },
-  locationText: {
-    fontSize: 13,
-    color: COLORS.textSub,
-    fontWeight: "500",
-    marginBottom: 14,
-  },
-  aiReasonBox: {
+  aiMessageBox: {
     backgroundColor: "#F8F6F4",
     padding: 14,
     borderRadius: 14,
     marginBottom: 16,
   },
-  aiReasonText: { fontSize: 13, color: COLORS.textMain, lineHeight: 19 },
-  aiReasonHighlight: { color: COLORS.aiPurple, fontWeight: "700" },
-  actionRow: { flexDirection: "row", gap: 10 },
-  passButton: {
+  aiMessageText: {
+    fontSize: 14,
+    color: "#292524",
+    lineHeight: 20,
+  },
+  aiMessageLabel: {
+    color: "#F43F5E",
+    fontWeight: "800",
+  },
+  buttonGroup: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  button: {
+    paddingVertical: 12,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  skipButton: {
     flex: 1,
     backgroundColor: "#F2F0EC",
-    paddingVertical: 12,
-    borderRadius: 14,
-    justifyContent: "center",
-    alignItems: "center",
   },
-  passButtonText: { fontSize: 14, color: COLORS.textSub, fontWeight: "600" },
+  skipButtonText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#78716C",
+  },
   joinButton: {
     flex: 2,
-    backgroundColor: COLORS.primary,
-    paddingVertical: 12,
-    borderRadius: 14,
-    justifyContent: "center",
-    alignItems: "center",
+    backgroundColor: "#FF7A59",
+    elevation: 2,
+    shadowColor: "#FF7A59",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
   },
-  joinButtonText: { fontSize: 14, color: "#FFFFFF", fontWeight: "700" },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: COLORS.background,
-    gap: 12,
-  },
-  loadingText: { fontSize: 14, fontWeight: "600", color: COLORS.textSub },
-  errorText: { fontSize: 14, fontWeight: "600", color: COLORS.textSub },
-  emptyText: {
-    fontSize: 13,
-    color: COLORS.textSub,
-    textAlign: "center",
-    paddingVertical: 265,
-    fontWeight: "500",
+  joinButtonText: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#FFFFFF",
   },
 });
