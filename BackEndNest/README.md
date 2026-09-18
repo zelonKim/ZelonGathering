@@ -1,11 +1,11 @@
-# 🛠 ZelonGathering - NestJS Core Server
+# 💻 ZelonGathering - NestJS Core Server
 
 `ZelonGathering` 서비스의 메인 백엔드 API 및 실시간 서버
 사용자 인증, 프로필 관리, 소모임 비즈니스 로직, 웹소켓 기반 실시간 채팅, 그리고 AI 추천 파이프라인과의 연동을 담당함.
 
 ---
 
-## 🏗 Tech Stack
+## 🛠️ Tech Stack
 
 - **Framework**: NestJS
 - **ORM**: Prisma ORM
