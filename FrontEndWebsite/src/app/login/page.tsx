@@ -41,7 +41,7 @@ export default function LoginPage() {
         <button
           type="button"
           onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#FF7A59] text-white text-sm font-bold hover:bg-[#e06848] transition-all shadow-md shadow-[#FF7A59]/20 active:scale-95"
+          className="cursor-pointer flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#FF7A59] text-white text-sm font-bold hover:bg-[#e06848] transition-all shadow-md shadow-[#FF7A59]/20 active:scale-95"
         >
           <Smartphone className="w-4 h-4 text-white" />
           <span>앱 다운로드</span>
@@ -113,7 +113,7 @@ export default function LoginPage() {
               type="button"
               onClick={handleLogin}
               disabled={isLoginPending}
-              className="w-full bg-[#292524] hover:bg-[#1c1917] active:scale-[0.99] text-white py-4 rounded-[16px] font-bold text-[15px] flex justify-center items-center mt-2.5 shadow-[0_4px_10px_rgba(0,0,0,0.08)] transition disabled:opacity-70 disabled:pointer-events-none"
+              className="cursor-pointer w-full bg-[#292524] hover:bg-[#1c1917] active:scale-[0.99] text-white py-4 rounded-[16px] font-bold text-[15px] flex justify-center items-center mt-2.5 shadow-[0_4px_10px_rgba(0,0,0,0.08)] transition disabled:opacity-70 disabled:pointer-events-none"
             >
               {isLoginPending ? (
                 <Loader2 className="w-5 h-5 animate-spin" />

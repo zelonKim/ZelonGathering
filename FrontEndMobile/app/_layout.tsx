@@ -34,7 +34,5 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
   globalContainer: {
     flex: 1,
-    backgroundColor: "#FAFAFA",
-    paddingTop: Platform.OS === "ios" ? 50 : 30,
   },
 });

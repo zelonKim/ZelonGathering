@@ -8,7 +8,7 @@ export default function TabsLayout() {
 
   const tabBarHeight =
     Platform.OS === "ios"
-      ? 42 + insets.bottom
+      ? 50 + insets.bottom
       : 68 + (insets.bottom > 0 ? insets.bottom : 12);
 
   return (
@@ -23,6 +23,7 @@ export default function TabsLayout() {
           borderTopWidth: 1,
           borderTopColor: "#E5E5EA",
           height: tabBarHeight,
+
           paddingBottom:
             Platform.OS === "ios"
               ? insets.bottom
@@ -42,7 +43,7 @@ export default function TabsLayout() {
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: "500",
-          marginBottom: Platform.OS === "android" ? 4 : 0,
+          marginBottom: Platform.OS === "android" ? 4 : 10,
         },
 
         headerStyle: {

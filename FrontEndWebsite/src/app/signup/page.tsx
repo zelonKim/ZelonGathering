@@ -58,7 +58,7 @@ export default function SignupPage() {
           <button
             onClick={() => router.back()}
             disabled={signupPending}
-            className="p-2 hover:bg-stone-200/50 rounded-full transition disabled:opacity-50"
+            className="cursor-pointer p-2 hover:bg-stone-200/50 rounded-full transition disabled:opacity-50"
           >
             <ArrowLeft className="w-6 h-6 text-gray-800" />
           </button>
@@ -124,7 +124,7 @@ export default function SignupPage() {
               type="button"
               onClick={handleSignup}
               disabled={signupPending}
-              className="w-full bg-[#FF7A59] hover:bg-[#e06848] active:scale-[0.99] text-white py-4 rounded-[16px] font-bold text-[15px] flex justify-center items-center mt-3 shadow-[0_4px_8px_rgba(255,122,89,0.15)] transition disabled:opacity-70 disabled:pointer-events-none"
+              className="cursor-pointer w-full bg-[#FF7A59] hover:bg-[#e06848] active:scale-[0.99] text-white py-4 rounded-[16px] font-bold text-[15px] flex justify-center items-center mt-3 shadow-[0_4px_8px_rgba(255,122,89,0.15)] transition disabled:opacity-70 disabled:pointer-events-none"
             >
               {signupPending ? (
                 <Loader2 className="w-5 h-5 animate-spin" />

@@ -32,7 +32,7 @@ export function MobileQrModal({ isOpen, onClose }: MobileQrModalProps) {
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-5 right-5 text-stone-400 hover:text-stone-700 bg-stone-50 hover:bg-stone-100 p-1.5 rounded-full transition-all"
+          className="cursor-pointer absolute top-5 right-5 text-stone-400 hover:text-stone-700 bg-stone-50 hover:bg-stone-100 p-1.5 rounded-full transition-all"
         >
           <X size={18} />
         </button>
@@ -55,7 +55,7 @@ export function MobileQrModal({ isOpen, onClose }: MobileQrModalProps) {
               className={`flex-1 pb-3 text-sm font-bold transition-all relative ${
                 activeTab === platform
                   ? "text-[#FF7A59]"
-                  : "text-stone-400 hover:text-stone-600"
+                  : "text-stone-400 hover:text-stone-600 cursor-pointer"
               }`}
             >
               {MOBILE_OS[platform].label}
