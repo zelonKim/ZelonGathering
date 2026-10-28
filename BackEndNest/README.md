@@ -51,5 +51,5 @@ Handles user account management, authentication/authorization, and profile confi
 
 - **Authentication (인증 시스템)**: Implements JWT-based authentication and route guards. (JWT 기반 로그인 인증 및 Guards 구현)
 - **Profile Modification (프로필 수정)**:
-  - Fetches and updates user profiles including age, MBTI, interest keywords, and activity preferences. (사용자 프로필 정보(MBTI, 취향 키워드, 선호 요일/시간/지역 등) 조회 및 수정)
+  - Fetches and updates user profiles including age, MBTI, interest keywords, and activity preferences. (MBTI, 취향 키워드, 선호 요일/시간/지역을 포함한 사용자 프로필 정보 조회 및 수정)
   - **Image Upload (이미지 업로드)**: Leverages `S3Client` to upload images directly to Cloudflare R2, generating public access URLs for database persistence. (`S3Client`를 활용하여 Cloudflare R2에 이미지 업로드 후, 외부 접근을 위한 URL 생성 및 DB 저장)
