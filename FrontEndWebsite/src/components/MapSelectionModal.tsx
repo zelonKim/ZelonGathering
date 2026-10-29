@@ -2,6 +2,7 @@ import React from "react";
 import { MapPin, X } from "lucide-react";
 import { GoogleMap, MarkerF } from "@react-google-maps/api";
 import { MapSelectionModalProps } from "@/types/MapSelectionModalProps";
+import { useMapSelectionModalLanguage } from "@/hooks/languages/useMapSelectionModalLanguage"; // 👈 훅 임포트
 
 export function MapSelectionModal({
   isOpen,
@@ -13,6 +14,8 @@ export function MapSelectionModal({
   setGatheringAddress,
   setGatheringPlace,
 }: MapSelectionModalProps) {
+  const { t } = useMapSelectionModalLanguage();
+
   if (!isOpen) return null;
 
   const handleMapClick = async (e: google.maps.MapMouseEvent) => {
@@ -29,23 +32,17 @@ export function MapSelectionModal({
       if (json.address) {
         setGatheringAddress(json.address);
       } else {
-        setGatheringAddress(
-          `선택된 위치: (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
-        );
+        setGatheringAddress(t.fallbackAddress(lat.toFixed(4), lng.toFixed(4)));
       }
     } catch (error) {
       console.error("주소 변환 실패:", error);
-      setGatheringAddress(
-        `선택된 위치: (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
-      );
+      setGatheringAddress(t.fallbackAddress(lat.toFixed(4), lng.toFixed(4)));
     }
   };
 
-  ///////////////////////////////////////////////////////////////
-
   const handleConfirm = () => {
     if (!selectedPlaceCoords) {
-      alert("지도에서 모임 장소를 먼저 터치해 주세요! 📍");
+      alert(t.alertNoSelection);
       return;
     }
     setGatheringPlace(gatheringAddress);
@@ -59,14 +56,12 @@ export function MapSelectionModal({
     selectedPlaceCoords?.longitude || location.longitude || 126.978,
   );
 
-  ///////////////////////////////////////////////////////////////
-
   return (
     <div className="fixed inset-0 bg-stone-950 z-100 flex flex-col justify-between p-4 md:p-6 animate-in fade-in duration-200">
       <div className="flex-1 bg-stone-900 rounded-2xl relative overflow-hidden border border-stone-800 flex flex-col shadow-inner">
         <div className="absolute top-4 left-4 bg-black/75 text-white px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 z-10 shadow-md backdrop-blur-sm">
           <MapPin className="w-3.5 h-3.5 text-[#FF7A59]" />
-          <span>원하는 모임 장소를 지도에서 터치해 주세요 📍</span>
+          <span>{t.instructionTag}</span>
         </div>
 
         <div className="w-full h-full">
@@ -90,7 +85,7 @@ export function MapSelectionModal({
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-4 right-4 bg-white/90 hover:bg-white text-stone-700 p-2 rounded-xl shadow-md z-10 transition"
+          className="absolute top-4 right-4 bg-white/90 hover:bg-white text-stone-700 p-2 rounded-xl shadow-md z-10 transition cursor-pointer"
         >
           <X className="w-4 h-4" />
         </button>
@@ -103,7 +98,7 @@ export function MapSelectionModal({
               <MapPin className="w-5 h-5 text-[#FF7A59] shrink-0 mt-0.5" />
               <div className="flex-1 min-w-0">
                 <span className="text-xs font-bold text-[#FF7A59] block mb-0.5">
-                  선택된 모임 장소
+                  {t.selectedTitle}
                 </span>
                 <p className="text-sm text-stone-800 font-medium break-keep">
                   {gatheringAddress}
@@ -114,7 +109,7 @@ export function MapSelectionModal({
             <div className="text-center py-2">
               <MapPin className="w-6 h-6 mx-auto text-[#FF7A59] animate-bounce" />
               <p className="flex flex-col items-center text-sm text-center text-stone-500 font-medium mt-1">
-                지도를 클릭하여 모임 장소에 핀을 꽂아주세요!
+                {t.emptyInstruction}
               </p>
             </div>
           )}
@@ -123,9 +118,9 @@ export function MapSelectionModal({
         <button
           type="button"
           onClick={handleConfirm}
-          className="w-full bg-[#FF7A59] hover:bg-[#e06848] active:scale-[0.99] text-white text-[15px] font-extrabold py-3.5 rounded-xl transition shadow-md block text-center"
+          className="w-full bg-[#FF7A59] hover:bg-[#e06848] active:scale-[0.99] text-white text-[15px] font-extrabold py-3.5 rounded-xl transition shadow-md block text-center cursor-pointer"
         >
-          이 장소로 지정하기
+          {t.confirmButton}
         </button>
       </div>
     </div>

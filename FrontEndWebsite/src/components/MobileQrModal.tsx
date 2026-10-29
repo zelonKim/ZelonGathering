@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { X, ScanQrCode } from "lucide-react";
 import { OS } from "@/types/ConfigOS";
-import { MOBILE_OS } from "./mobileOS";
 import { MobileQrModalProps } from "@/types/MobileQrModalProps";
+import { useQrModalLanguage } from "@/hooks/languages/useQrModalLanguage";
+import { getMobileOsConfig } from "./mobileOS";
 
 export function MobileQrModal({ isOpen, onClose }: MobileQrModalProps) {
+  const { t, locale } = useQrModalLanguage();
+  const MOBILE_OS = getMobileOsConfig(locale);
+
   const [activeTab, setActiveTab] = useState<OS>("android");
   const [qrErrors, setQrErrors] = useState<Record<OS, boolean>>({
     android: false,
@@ -39,10 +43,10 @@ export function MobileQrModal({ isOpen, onClose }: MobileQrModalProps) {
 
         <div className="text-center mt-3 mb-6">
           <h3 className="text-xl font-bold text-[#292524] tracking-tight">
-            Zelon Gathering 앱 설치
+            {t.title}
           </h3>
           <p className="text-xs font-semibold text-stone-400 mt-1.5">
-            스마트폰 카메라로 QR 코드를 스캔하세요
+            {t.subtitle}
           </p>
         </div>
 
@@ -72,7 +76,7 @@ export function MobileQrModal({ isOpen, onClose }: MobileQrModalProps) {
               <span className="text-[11px] font-bold text-stone-400 px-4 text-center leading-relaxed">
                 {currentConfig.label}
                 <br />
-                <span className="text-[#FF7A59]">QR 준비 중</span>
+                <span className="text-[#FF7A59]">{t.qrReady}</span>
               </span>
             ) : (
               <img

@@ -2,6 +2,7 @@ import React from "react";
 import { Layers } from "lucide-react";
 import { Day } from "@/types/Day";
 import { Time } from "@/types/Time";
+import { useCreateGatheringSelectorLanguage } from "@/hooks/languages/useCreateGatheringSelectorLanguage"; // 👈 훅 임포트
 
 export function CategorySelector({
   selected,
@@ -15,10 +16,12 @@ export function CategorySelector({
     { bg: string; text: string; emoji: string; label: string }
   >;
 }) {
+  const { t } = useCreateGatheringSelectorLanguage();
+
   return (
     <div>
       <label className="text-sm font-bold text-[#292524] block mb-2">
-        카테고리 선택
+        {t.categoryLabel}
       </label>
       <div className="flex flex-wrap gap-2.5">
         {Object.keys(categoryColors)
@@ -36,9 +39,10 @@ export function CategorySelector({
                     ? { backgroundColor: item.bg, color: item.text }
                     : {}
                 }
-                className="px-3 py-1.5 text-[13px] font-bold rounded-full bg-[#F2F0EC] text-[#78716C] transition"
+                className="cursor-pointer px-3 py-1.5 text-[13px] font-bold rounded-full bg-[#F2F0EC] text-[#78716C] transition"
               >
-                {item.emoji} {item.label}
+                {item.emoji}{" "}
+                {t.categories?.[key as keyof typeof t.categories] || item.label}
               </button>
             );
           })}
@@ -65,38 +69,34 @@ export function DistrictSelector({
     label: string;
   }[];
 }) {
+  const { t } = useCreateGatheringSelectorLanguage();
+
   return (
     <div>
-      <label className="mt-8 text-[13.5px] font-bold text-[#292524] block mb-2">
-        모임 지역 선택
+      <label className=" mt-6 text-[13.5px] font-bold text-[#292524] block mb-2">
+        {t.regionLabel}
       </label>
       <div className="flex bg-[#F2F0EC] p-1 rounded-xl mb-3">
         {(["SEOUL", "GYEONGGI", "OTHER"] as const).map((cityKey) => {
-          const tabLabel =
-            cityKey === "SEOUL"
-              ? "서울"
-              : cityKey === "GYEONGGI"
-                ? "경기"
-                : "기타 광역시/도";
           return (
             <button
               key={cityKey}
               type="button"
               onClick={() => setActiveTab(cityKey)}
-              className={`flex-1 text-sm py-2 text-center rounded-lg font-bold transition ${
+              className={`cursor-pointer flex-1 text-sm py-2 text-center rounded-lg font-bold transition ${
                 activeTab === cityKey
                   ? "bg-white text-[#FF7A59] shadow-sm"
                   : "text-[#78716C]"
               }`}
             >
-              {tabLabel}
+              {t.cityTabs[cityKey]}
             </button>
           );
         })}
       </div>
 
       <span className="text-[12.5px] font-bold text-[#78716C] block mb-2">
-        세부 지역 선택
+        {t.subRegionLabel}
       </span>
       <div className="flex flex-wrap gap-2 max-h-44 overflow-y-auto p-2 border border-dashed border-stone-200 rounded-xl bg-stone-50/50">
         {filteredDistricts.map((item) => {
@@ -106,13 +106,14 @@ export function DistrictSelector({
               key={item.key}
               type="button"
               onClick={() => onSelectDistrict(item.key)}
-              className={`text-[12.5px] px-3 py-1.5 rounded-xl font-semibold border transition ${
+              className={`cursor-pointer text-[12.5px] px-3 py-1.5 rounded-xl font-semibold border transition ${
                 isSelected
                   ? "bg-[#FFEBE5] border-[#FF7A59] text-[#FF7A59] font-black"
                   : "bg-white border-stone-200 text-[#78716C] hover:bg-stone-100"
               }`}
             >
-              {item.label}
+              {t.districts?.[item.key as keyof typeof t.districts] ||
+                item.label}
             </button>
           );
         })}
@@ -121,9 +122,7 @@ export function DistrictSelector({
   );
 }
 
-
 //////////////////////////////////////////////////////////////////////////////////////////////
-
 
 export function PlaceSelector({
   hasSelectedCoords,
@@ -136,28 +135,28 @@ export function PlaceSelector({
   gatheringPlace: string;
   setGatheringPlace: (val: string) => void;
 }) {
+  const { t } = useCreateGatheringSelectorLanguage();
+
   return (
     <div>
-      <label className="text-sm font-bold text-[#292524] block mb-1.5 mt-6">
-        모임 장소 지정
+      <label className="text-sm font-bold text-[#292524] block mb-1.5 mt-3">
+        {t.placeLabel}
       </label>
       <button
         type="button"
         onClick={onOpenMap}
-        className={`w-full flex items-center justify-center gap-1.5 p-3 rounded-xl text-sm font-bold border transition ${
+        className={`cursor-pointer hover:bg-[#FF7A59] hover:text-white w-full flex items-center justify-center gap-1.5 p-3 rounded-xl text-sm font-bold border transition ${
           hasSelectedCoords
             ? "bg-[#fa937a] border-[#FF7A59] text-white"
             : "bg-[#FFEBE5] border-[#FF7A59] text-[#FF7A59]"
         }`}
       >
         <Layers className="w-4 h-4" />
-        {hasSelectedCoords
-          ? "위치 지정 완료 (다시 선택)"
-          : "지도에서 모임 장소 찍기 📍"}
+        {hasSelectedCoords ? t.locationSetComplete : t.selectLocationOnMap}
       </button>
       <input
         type="text"
-        placeholder="상세 장소명을 입력해주세요"
+        placeholder={t.placePlaceholder}
         value={gatheringPlace}
         onChange={(e) => setGatheringPlace(e.target.value)}
         className="w-full bg-[#F5F5F4] p-3 rounded-xl text-sm font-semibold focus:outline-none mt-2 focus:ring-1 focus:ring-[#FF7A59]/95"
@@ -168,7 +167,6 @@ export function PlaceSelector({
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-
 export function DaySelector({
   selectedDays,
   onToggleDay,
@@ -178,10 +176,12 @@ export function DaySelector({
   onToggleDay: (day: Day) => void;
   dayItems: { key: string; label: string }[];
 }) {
+  const { t } = useCreateGatheringSelectorLanguage();
+
   return (
     <div>
-      <label className="text-sm font-bold text-[#292524] block mb-1.5 mt-10">
-        모임 요일 (중복 가능)
+      <label className="text-sm font-bold text-[#292524] block mb-1.5  mt-9">
+        {t.dayLabel}
       </label>
       <div className="gap-1.5 flex justify-around">
         {dayItems.map((day) => {
@@ -191,13 +191,13 @@ export function DaySelector({
               key={day.key}
               type="button"
               onClick={() => onToggleDay(day.key as Day)}
-              className={`w-10 h-10 rounded-full text-[13.5px] font-bold transition ${
+              className={`cursor-pointer w-10 h-10 rounded-full text-[13px] font-bold transition ${
                 isSel
                   ? "bg-[#FF7A59] text-white"
                   : "bg-[#F2F0EC] text-[#78716C]"
               }`}
             >
-              {day.label}
+              {t.days?.[day.key as keyof typeof t.days] || day.label}
             </button>
           );
         })}
@@ -205,7 +205,6 @@ export function DaySelector({
     </div>
   );
 }
-
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -225,24 +224,26 @@ export function TimeSelector({
     label: string;
   }[];
 }) {
+  const { t } = useCreateGatheringSelectorLanguage();
+
   return (
     <div>
-      <label className="text-sm font-bold text-[#292524] block mb-2 mt-4">
-        모임 시간대 (중복 가능)
+      <label className="text-sm font-bold text-[#292524] block mb-2 mt-8">
+        {t.timeLabel}
       </label>
-      <div className="flex bg-[#F2F0EC] p-1 rounded-xl mb-3">
+      <div className="flex bg-[#F2F0EC] p-1 rounded-xl mb-3 mt-3">
         {(["AM", "PM"] as const).map((timeType) => (
           <button
             key={timeType}
             type="button"
             onClick={() => setActiveTab(timeType)}
-            className={`flex-1 text-[13.5px] py-1.5 text-center rounded-lg font-bold transition ${
+            className={`cursor-pointer flex-1 text-[13.5px] py-1.5 text-center rounded-lg font-bold transition ${
               activeTab === timeType
                 ? "bg-white text-[#FF7A59]"
                 : "text-[#78716C]"
             }`}
           >
-            {timeType === "AM" ? "오전 (AM)" : "오후 (PM)"}
+            {timeType === "AM" ? t.am : t.pm}
           </button>
         ))}
       </div>
@@ -255,13 +256,13 @@ export function TimeSelector({
               key={time.key}
               type="button"
               onClick={() => onToggleTime(time.key as Time)}
-              className={`py-2 px-1 rounded-xl text-[13px] font-bold transition border text-center ${
+              className={`cursor-pointer py-2 px-1 rounded-xl text-[13px] font-bold transition border text-center ${
                 isTimeSel
                   ? "bg-[#FFEBE5] border-[#FF7A59] text-[#FF7A59] font-black shadow-sm"
                   : "bg-white border-stone-200 text-[#78716C] hover:bg-stone-50"
               }`}
             >
-              {time.label}
+              {t.times?.[time.key as keyof typeof t.times] || time.label}
             </button>
           );
         })}

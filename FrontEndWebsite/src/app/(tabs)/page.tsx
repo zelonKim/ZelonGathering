@@ -31,12 +31,15 @@ import { toggleArrayItem } from "@/utils/toggleArrayItem";
 import { GatheringWithDistance } from "@/types/Gathering";
 import { CreateGatheringModal } from "@/components/CreateGatheringModal";
 import { MapSelectionModal } from "@/components/MapSelectionModal";
+import { useHomeLanguage } from "@/hooks/languages/useHomeLanguage";
 
 export default function HomePage() {
   useJsApiLoader({
     id: "google-map-script",
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
   });
+
+  const { t } = useHomeLanguage();
 
   const router = useRouter();
 
@@ -197,17 +200,15 @@ export default function HomePage() {
       <header className="max-w-6xl mx-auto px-5 py-5 flex justify-between items-center border-b border-[#E7E5E4]">
         <div>
           <h1 className="text-3xl font-black text-[#FF7A59] tracking-tight">
-            Gathering
+            {t.title}
           </h1>
-          <p className="text-lg font-bold text-[#292524] mt-1 ">
-            📍 지금 내 주변 소모임
-          </p>
+          <p className="text-lg font-bold text-[#292524] mt-1 ">{t.subtitle}</p>
         </div>
 
         <div className="relative">
           <button
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className={`hover:border-orange-300 hover:bg-[#FF7A59]/60 w-10 h-10 rounded-xl flex items-center justify-center border transition ${
+            className={`cursor-pointer hover:border-orange-100 hover:bg-[#FF7A59]/50 w-10 h-10 rounded-xl flex items-center justify-center border transition ${
               isDropdownOpen
                 ? "bg-[#FF7A59]/90 border-[#FF7A59] text-white"
                 : "bg-[#FFEBE5] border-[#FF7A59]/20 text-[#FF7A59]"
@@ -226,7 +227,7 @@ export default function HomePage() {
                 <div className="flex items-center gap-1.5 border-b border-stone-100 pb-2 mb-2">
                   <CheckCircle className="w-4 h-4 text-[#FF7A59]" />
                   <span className="text-sm font-extrabold text-[#FF7A59]">
-                    내가 참여 중인 소모임
+                    {t.joinedTitle}
                   </span>
                 </div>
                 <div className="max-h-90 overflow-y-auto space-y-1">
@@ -251,7 +252,7 @@ export default function HomePage() {
                   )}
                   {myJoinedGatherings.length === 0 && (
                     <p className="text-xs text-center py-4 text-stone-400 font-medium">
-                      참여 중인 모임이 없습니다.
+                      {t.noJoined}
                     </p>
                   )}
                 </div>
@@ -276,17 +277,19 @@ export default function HomePage() {
                   setSelectedCategories,
                 )
               }
-              className={`px-4 py-1.5 rounded-full text-[13px] font-semibold border whitespace-nowrap transition ${
+              className={`cursor-pointer px-4 py-1.5 rounded-full text-[13px] font-semibold border whitespace-nowrap transition ${
                 selectedTypes.includes(filter)
                   ? "bg-[#FF7A59] border-[#FF7A59] text-white font-bold"
-                  : "bg-white border-[#E7E5E4] text-[#78716C]"
+                  : "bg-white border-[#E7E5E4] text-[#78716C] "
               }`}
             >
-              {filter}
+              {t.typeFilters[filter as keyof typeof t.typeFilters] ||
+                filter}{" "}
             </button>
           ))}
         </div>
 
+        {/* 카테고리 필터 렌더링 */}
         <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
           {CATEGORY_FILTERS.map((filter) => {
             const isActive = selectedCategories.includes(filter);
@@ -319,13 +322,15 @@ export default function HomePage() {
                       }
                     : {}
                 }
-                className={`px-3 py-1 rounded-lg text-[13px] font-semibold border transition whitespace-nowrap ${
+                className={`cursor-pointer px-3 py-1 rounded-lg text-[13px] font-semibold border transition whitespace-nowrap ${
                   isActive
                     ? "font-extrabold "
-                    : "bg-[#F2F0EC] border-[#F2F0EC] text-[#78716C]"
+                    : "bg-[#F2F0EC] border-[#F2F0EC] text-[#78716C] cursor-pointer"
                 }`}
               >
-                # {filter}
+                #{" "}
+                {t.categoryFilters[filter as keyof typeof t.categoryFilters] ||
+                  filter}{" "}
               </button>
             );
           })}
@@ -352,7 +357,7 @@ export default function HomePage() {
                 <div
                   key={item.id}
                   onClick={() => router.push(`/gatherings/${item.id}`)}
-                  className="bg-white hover:bg-orange-50 border border-[#E7E5E4] hover:scale-101  hover:border-orange-200 p-5 rounded-2xl shadow-xs hover:shadow-sm hover:shadow-orange-50 cursor-pointer transition flex flex-col justify-between"
+                  className="bg-white hover:bg-orange-50 border border-[#E7E5E4] hover:scale-101 hover:border-orange-400 p-5 rounded-2xl shadow-xs hover:shadow-sm hover:shadow-orange-50 cursor-pointer transition flex flex-col justify-between"
                 >
                   <div>
                     <div className="flex justify-between items-center mb-3">
@@ -366,7 +371,7 @@ export default function HomePage() {
                         {catTheme.emoji} {catTheme.label}
                       </span>
                       <span className="text-xs font-bold text-[#FF7A59]">
-                        {item.distanceStr || "위치 확인 중"}
+                        {item.distanceStr || t.distanceStrFallback}{" "}
                       </span>
                     </div>
                     <h3 className="text-[17px] font-bold text-gray-800 line-clamp-2 leading-snug mb-2">
@@ -385,14 +390,15 @@ export default function HomePage() {
 
         {!isCombinedLoading && gatherings.length === 0 && (
           <p className="text-center text-sm py-20 text-[#78716C] font-semibold">
-            주변에 열린 소모임방이 존재하지 않습니다
+            {t.noGathering}
           </p>
         )}
       </main>
 
+      {/* 모달 및 생성 버튼 코드는 기존과 동일하게 유지 */}
       <button
         onClick={() => setIsCreateModalOpen(true)}
-        className="fixed bottom-21 right-6 w-14 h-14 bg-[#FF7A59] text-white rounded-full flex items-center justify-center shadow-lg hover:bg-[#e06848] transition z-90 transform active:scale-95"
+        className="cursor-pointer fixed bottom-21 right-6 w-14 h-14 bg-[#FF7A59] text-white rounded-full flex items-center justify-center shadow-lg hover:bg-[#e06848] transition z-90 transform active:scale-95"
       >
         <Plus className="w-7 h-7" />
       </button>

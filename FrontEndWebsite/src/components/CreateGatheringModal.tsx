@@ -9,14 +9,17 @@ import {
   PlaceSelector,
   TimeSelector,
 } from "./CreateGatheringSelector";
+import { useCreateGatheringModalLanguage } from "@/hooks/languages/useCreateGatheringModalLanguage"; // 👈 전용 훅 임포트
 
 export function CreateGatheringModal({
   isOpen,
   onClose,
   formProps,
 }: CreateGatheringModalProps) {
+  const { t } = useCreateGatheringModalLanguage();
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="새로운 소모임 만들기 🍑">
+    <Modal isOpen={isOpen} onClose={onClose} title={t.modalTitle}>
       <form onSubmit={formProps.handleCreateSubmit} className="space-y-5">
         <CategorySelector
           selected={formProps.category}
@@ -25,12 +28,12 @@ export function CreateGatheringModal({
         />
 
         <div>
-          <label className="text-sm font-bold text-[#292524] block mb-1">
-            모임 제목
+          <label className="text-sm font-bold text-[#292524] block mb-3 mt-6">
+            {t.titleLabel}
           </label>
           <input
             type="text"
-            placeholder="예) 한강 러닝 모임"
+            placeholder={t.titlePlaceholder}
             value={formProps.title}
             onChange={(e) => formProps.setTitle(e.target.value)}
             className="w-full bg-[#F5F5F4] p-3 rounded-xl text-sm font-semibold focus:outline-none focus:ring-1 focus:ring-[#FF7A59]/95"
@@ -39,10 +42,10 @@ export function CreateGatheringModal({
 
         <div>
           <label className="text-sm font-bold text-[#292524] block mb-1">
-            모임 설명
+            {t.descriptionLabel}
           </label>
           <textarea
-            placeholder="모임의 상세 소개글을 작성해 주세요."
+            placeholder={t.descriptionPlaceholder}
             value={formProps.description}
             onChange={(e) => formProps.setDescription(e.target.value)}
             rows={3}
@@ -93,11 +96,11 @@ export function CreateGatheringModal({
 
         <div>
           <label className="text-sm font-bold text-[#292524] block mb-1 mt-6">
-            모임 정원 (명)
+            {t.maxParticipantsLabel}
           </label>
           <input
             type="number"
-            placeholder="최소 2명 ~ 최대 12명"
+            placeholder={t.maxParticipantsPlaceholder}
             value={formProps.maxParticipants}
             onChange={(e) => formProps.setMaxParticipants(e.target.value)}
             className="w-full bg-[#F5F5F4] p-3 rounded-xl text-sm font-semibold outline-none focus:ring-1 focus:ring-[#FF7A59]/95"
@@ -107,12 +110,12 @@ export function CreateGatheringModal({
         <button
           type="submit"
           disabled={formProps.isPending}
-          className="w-full bg-[#FF7A59] hover:bg-[#e06848] text-white py-4 rounded-xl text-[15px] font-extrabold transition shadow-md flex justify-center items-center mt-9"
+          className="w-full bg-[#FF7A59] hover:bg-[#e06848] text-white py-4 rounded-xl text-[15px] font-extrabold transition shadow-md flex justify-center items-center mt-9 cursor-pointer"
         >
           {formProps.isPending ? (
             <Loader2 className="w-5 h-5 animate-spin" />
           ) : (
-            "소모임방 개설하기 🚀"
+            t.submitButton
           )}
         </button>
       </form>

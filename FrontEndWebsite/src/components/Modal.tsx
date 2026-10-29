@@ -19,7 +19,7 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
           <button
             onClick={onClose}
             type="button"
-            className="p-1 hover:bg-stone-100 rounded-full transition"
+            className="cursor-pointer p-1 hover:bg-gray-100 rounded-full transition"
           >
             <X className="w-5 h-5 text-stone-600" />
           </button>

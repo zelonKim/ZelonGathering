@@ -9,6 +9,7 @@ import { getMyProfile } from "@/app/api/profile/getMyProfile";
 import { ChatMessage } from "@/types/ChatMessage";
 import { PrivateChatRoomDetail } from "@/types/PrivateChatRoomDetail";
 import { getPrivateMessages } from "@/app/api/chat/getPrivateMessages";
+import { usePrivateChatLanguage } from "@/hooks/languages/usePrivateChatLanguage"; // 👈 훅 임포트
 
 import { io, Socket } from "socket.io-client";
 
@@ -17,6 +18,7 @@ export default function PrivateChatPage() {
   const router = useRouter();
   const roomId = params?.id as string;
   const queryClient = useQueryClient();
+  const { t } = usePrivateChatLanguage();
 
   const [chatInput, setChatInput] = useState("");
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -28,8 +30,6 @@ export default function PrivateChatPage() {
   });
 
   const myId = myProfile?.id;
-
-  /////////////////////////////////////////////////////////
 
   useEffect(() => {
     if (!roomId || !myId) return;
@@ -66,8 +66,6 @@ export default function PrivateChatPage() {
     };
   }, [roomId, myId, queryClient]);
 
-  /////////////////////////////////////////////////////////////////////
-
   const {
     data: roomData,
     isLoading: isRoomLoading,
@@ -87,8 +85,6 @@ export default function PrivateChatPage() {
       : roomData.userA
     : null;
 
-  /////////////////////////////////////////////////////////////////////////
-
   const { data: chatMessages = [], isLoading: isMessagesLoading } = useQuery<
     ChatMessage[]
   >({
@@ -100,8 +96,6 @@ export default function PrivateChatPage() {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatMessages]);
-
-  /////////////////////////////////////////////////////////////////////////
 
   const handleSendMessage = () => {
     if (!chatInput.trim() || !socketRef.current || !myId) return;
@@ -122,12 +116,10 @@ export default function PrivateChatPage() {
     }
   };
 
-  /////////////////////////////////////////////////////////////////////////
-
   if (isRoomLoading) {
     return (
       <div className="relative top-1/2 -translate-y-1/2 p-12 text-[15px] text-center text-stone-400">
-        채팅방을 불러오는 중...
+        {t.loadingRoom}
       </div>
     );
   }
@@ -135,12 +127,10 @@ export default function PrivateChatPage() {
   if (isError || !partnerUser) {
     return (
       <div className="relative top-1/2 -translate-y-1/2 p-12 text-[15px] text-center text-stone-400">
-        채팅방을 찾을 수 없습니다.
+        {t.roomNotFound}
       </div>
     );
   }
-
-  /////////////////////////////////////////////////////////////////////////
 
   return (
     <div className="flex flex-col h-screen bg-[#F5F5F4]">
@@ -149,7 +139,7 @@ export default function PrivateChatPage() {
           <button
             type="button"
             onClick={() => router.push("/chats?tab=DM")}
-            className="p-1.5 hover:bg-stone-100 rounded-full transition"
+            className="cursor-pointer p-1.5 hover:bg-stone-100 rounded-full transition"
           >
             <ArrowLeft className="w-5 h-5 text-stone-700" />
           </button>
@@ -170,7 +160,8 @@ export default function PrivateChatPage() {
                 {partnerUser.nickname}
               </h2>
               <p className="text-[12px] font-semibold text-orange-500">
-                매너온도 {partnerUser.mannerTemperature ?? 36.5}°C
+                {t.mannerTemperature} {partnerUser.mannerTemperature ?? 36.5}
+                °C{" "}
               </p>
             </div>
           </div>
@@ -180,11 +171,11 @@ export default function PrivateChatPage() {
       <div className="flex-1 p-4 overflow-y-auto space-y-4 max-h-[calc(100vh-8rem)]">
         {isMessagesLoading ? (
           <div className="text-center py-12 text-[15px] text-stone-400">
-            대화 내역을 불러오는 중...
+            {t.loadingMessages}
           </div>
         ) : chatMessages.length === 0 ? (
           <div className="text-center py-12 text-[15px] font-semibold text-stone-400 whitespace-pre-line leading-relaxed">
-            💬 아직 주고 받은 대화가 없습니다. <br />첫 메시지를 보내보세요!
+            {t.emptyMessages}
           </div>
         ) : (
           chatMessages.map((msg) => {
@@ -250,13 +241,13 @@ export default function PrivateChatPage() {
           value={chatInput}
           onChange={(e) => setChatInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="메시지를 입력하세요"
+          placeholder={t.inputPlaceholder}
           className="flex-1 bg-[#F5F5F4] px-4 py-2.5 rounded-full text-sm font-semibold focus:outline-none focus:ring-1 focus:ring-[#FF7A59]"
         />
         <button
           type="submit"
           disabled={!chatInput.trim()}
-          className={`w-9 h-9 rounded-full flex items-center justify-center text-white transition shrink-0 ${
+          className={`cursor-pointer w-9 h-9 rounded-full flex items-center justify-center text-white transition shrink-0 ${
             chatInput.trim()
               ? "bg-[#FF7A59] hover:bg-[#E0684B]"
               : "bg-stone-200 cursor-not-allowed"

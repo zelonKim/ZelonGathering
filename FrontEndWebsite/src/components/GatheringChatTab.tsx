@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import { Send } from "lucide-react";
 import { PublicChatMessage } from "@/types/PublicChatMessage";
 import { GatheringChatTabProps } from "@/types/GatheringChatTabProps";
+import { useGatheringDetailLanguage } from "@/hooks/languages/useGatheringDetailLanguage";
 
 export function GatheringChatTab({
   chatMessages,
@@ -12,6 +13,8 @@ export function GatheringChatTab({
   isChatMessageSendPending,
   chatEndRef,
 }: GatheringChatTabProps) {
+  const { t } = useGatheringDetailLanguage();
+
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatMessages, chatEndRef]);
@@ -28,8 +31,7 @@ export function GatheringChatTab({
       <div className="flex-1 p-4 overflow-y-auto space-y-4 max-h-[calc(100vh-12rem)]">
         {chatMessages.length === 0 ? (
           <div className="text-center py-48 text-sm font-semibold text-stone-400 whitespace-pre-line leading-relaxed">
-            실시간 채팅방이 개설되었습니다! {"\n"} 모임원들과 첫 대화를
-            나눠보세요 💬
+            {t.chatWelcome}
           </div>
         ) : (
           [...chatMessages].reverse().map((msg: PublicChatMessage) => {
@@ -61,7 +63,7 @@ export function GatheringChatTab({
                 >
                   {!isMe && (
                     <span className="text-[10px] font-bold text-stone-400 mb-1">
-                      {msg.sender?.nickname || "멤버"}
+                      {msg.sender?.nickname}
                     </span>
                   )}
                   <div
@@ -93,7 +95,7 @@ export function GatheringChatTab({
           value={chatInput}
           onChange={(e) => setChatInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="메시지를 입력해주세요"
+          placeholder={t.chatPlaceholder}
           className="flex-1 bg-[#F5F5F4] px-4 py-2.5 rounded-full text-sm font-semibold focus:outline-none focus:ring-1 focus:ring-[#FF7A59]"
         />
         <button

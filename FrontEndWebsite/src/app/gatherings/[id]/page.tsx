@@ -24,8 +24,11 @@ import { useDeleteGathering } from "@/hooks/useDeleteGathering";
 import { useKickParticipant } from "@/hooks/useKickParticipant";
 import { GatheringInfoTab } from "@/components/GatheringInfoTab";
 import { GatheringChatTab } from "@/components/GatheringChatTab";
+import { useGatheringDetailLanguage } from "@/hooks/languages/useGatheringDetailLanguage";
 
 export default function GatheringDetailPage() {
+  const { t } = useGatheringDetailLanguage();
+
   const router = useRouter();
   const { id } = useParams() as { id: string };
   const searchParams = useSearchParams();
@@ -137,7 +140,7 @@ export default function GatheringDetailPage() {
     useJoinGathering(id);
 
   const handleJoinPress = () => {
-    if (confirm("정말로 이 소모임에 참여하시겠습니까?")) {
+    if (confirm(t.confirmJoin)) {
       joinGatheringMutation();
     }
   };
@@ -150,15 +153,11 @@ export default function GatheringDetailPage() {
 
   const handleOutAction = () => {
     if (isHost) {
-      if (
-        confirm(
-          "정말로 이 소모임을 삭제하시겠습니까?\n\n⚠️ 삭제 후 복구는 불가능합니다.",
-        )
-      ) {
+      if (confirm(t.confirmDelete)) {
         deleteGatheringMutation();
       }
     } else {
-      if (confirm("정말로 소모임 참여를 취소하고 나가시겠습니까?")) {
+      if (confirm(t.confirmLeave)) {
         leaveGatheringMutation();
       }
     }
@@ -169,7 +168,7 @@ export default function GatheringDetailPage() {
   const { mutate: kickParticipantMutation } = useKickParticipant(id);
 
   const handleKickPress = (targetUserId: string, nickname: string) => {
-    if (confirm(`정말로 '${nickname}' 멤버를 강퇴 하시겠습니까?`)) {
+    if (confirm(t.confirmKick(nickname))) {
       kickParticipantMutation(targetUserId);
     }
   };
@@ -179,9 +178,7 @@ export default function GatheringDetailPage() {
     return (
       <div className="flex flex-col h-[80vh] justify-center items-center bg-[#FBFBF9] gap-3">
         <Loader2 className="w-8 h-8 animate-spin text-[#FF7A59]" />
-        <p className="text-sm font-semibold text-[#78716C]">
-          소모임방에 입장하는 중입니다 🍑
-        </p>
+        <p className="text-sm font-semibold text-[#78716C]">{t.loadingText}</p>
       </div>
     );
   }
@@ -190,17 +187,15 @@ export default function GatheringDetailPage() {
     return (
       <div className="flex flex-col h-[80vh] justify-center items-center bg-[#FBFBF9] gap-3 px-6 text-center">
         <AlertCircle className="w-12 h-12 text-[#78716C]" />
-        <p className="text-sm font-semibold text-[#78716C]">
-          존재하지 않거나 이미 폐쇄된 소모임방입니다.
-        </p>
+        <p className="text-sm font-semibold text-[#78716C]">{t.errorTitle}</p>
         <button
           onClick={() => {
             queryClient.invalidateQueries({ queryKey: ["gatherings"] });
             router.replace("/");
           }}
-          className="bg-[#FF7A59] text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-sm transition"
+          className=" bg-[#FF7A59] text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-sm transition"
         >
-          대시보드로 돌아가기
+          {t.backButton}
         </button>
       </div>
     );
@@ -220,7 +215,7 @@ export default function GatheringDetailPage() {
       <header className="flex justify-between items-center px-4 py-3.5 bg-white border-b border-[#E7E5E4] shrink-0 sticky top-0 z-20">
         <button
           onClick={() => router.back()}
-          className="p-1 hover:bg-stone-100 rounded-full transition"
+          className="cursor-pointer p-1 hover:bg-stone-100 rounded-full transition"
         >
           <ChevronLeft className="w-6 h-6 text-[#292524]" />
         </button>
@@ -231,7 +226,7 @@ export default function GatheringDetailPage() {
         {canAccessChat ? (
           <button
             onClick={handleOutAction}
-            className="p-1.5 hover:bg-stone-100 rounded-full transition text-[#292524]"
+            className="cursor-pointer p-1.5 hover:bg-stone-100 rounded-full transition text-[#292524]"
           >
             {isHost ? (
               <Trash2 className="w-5 h-5" />
@@ -250,30 +245,26 @@ export default function GatheringDetailPage() {
           className={`flex-1 py-3 text-center text-[15px] font-bold transition-all border-b-[3px] ${
             activeTab === "INFO"
               ? "border-[#FF7A59] text-[#FF7A59] font-black"
-              : "border-transparent text-[#78716C]"
+              : "border-transparent text-[#78716C] cursor-pointer"
           }`}
         >
-          소모임 정보
+          {t.tabInfo}
         </button>
         <button
           onClick={() => {
             if (!canAccessChat) {
-              alert(
-                isKicked
-                  ? "강퇴된 소모임이므로 채팅방에 입장할 수 없습니다."
-                  : "소모임에 참여한 멤버만 채팅방에 입장할 수 있습니다.",
-              );
+              alert(`${t.chatAlertTitle}\n${t.chatAlertDesc}`);
               return;
             }
             setActiveTab("CHAT");
           }}
-          className={`flex-1 py-3 text-center text-[15px] font-bold transition-all border-b-[3px] ${
+          className={` flex-1 py-3 text-center text-[15px] font-bold transition-all border-b-[3px] ${
             activeTab === "CHAT"
               ? "border-[#FF7A59] text-[#FF7A59] font-black"
-              : "border-transparent text-[#78716C]"
+              : "border-transparent text-[#78716C] cursor-pointer"
           }`}
         >
-          소모임 채팅방
+          {t.tabChat}
         </button>
       </div>
 

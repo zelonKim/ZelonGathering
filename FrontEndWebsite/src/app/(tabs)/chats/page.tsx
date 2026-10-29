@@ -10,11 +10,13 @@ import { PrivateChatRoomListItem } from "../../../types/PrivateChatRoomListItem"
 import { getMyChats } from "@/app/api/chat/getMyChats";
 import { getMyPrivateChats } from "@/app/api/chat/getMyPrivateChatRooms";
 import { getMyProfile } from "@/app/api/profile/getMyProfile";
+import { useChatsPageLanguage } from "@/hooks/languages/useChatsPageLanguage";
 
 function ChatsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
+  const { t } = useChatsPageLanguage();
 
   const [activeTab, setActiveTab] = useState<"Gathering" | "DM">(
     tabParam === "DM" ? "DM" : "Gathering",
@@ -26,8 +28,6 @@ function ChatsContent() {
   });
 
   const myId = myProfile?.id;
-
-  ////////////////////////////////////////////////////////////////
 
   const {
     data: gatheringChats = [],
@@ -64,14 +64,10 @@ function ChatsContent() {
     return (
       <div className="flex flex-col flex-1 h-96 justify-center items-center bg-[#FBFBF9] gap-3">
         <AlertCircle className="w-12 h-12 text-[#78716C]" />
-        <p className="text-sm font-semibold text-[#78716C]">
-          채팅 목록을 가져오지 못했습니다.
-        </p>
+        <p className="text-sm font-semibold text-[#78716C]">{t.errorText}</p>
       </div>
     );
   }
-
-  //////////////////////////////////////////////////////////////////////////////
 
   return (
     <div className="w-full bg-[#FBFBF9] min-h-screen max-w-5xl mx-auto">
@@ -80,31 +76,29 @@ function ChatsContent() {
           <h1 className="text-3xl font-black text-[#FF7A59] tracking-tight">
             Chatting
           </h1>
-          <p className="text-lg font-bold text-gray-900 mt-1 ">
-            👋 우리들의 실시간 대화
-          </p>
+          <p className="text-lg font-bold text-gray-900 mt-1 ">{t.subtitle}</p>
         </div>
 
         <div className="flex flex-row justify-center w-full border-b border-[#E7E5E4] mt-4">
           <button
             onClick={() => setActiveTab("Gathering")}
-            className={`flex-1 pb-2 font-bold text-base text-center transition ${
+            className={`flex-1 pb-2 font-bold text-base text-center transition cursor-pointer ${
               activeTab === "Gathering"
                 ? "text-[#FF7A59] border-b-2 border-[#FF7A59]"
-                : "text-[#78716C]"
+                : "text-[#78716C] hover:text-gray-600"
             }`}
           >
-            💬 소모임 채팅
+            {t.tabGathering}
           </button>
           <button
             onClick={() => setActiveTab("DM")}
-            className={`flex-1 pb-2 font-bold text-base text-center transition ${
+            className={`flex-1 pb-2 font-bold text-base text-center transition cursor-pointer ${
               activeTab === "DM"
                 ? "text-[#FF7A59] border-b-2 border-[#FF7A59]"
-                : "text-[#78716C]"
+                : "text-[#78716C] hover:text-gray-600"
             }`}
           >
-            👤 DM
+            {t.tabDm}
           </button>
         </div>
       </header>
@@ -119,7 +113,7 @@ function ChatsContent() {
               <div
                 key={item.id}
                 onClick={() => router.push(`/gatherings/${item.id}?tab=CHAT`)}
-                className="flex items-center bg-white p-3 rounded-[20px] border border-[#E7E5E4] cursor-pointer shadow-xs hover:shadow-sm hover:shadow-orange-50 hover:border-orange-400 active:scale-[0.99] transition"
+                className="flex items-center hover:bg-orange-50 duration-100 hover:scale-101 bg-white p-3 rounded-[20px] border border-[#E7E5E4] cursor-pointer shadow-xs hover:shadow-sm hover:shadow-orange-50 hover:border-orange-400 active:scale-[0.99] transition"
               >
                 <div
                   style={{ backgroundColor: theme?.bg }}
@@ -142,8 +136,7 @@ function ChatsContent() {
                       item.unreadCount > 0 ? "text-[#292524] font-semibold" : ""
                     }`}
                   >
-                    {item.lastMessage ||
-                      "아직 주고받은 대화가 없습니다. 첫 인사를 건네보세요!"}
+                    {item.lastMessage || t.defaultLastMessage}{" "}
                   </p>
                 </div>
 
@@ -165,7 +158,7 @@ function ChatsContent() {
               <div
                 key={room.id}
                 onClick={() => router.push(`/DM/${room.id}`)}
-                className="flex items-center bg-white p-3 rounded-[20px] border border-[#E7E5E4] cursor-pointer shadow-xs hover:shadow-sm hover:shadow-orange-50 hover:border-orange-400 active:scale-[0.99] transition"
+                className="hover:bg-orange-50 duration-100 hover:scale-101 flex items-center bg-white p-3 rounded-[20px] border border-[#E7E5E4] cursor-pointer shadow-xs hover:shadow-sm hover:shadow-orange-50 hover:border-orange-400 active:scale-[0.99] transition"
               >
                 <div className="w-13 h-13 rounded-[18px] overflow-hidden bg-stone-100 flex justify-center items-center shrink-0">
                   {partner?.profileImg ? (
@@ -194,7 +187,7 @@ function ChatsContent() {
                     </span>
                   </div>
                   <p className="text-sm text-[#78716C] truncate">
-                    {lastMsg?.message || "대화를 시작해 보세요!"}
+                    {lastMsg?.message || t.defaultDmMessage}{" "}
                   </p>
                 </div>
               </div>
@@ -204,20 +197,18 @@ function ChatsContent() {
 
       {activeTab === "Gathering" && gatheringChats.length === 0 && (
         <div className="flex flex-col gap-3 items-center text-center text-[15px] font-bold text-[#78716C] pt-20 leading-[22px]">
-          <span>현재 참여 중인 소모임 채팅방이 없습니다.</span>
+          <span>{t.emptyGathering}</span>
         </div>
       )}
 
       {activeTab === "DM" && privateChats.length === 0 && (
         <div className="flex flex-col gap-3 items-center text-center text-[15px] font-bold text-[#78716C] pt-20 leading-[22px]">
-          <span>진행 중인 1:1 대화가 없습니다.</span>
+          <span>{t.emptyDm}</span>
         </div>
       )}
     </div>
   );
 }
-
-//////////////////////////////////////////////////////////////////////////////
 
 export default function ChatsPage() {
   return (

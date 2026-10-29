@@ -25,11 +25,16 @@ import { District } from "@/types/District";
 import { Day } from "@/types/Day";
 import { Time } from "@/types/Time";
 import { useUploadProfileImage } from "@/hooks/useUploadImage";
+import { useProfilePageLanguage } from "@/hooks/languages/useProfilePageLanguage";
+import { useCreateGatheringSelectorLanguage } from "@/hooks/languages/useCreateGatheringSelectorLanguage";
 
 export default function ProfilePage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const { t } = useProfilePageLanguage();
+  const { t: selectorT } = useCreateGatheringSelectorLanguage();
 
   const [nickname, setNickname] = useState("");
   const [age, setAge] = useState("");
@@ -78,14 +83,12 @@ export default function ProfilePage() {
     }
   }, [profileData]);
 
-  ////////////////////////////////////////////////////////////////////////
-
   const { mutate: updateProfileMutation, isPending: isUpdateProfilePending } =
     useUpdateProfile();
 
   const handleSaveProfile = () => {
     if (!nickname.trim()) {
-      alert("닉네임을 입력해주세요.");
+      alert(t.alertNickname);
       return;
     }
 
@@ -106,8 +109,6 @@ export default function ProfilePage() {
     updateProfileMutation(payload);
   };
 
-  ////////////////////////////////////////////////////////////////////////
-
   const { mutate: uploadImageMutation, isPending: isUploadImagePending } =
     useUploadProfileImage();
 
@@ -116,7 +117,7 @@ export default function ProfilePage() {
     if (!file) return;
 
     if (file.size > 5 * 1024 * 1024) {
-      alert("파일 크기는 5MB 이하이어야 합니다.");
+      alert(t.fileSizeError);
       return;
     }
 
@@ -128,8 +129,6 @@ export default function ProfilePage() {
     });
   };
 
-  ////////////////////////////////////////////////////////////////////////
-
   const handleRemoveImage = (e: React.MouseEvent) => {
     e.stopPropagation();
     setProfileImg("");
@@ -138,22 +137,19 @@ export default function ProfilePage() {
     }
   };
 
-  ////////////////////////////////////////////////////////////////////////
-
   const handleLogoutClick = async () => {
-    if (confirm("정말 로그아웃 하시겠습니까?")) {
+    if (confirm(t.logoutConfirm)) {
+      // 👈 다국어 적용
       try {
         await removeAccessToken();
         queryClient.clear();
         router.replace("/login");
       } catch (err) {
         console.log(err);
-        alert("로그아웃 처리 중 오류가 발생했습니다.");
+        alert(t.logoutError);
       }
     }
   };
-
-  ///////////////////////////////////////////////////////////////////////
 
   if (isGetProfileLoading) {
     return (
@@ -167,14 +163,12 @@ export default function ProfilePage() {
     return (
       <div className="flex flex-col flex-1 h-[70vh] justify-center items-center bg-[#FBFBF9] gap-2 p-6 text-center">
         <AlertCircle className="w-10 h-10 text-stone-400" />
-        <p className="text-sm font-semibold text-[#78716C]">
-          프로필을 불러오지 못했습니다. 다시 시도해 주세요.
-        </p>
+        <p className="text-sm font-semibold text-[#78716C]">{t.errorTitle}</p>
         <button
           onClick={() => router.push("/login")}
-          className="mt-2 text-xs text-[#FF7A59] font-bold underline"
+          className="mt-2 text-xs text-[#FF7A59] font-bold underline cursor-pointer"
         >
-          로그인 화면으로 이동
+          {t.loginMove}
         </button>
       </div>
     );
@@ -188,25 +182,23 @@ export default function ProfilePage() {
     (item) => item.type === activeTimeType,
   );
 
-  ////////////////////////////////////////////////////////////////////////
-
   return (
-    <div className=" min-h-screen px-4 pb-12 max-w-4xl mx-auto ">
+    <div className="min-h-screen px-4 pb-12 max-w-4xl mx-auto">
       <header className="py-4 flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-black text-[#FF7A59] tracking-tight">
             My Profile
           </h1>
           <p className="text-lg font-bold text-[#292524] mt-0.5">
-            ✏️ 나의 소모임 취향 프로필
+            {t.subtitle}
           </p>
         </div>
         <button
           onClick={handleLogoutClick}
-          className="flex items-center gap-1 text-xs font-bold text-[#78716C] bg-[#F2F0EC] hover:bg-red-50 hover:text-red-500 px-3 py-2 rounded-xl transition"
+          className="cursor-pointer flex items-center gap-1 text-xs font-bold text-[#78716C] bg-[#F2F0EC] hover:bg-red-50 hover:text-red-500 px-3 py-2 rounded-xl transition"
         >
           <LogOut className="w-3.5 h-3.5" />
-          <span>로그아웃</span>
+          <span>{t.logoutButton}</span>
         </button>
       </header>
 
@@ -224,7 +216,7 @@ export default function ProfilePage() {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="relative w-24 h-24 rounded-[28px] bg-[#FFEBE5] overflow-hidden flex items-center justify-center group"
+              className="cursor-pointer relative w-24 h-24 rounded-[28px] bg-[#FFEBE5] overflow-hidden flex items-center justify-center group"
             >
               {isUploadImagePending ? (
                 <Loader2 className="w-6 h-6 animate-spin text-[#FF7A59]" />
@@ -247,7 +239,7 @@ export default function ProfilePage() {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className=" absolute -bottom-1 -right-1 bg-[#292524] hover:bg-black text-white w-6 h-6 rounded-xl flex items-center justify-center shadow-md transition-colors"
+                className="cursor-pointer absolute -bottom-1 -right-1 bg-[#292524] hover:bg-black text-white w-6 h-6 rounded-xl flex items-center justify-center shadow-md transition-colors"
               >
                 <Camera className="w-3 h-3" />
               </button>
@@ -257,7 +249,7 @@ export default function ProfilePage() {
               <button
                 type="button"
                 onClick={handleRemoveImage}
-                className="absolute -top-1 -right-1 bg-gray-500 hover:bg-gray-700 text-white w-6 h-6 rounded-full flex items-center justify-center shadow-md transition-colors"
+                className="cursor-pointer absolute -top-1 -right-1 bg-gray-500 hover:bg-gray-700 text-white w-6 h-6 rounded-full flex items-center justify-center shadow-md transition-colors"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -266,45 +258,50 @@ export default function ProfilePage() {
 
           <div className="mt-3 flex items-center bg-orange-50 text-orange-500 px-3 py-1 rounded-full gap-1 text-xs font-bold">
             <Thermometer className="w-3.5 h-3.5" />
-            <span>매너 온도 {profileData?.mannerTemperature ?? 36.5}°C</span>
+            <span>
+              {t.mannerTemp} {profileData?.mannerTemperature ?? 36.5}°C
+            </span>{" "}
           </div>
         </div>
 
         <div className="bg-white rounded-3xl p-5 border border-[#E7E5E4] space-y-3.5">
-          <h2 className="text-md font-extrabold text-[#292524]">기본 정보</h2>
-
+          <h2 className="text-md font-extrabold text-[#292524]">
+            {t.basicInfo}
+          </h2>{" "}
           <div className="ml-1 flex items-center border-b border-stone-100 pb-2.5">
             <span className="w-24 text-sm font-bold text-[#78716C]">
-              닉네임
+              {t.nicknameLabel}
             </span>
             <input
               type="text"
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
-              placeholder="닉네임을 입력하세요"
+              placeholder={t.nicknamePlaceholder}
               className="flex-1 text-sm font-semibold text-[#292524] outline-none placeholder:text-stone-300"
             />
           </div>
-
           <div className="ml-1 flex items-center border-b border-stone-100 pb-2.5">
-            <span className="w-24 text-sm font-bold text-[#78716C]">나이</span>
+            <span className="w-24 text-sm font-bold text-[#78716C]">
+              {t.ageLabel}
+            </span>
             <input
               type="text"
               value={age}
               onChange={(e) => setAge(e.target.value.replace(/[^0-9]/g, ""))}
-              placeholder="나이를 입력하세요"
+              placeholder={t.agePlaceholder}
               maxLength={2}
               className="flex-1 text-sm font-semibold text-[#292524] outline-none placeholder:text-stone-300"
             />
           </div>
-
           <div className="ml-1 flex items-center border-b border-stone-100 pb-2.5">
-            <span className="w-24 text-sm font-bold text-[#78716C]">MBTI</span>
+            <span className="w-24 text-sm font-bold text-[#78716C]">
+              {t.mbtiLabel}
+            </span>
             <input
               type="text"
               value={mbti}
               onChange={(e) => setMbti(e.target.value)}
-              placeholder="MBTI를 입력하세요"
+              placeholder={t.mbtiPlaceholder}
               maxLength={4}
               className="flex-1 text-sm font-semibold text-[#292524] outline-none uppercase placeholder:text-stone-300"
             />
@@ -313,17 +310,17 @@ export default function ProfilePage() {
 
         <div className="bg-white rounded-3xl p-5 border border-[#E7E5E4] space-y-4">
           <h2 className="text-md font-extrabold text-[#292524]">
-            나의 취향 키워드
+            {t.tasteKeyword}
           </h2>
 
           <div className="space-y-1.5">
             <span className="ml-1 text-sm font-bold text-[#78716C] block">
-              내가 좋아하는 것
+              {t.favoriteLabel}
             </span>
             <textarea
               value={favorite}
               onChange={(e) => setFavorite(e.target.value)}
-              placeholder="자신이 좋아하는 것을 입력하세요."
+              placeholder={t.favoritePlaceholder}
               rows={2}
               className="w-full bg-[#F8F6F4] rounded-xl p-3 text-sm font-medium text-[#292524] outline-none resize-none"
             />
@@ -331,12 +328,12 @@ export default function ProfilePage() {
 
           <div className="space-y-1.5">
             <span className="ml-1 text-sm font-bold text-[#78716C] block">
-              내가 싫어하는 것
+              {t.hateLabel}
             </span>
             <textarea
               value={hate}
               onChange={(e) => setHate(e.target.value)}
-              placeholder="자신이 싫어하는 것을 입력하세요."
+              placeholder={t.hatePlaceholder}
               rows={2}
               className="w-full bg-[#F8F6F4] rounded-xl p-3 text-sm font-medium text-[#292524] outline-none resize-none"
             />
@@ -345,16 +342,22 @@ export default function ProfilePage() {
 
         <div className="bg-white rounded-3xl p-5 border border-[#E7E5E4] space-y-4">
           <h2 className="text-md font-extrabold text-[#292524]">
-            나의 선호 모임 및 지역
+            {t.preferGatheringAndRegion}
           </h2>
 
           <div>
             <span className="text-sm font-bold text-[#78716C] block mb-2">
-              관심 카테고리
+              {t.categoryLabel}
             </span>
             <div className="flex flex-wrap gap-2">
               {CATEGORY_ITEMS.map((cat) => {
                 const isSelected = preferCategory.includes(cat.key as Category);
+                // 셀렉터 훅에 정의된 카테고리 라벨 활용
+                const displayCategoryLabel =
+                  selectorT.categories?.[
+                    cat.key as keyof typeof selectorT.categories
+                  ] || cat.label;
+
                 return (
                   <button
                     key={cat.key}
@@ -366,13 +369,13 @@ export default function ProfilePage() {
                           : [...preferCategory, cat.key],
                       )
                     }
-                    className={`text-[13px] px-3 py-1.5 rounded-xl font-semibold transition ${
+                    className={`cursor-pointer text-[13px] px-3 py-1.5 rounded-xl font-semibold transition ${
                       isSelected
                         ? "bg-[#FF7A59] text-white"
                         : "bg-[#F2F0EC] text-[#78716C]"
                     }`}
                   >
-                    {cat.label}
+                    {displayCategoryLabel}
                   </button>
                 );
               })}
@@ -381,29 +384,23 @@ export default function ProfilePage() {
 
           <div className="pt-2">
             <span className="text-[15px] font-bold text-[#78716C] block mb-2">
-              활동 선호 지역
+              {t.regionLabel}
             </span>
 
             <div className="flex bg-[#F2F0EC] p-1 rounded-xl mb-3">
               {(["SEOUL", "GYEONGGI", "OTHER"] as const).map((city) => {
-                const label =
-                  city === "SEOUL"
-                    ? "서울"
-                    : city === "GYEONGGI"
-                      ? "경기"
-                      : "기타 지역";
                 return (
                   <button
                     key={city}
                     type="button"
                     onClick={() => setActiveCity(city)}
-                    className={`flex-1 text-[13.5px] py-2 text-center rounded-lg font-bold transition ${
+                    className={`cursor-pointer flex-1 text-[13.5px] py-2 text-center rounded-lg font-bold transition ${
                       activeCity === city
                         ? "bg-white text-[#FF7A59] shadow-sm"
                         : "text-[#78716C]"
                     }`}
                   >
-                    📍 {label}
+                    📍 {t.cityTabs[city]}
                   </button>
                 );
               })}
@@ -414,6 +411,12 @@ export default function ProfilePage() {
                 const isDistSelected = preferDistrict.includes(
                   item.key as District,
                 );
+                // 셀렉터 훅에 정의된 지역 라벨 활용
+                const displayDistrictLabel =
+                  selectorT.districts?.[
+                    item.key as keyof typeof selectorT.districts
+                  ] || item.label;
+
                 return (
                   <button
                     key={item.key}
@@ -425,13 +428,13 @@ export default function ProfilePage() {
                           : [...preferDistrict, item.key],
                       )
                     }
-                    className={`text-[13px] px-3 py-1.5 rounded-xl font-semibold border transition ${
+                    className={`cursor-pointer text-[13px] px-3 py-1.5 rounded-xl font-semibold border transition ${
                       isDistSelected
                         ? "bg-[#FFEBE5] border-[#FF7A59] text-[#FF7A59] font-bold"
                         : "bg-[#F2F0EC] border-transparent text-[#78716C]"
                     }`}
                   >
-                    {item.label}
+                    {displayDistrictLabel}
                   </button>
                 );
               })}
@@ -441,16 +444,20 @@ export default function ProfilePage() {
 
         <div className="bg-white rounded-3xl p-5 border border-[#E7E5E4] space-y-5">
           <h2 className="text-md font-extrabold text-[#292524]">
-            나의 선호 일정
+            {t.preferSchedule}
           </h2>
 
           <div>
             <span className="text-[13.5px] font-bold text-[#78716C] block mb-2">
-              선호 요일
+              {t.dayLabel}
             </span>
             <div className="flex justify-between mx-2 gap-1">
               {DAY_ITEMS.map((day) => {
                 const isSelected = preferDay.includes(day.key as Day);
+                const displayDayLabel =
+                  selectorT.days?.[day.key as keyof typeof selectorT.days] ||
+                  day.label;
+
                 return (
                   <button
                     key={day.key}
@@ -462,13 +469,13 @@ export default function ProfilePage() {
                           : [...preferDay, day.key],
                       )
                     }
-                    className={` w-9 h-9 rounded-full text-[14px] font-bold transition flex items-center justify-center ${
+                    className={`cursor-pointer w-9 h-9 rounded-full text-[14px] font-bold transition flex items-center justify-center ${
                       isSelected
                         ? "bg-[#FF7A59] text-white"
                         : "bg-[#F2F0EC] text-[#78716C]"
                     }`}
                   >
-                    {day.label}
+                    {displayDayLabel}
                   </button>
                 );
               })}
@@ -477,7 +484,7 @@ export default function ProfilePage() {
 
           <div>
             <span className="text-sm font-bold text-[#78716C] block mb-2">
-              선호 시간대
+              {t.timeLabel}
             </span>
             <div className="flex bg-[#F2F0EC] p-1 rounded-xl mb-3">
               {(["AM", "PM"] as const).map((type) => (
@@ -485,13 +492,13 @@ export default function ProfilePage() {
                   key={type}
                   type="button"
                   onClick={() => setActiveTimeType(type)}
-                  className={`flex-1 text-[13.5px] py-1.5 text-center rounded-lg font-bold transition ${
+                  className={`cursor-pointer flex-1 text-[13.5px] py-1.5 text-center rounded-lg font-bold transition ${
                     activeTimeType === type
                       ? "bg-white text-[#FF7A59]"
                       : "text-[#78716C]"
                   }`}
                 >
-                  {type === "AM" ? "오전 (AM)" : "오후 (PM)"}
+                  {t.amPm[type]}
                 </button>
               ))}
             </div>
@@ -499,6 +506,10 @@ export default function ProfilePage() {
             <div className="flex flex-wrap gap-2">
               {filteredTimes.map((time) => {
                 const isSelected = preferTime.includes(time.key as Time);
+                const displayTimeLabel =
+                  selectorT.times?.[time.key as keyof typeof selectorT.times] ||
+                  time.label;
+
                 return (
                   <button
                     key={time.key}
@@ -510,13 +521,13 @@ export default function ProfilePage() {
                           : [...preferTime, time.key],
                       )
                     }
-                    className={`text-[13px] px-3 py-1.5 rounded-xl font-semibold transition ${
+                    className={`cursor-pointer text-[13px] px-3 py-1.5 rounded-xl font-semibold transition ${
                       isSelected
                         ? "bg-[#FF7A59] text-white font-bold"
                         : "bg-[#F2F0EC] text-[#78716C]"
                     }`}
                   >
-                    {time.label}
+                    {displayTimeLabel}
                   </button>
                 );
               })}
@@ -528,12 +539,12 @@ export default function ProfilePage() {
           type="button"
           onClick={handleSaveProfile}
           disabled={isUpdateProfilePending || isUploadImagePending}
-          className="mt-9 w-full bg-[#292524] hover:bg-black active:scale-[0.99] text-white py-4 rounded-xl text-sm font-bold flex justify-center items-center transition disabled:opacity-70 shadow-md"
+          className="cursor-pointer mt-9 w-full bg-[#292524] hover:bg-black active:scale-[0.99] text-white py-4 rounded-xl text-sm font-bold flex justify-center items-center transition disabled:opacity-70 shadow-md"
         >
           {isUpdateProfilePending ? (
             <Loader2 className="w-5 h-5 animate-spin" />
           ) : (
-            "프로필 저장하기"
+            t.saveButton
           )}
         </button>
       </div>

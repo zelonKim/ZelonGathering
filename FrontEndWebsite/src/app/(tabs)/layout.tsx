@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Bell, Home, MessageCircleMore, User } from "lucide-react";
+import { useTabsLanguage } from "@/hooks/languages/useTabsLanguage";
 
 export default function TabsLayout({
   children,
@@ -11,25 +12,26 @@ export default function TabsLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const { t } = useTabsLanguage();
 
   const tabs = [
     {
-      name: "홈",
+      name: t.home,
       href: "/",
       icon: Home,
     },
     {
-      name: "채팅",
+      name: t.chats,
       href: "/chats",
       icon: MessageCircleMore,
     },
     {
-      name: "매칭 알림",
+      name: t.matching,
       href: "/matching",
       icon: Bell,
     },
     {
-      name: "프로필",
+      name: t.profile,
       href: "/profile",
       icon: User,
     },
@@ -42,7 +44,7 @@ export default function TabsLayout({
       </main>
 
       <nav className="fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-[#E5E5EA] z-50 shadow-[0_-2px_10px_rgba(0,0,0,0.03)]">
-        <div className="w-full max-w-5xl mx-auto h-full flex items-center justify-around px-2">
+        <div className=" w-full max-w-5xl mx-auto h-full flex items-center justify-around px-2">
           {tabs.map((tab) => {
             const isActive = pathname === tab.href;
             const IconComponent = tab.icon;
@@ -55,16 +57,20 @@ export default function TabsLayout({
               >
                 <div className="relative p-1">
                   <IconComponent
-                    className={`w-6 h-6 transition-transform duration-200 group-active:scale-95 ${
-                      isActive ? "text-[#FF7A59]" : "text-[#8E8E93]"
+                    className={`w-6 h-6 transition-colors   ${
+                      isActive
+                        ? "text-[#FF7A59] "
+                        : "text-[#8E8E93] group-hover:text-gray-600"
                     }`}
                     strokeWidth={isActive ? 2.5 : 2}
                   />
                 </div>
 
                 <span
-                  className={`text-[10px] mt-1 font-bold transition-colors ${
-                    isActive ? "text-[#FF7A59]" : "text-[#8E8E93]"
+                  className={`text-[10px]  font-bold transition-colors  ${
+                    isActive
+                      ? "text-[#FF7A59] "
+                      : "text-[#8E8E93] group-hover:text-gray-600"
                   }`}
                 >
                   {tab.name}

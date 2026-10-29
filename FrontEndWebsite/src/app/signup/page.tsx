@@ -4,8 +4,11 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { useSignup } from "@/hooks/useSignup";
+import { useSignupLanguage } from "@/hooks/languages/useSignupLanguage";
 
 export default function SignupPage() {
+  const { t } = useSignupLanguage();
+
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -56,6 +59,7 @@ export default function SignupPage() {
       <div className="w-full max-w-md bg-[#FBFBF9] flex flex-col h-full">
         <header className="h-14 flex items-center justify-start">
           <button
+            type="button"
             onClick={() => router.back()}
             disabled={signupPending}
             className="cursor-pointer p-2 hover:bg-stone-200/50 rounded-full transition disabled:opacity-50"
@@ -67,24 +71,24 @@ export default function SignupPage() {
         <main className="flex-1 flex flex-col justify-center px-4 pt-4 pb-20">
           <section className="my-10">
             <h1 className="text-3xl font-black tracking-tight text-[#292524]">
-              하이루 👋
+              {t.greeting}
             </h1>
             <p className="text-[15px] font-semibold text-[#78716C] mt-2">
-              가입하고, 새로운 사람들과 인사해봐요.
+              {t.subGreeting}
             </p>
           </section>
 
           <div className="flex flex-col gap-[18px]">
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-bold text-[#78716C]">
-                이메일 계정
+                {t.emailLabel}
               </label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="example@zelon.com"
+                placeholder={t.emailPlaceholder}
                 disabled={signupPending}
                 className="w-full bg-white border border-[#E7E5E4] rounded-[14px] px-4 py-3.5 text-base font-semibold text-[#292524] placeholder-[#8d8d8d9b] focus:outline-none focus:ring-2 focus:ring-[#FF7A59]/20 focus:border-[#FF7A59] transition disabled:bg-stone-100"
               />
@@ -92,14 +96,14 @@ export default function SignupPage() {
 
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-bold text-[#78716C]">
-                비밀번호
+                {t.passwordLabel}
               </label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="영문, 숫자 포함 8자 이상"
+                placeholder={t.passwordPlaceholder}
                 disabled={signupPending}
                 className="w-full bg-white border border-[#E7E5E4] rounded-[14px] px-4 py-3.5 text-base font-semibold text-[#292524] placeholder-[#8d8d8d9b] focus:outline-none focus:ring-2 focus:ring-[#FF7A59]/20 focus:border-[#FF7A59] transition disabled:bg-stone-100"
               />
@@ -107,14 +111,14 @@ export default function SignupPage() {
 
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-bold text-[#78716C]">
-                비밀번호 확인
+                {t.passwordConfirmLabel}
               </label>
               <input
                 type="password"
                 value={passwordConfirm}
                 onChange={(e) => setPasswordConfirm(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="비밀번호를 한번 더 입력해 주세요"
+                placeholder={t.passwordConfirmPlaceholder}
                 disabled={signupPending}
                 className="w-full bg-white border border-[#E7E5E4] rounded-[14px] px-4 py-3.5 text-base font-semibold text-[#292524] placeholder-[#8d8d8d9b] focus:outline-none focus:ring-2 focus:ring-[#FF7A59]/20 focus:border-[#FF7A59] transition disabled:bg-stone-100"
               />
@@ -129,7 +133,7 @@ export default function SignupPage() {
               {signupPending ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
-                <div className="text-base">가입하기</div>
+                <div className="text-base">{t.signupButton}</div>
               )}
             </button>
           </div>
